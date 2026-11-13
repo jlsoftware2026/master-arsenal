@@ -7,6 +7,7 @@ import platform
 import re
 import sys
 import tempfile
+import threading
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
@@ -26,6 +27,8 @@ DIRECTORIES = (
 )
 STATES = ("inbox", "validated", "awaiting_approval", "running", "completed", "failed", "cancelled", "archive")
 JOB_ID_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$", re.I)
+_LOCAL_LOCKS: dict[str, threading.Lock] = {}
+_LOCAL_LOCKS_GUARD = threading.Lock()
 
 
 class Workspace:
@@ -68,7 +71,10 @@ class JobManager:
     def _workspace_lock(self) -> Iterator[None]:
         """Serialize lifecycle operations across processes on this local workspace."""
         lock_path = self.workspace.directory("logs") / "job-manager.lock"
-        with lock_path.open("a+b") as lock_file:
+        lock_key = str(self.workspace.root)
+        with _LOCAL_LOCKS_GUARD:
+            local_lock = _LOCAL_LOCKS.setdefault(lock_key, threading.Lock())
+        with local_lock, lock_path.open("a+b") as lock_file:
             if os.name == "nt":
                 import msvcrt
                 lock_file.seek(0, os.SEEK_END)
