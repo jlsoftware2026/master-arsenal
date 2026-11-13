@@ -51,7 +51,8 @@ def validate_job(job: Any) -> dict[str, Any]:
     if not isinstance(job_id, str) or not UUID_RE.fullmatch(job_id):
         raise JobValidationError("job_id must be a canonical UUID")
     try:
-        UUID(job_id)
+        if str(UUID(job_id)) != job_id.lower():
+            raise ValueError
     except ValueError as exc:
         raise JobValidationError("job_id must be a canonical UUID") from exc
     stamp = job["created_at_utc"]
@@ -61,16 +62,16 @@ def validate_job(job: Any) -> dict[str, Any]:
         raise JobValidationError("created_at_utc must be an ISO-8601 UTC timestamp") from exc
     if parsed is None or parsed.tzinfo is None or parsed.utcoffset().total_seconds() != 0:
         raise JobValidationError("created_at_utc must be an ISO-8601 UTC timestamp")
-    if job["requested_by"] not in REQUESTERS:
+    if not isinstance(job["requested_by"], str) or job["requested_by"] not in REQUESTERS:
         raise JobValidationError("requested_by must be chatgpt, claude, or user")
-    if job["job_type"] not in JOB_TYPES:
+    if not isinstance(job["job_type"], str) or job["job_type"] not in JOB_TYPES:
         raise JobValidationError(f"Unsupported job_type: {job['job_type']!r}")
     if not isinstance(job["parameters"], dict):
         raise JobValidationError("parameters must be an object")
     output = job["output"]
     if not isinstance(output, dict) or set(output) != {"format", "directory"}:
         raise JobValidationError("output must contain exactly format and directory")
-    if output["format"] not in {"json", "pdf"}:
+    if not isinstance(output["format"], str) or output["format"] not in {"json", "pdf"}:
         raise JobValidationError("output.format must be json or pdf")
     directory = output["directory"]
     win_path = PureWindowsPath(directory) if isinstance(directory, str) else PureWindowsPath(".")
