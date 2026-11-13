@@ -1,11 +1,17 @@
+import hashlib
 import json
 import multiprocessing
 import shutil
 import tempfile
 import threading
 import unittest
+from datetime import datetime, timedelta, timezone
+from decimal import Decimal
 from pathlib import Path
 from unittest.mock import patch
+
+from binance_data_engine.client import PaginationMetadata
+from binance_data_engine.models import Candle
 
 from local_engine.protocol import JobValidationError, new_job, validate_job
 from local_engine.runtime import JobManager, JobRunner, Workspace
@@ -27,6 +33,37 @@ def _process_claim(root, job_id, queue):
         queue.put("unavailable")
 
 
+class FakeBinanceClient:
+    def __init__(self):
+        self.cutoff = datetime(2026, 11, 13, 3, 0, tzinfo=timezone.utc)
+        self.last_response_metadata = {
+            "http_status": 200,
+            "retrieved_at_utc": "2026-11-13T03:01:00Z",
+        }
+
+    def get_server_time(self, market):
+        return self.cutoff + timedelta(minutes=1)
+
+    def get_historical_klines(self, symbol, interval, start, end, market="spot"):
+        rows = []
+        for index in range(3):
+            opened = start + timedelta(hours=index)
+            price = Decimal("100") + index
+            rows.append(Candle(
+                symbol=symbol, interval=interval, open_time=opened,
+                close_time=opened + timedelta(hours=1) - timedelta(milliseconds=1),
+                open=price, high=price + 1, low=price - 1, close=price,
+                volume=Decimal("10"),
+            ))
+        return rows, PaginationMetadata(
+            pages=1, returned=len(rows), requested_start=start.isoformat(),
+            requested_end=end.isoformat(), complete=True,
+        )
+
+    def get_24h_ticker(self, symbol, market):
+        return {"symbol": symbol, "priceChangePercent": "1.0"}
+
+
 class LocalEngineTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
@@ -37,8 +74,8 @@ class LocalEngineTests(unittest.TestCase):
     def tearDown(self):
         self.temp.cleanup()
 
-    def _approved_job(self, job_type="engine.health_check"):
-        job = new_job(job_type)
+    def _approved_job(self, job_type="engine.health_check", parameters=None):
+        job = new_job(job_type, parameters)
         self.manager.submit(job)
         self.manager.validate_pending(job["job_id"])
         self.manager.approve(job["job_id"])
@@ -91,11 +128,88 @@ class LocalEngineTests(unittest.TestCase):
         self.assertEqual(result["status"], "completed")
         self.assertTrue(self.manager.get(job["job_id"])["result"]["read_only"])
 
+    def test_intraday_job_defaults_to_pdf_output(self):
+        job = new_job("market.intraday_snapshot")
+        self.assertEqual(job["output"], {
+            "format": "pdf", "directory": "reports/intraday"
+        })
+
+    def test_intraday_snapshot_job_generates_pdf(self):
+        job = self._approved_job(
+            "market.intraday_snapshot",
+            {"cutoff_utc": "2026-11-13T03:00:00Z", "interval": "1h", "market": "spot"},
+        )
+        with patch("local_engine.runtime.BinancePublicClient", return_value=FakeBinanceClient()):
+            result = JobRunner(self.manager).run(job["job_id"])
+        self.assertEqual(result["status"], "completed")
+        artifact = result["result"]["artifact_path"]
+        self.assertTrue(artifact.startswith("reports/intraday/"))
+        path = self.manager.workspace.directory(artifact)
+        self.assertTrue(path.is_file())
+        pdf_bytes = path.read_bytes()
+        self.assertTrue(pdf_bytes.startswith(b"%PDF-"))
+        self.assertIn(b"%%EOF", pdf_bytes[-1024:])
+        self.assertEqual(result["result"]["size_bytes"], len(pdf_bytes))
+        self.assertEqual(
+            result["result"]["sha256"], hashlib.sha256(pdf_bytes).hexdigest()
+        )
+        self.assertEqual(result["result"]["artifact_path"], artifact)
+        record = self.manager.get(job["job_id"])
+        self.assertEqual(record["status"], "completed")
+        self.assertEqual(record["result"]["format"], "pdf")
+
+    def test_intraday_snapshot_cannot_run_before_explicit_approval(self):
+        job = new_job("market.intraday_snapshot", {
+            "cutoff_utc": "2026-11-13T03:00:00Z"
+        })
+        self.manager.submit(job)
+        self.assertEqual(
+            self.manager.validate_pending(job["job_id"]), "awaiting_approval"
+        )
+        with patch("local_engine.runtime.BinancePublicClient") as client_factory:
+            with self.assertRaises(JobValidationError):
+                JobRunner(self.manager).run(job["job_id"])
+        client_factory.assert_not_called()
+        self.assertEqual(self.manager.get(job["job_id"])["status"], "awaiting_approval")
+
+    def test_intraday_snapshot_output_directory_is_fixed(self):
+        job = new_job("market.intraday_snapshot", {
+            "cutoff_utc": "2026-11-13T03:00:00Z"
+        })
+        job["output"]["directory"] = "reports/closing"
+        self.manager.submit(job)
+        self.manager.validate_pending(job["job_id"])
+        self.manager.approve(job["job_id"])
+        with patch("local_engine.runtime.BinancePublicClient") as client_factory:
+            result = JobRunner(self.manager).run(job["job_id"])
+        self.assertEqual(result["status"], "failed")
+        self.assertIn("output is fixed to PDF in reports/intraday", result["error"])
+        client_factory.assert_not_called()
+        self.assertFalse(any(self.manager.workspace.directory("reports/closing").iterdir()))
+
+    def test_intraday_snapshot_job_requires_cutoff(self):
+        job = self._approved_job("market.intraday_snapshot")
+        result = JobRunner(self.manager).run(job["job_id"])
+        self.assertEqual(result["status"], "failed")
+        self.assertIn("cutoff_utc is required", result["error"])
+
+    def test_intraday_snapshot_job_rejects_non_pdf_output(self):
+        job = new_job("market.intraday_snapshot", {
+            "cutoff_utc": "2026-11-13T03:00:00Z"
+        })
+        job["output"]["format"] = "json"
+        self.manager.submit(job)
+        self.manager.validate_pending(job["job_id"])
+        self.manager.approve(job["job_id"])
+        result = JobRunner(self.manager).run(job["job_id"])
+        self.assertEqual(result["status"], "failed")
+        self.assertIn("output is fixed to PDF in reports/intraday", result["error"])
+
     def test_unsupported_handler_fails_explicitly(self):
         job = self._approved_job("market.opening_report")
         result = JobRunner(self.manager).run(job["job_id"])
         self.assertEqual(result["status"], "failed")
-        self.assertIn("not implemented in Phase 2", result["error"])
+        self.assertIn("not implemented by this runtime", result["error"])
 
     def test_submitted_job_is_valid_json_with_real_newline(self):
         job = new_job("engine.health_check")

@@ -27,10 +27,15 @@ def utc_now() -> str:
 
 def new_job(job_type: str, parameters: dict[str, Any] | None = None,
             requested_by: str = "user") -> dict[str, Any]:
+    default_output = (
+        {"format": "pdf", "directory": "reports/intraday"}
+        if job_type == "market.intraday_snapshot"
+        else {"format": "json", "directory": "reports"}
+    )
     job = {
         "schema": SCHEMA_VERSION, "job_id": str(uuid4()), "created_at_utc": utc_now(),
         "requested_by": requested_by, "job_type": job_type, "parameters": parameters or {},
-        "output": {"format": "json", "directory": "reports"},
+        "output": default_output,
         "approval": {"required": True, "granted": False},
     }
     validate_job(job)
