@@ -153,7 +153,7 @@ def build_intraday_snapshot_pdf(report: dict[str, Any], output_directory: Path |
                 ("First candle UTC", item.get("first_open_time_utc", "Not supplied")),
                 ("Last candle close UTC", item.get("last_close_time_utc", "Not supplied")),
                 ("24h ticker", _display(item.get("ticker_24h"))),
-                ("Candle data retrieved UTC", (item.get("response_metadata", {}).get("candles") or {}).get("retrieved_at_utc", "Not supplied")),
+                ("Candle data retrieved UTC", ((item.get("response_metadata", {}).get("candles") or item.get("response_metadata") or {}).get("retrieved_at_utc", "Not supplied"))),
             ], styles),
             Spacer(1, 2 * mm),
             data_table(["Technical indicator", "Value"], _metric_rows(indicators), styles,
