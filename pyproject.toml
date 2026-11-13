@@ -4,13 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "master-arsenal-binance-engine"
-version = "0.2.0"
-description = "Public read-only Binance market-data engine for MASTER ARSENAL"
+version = "0.3.0"
+description = "MASTER ARSENAL Binance data engine and local job runtime"
 requires-python = ">=3.11"
 dependencies = []
 
 [project.scripts]
 ma-binance = "binance_data_engine.cli:main"
+ma-local = "local_engine.cli:main"
 
 [tool.setuptools.packages.find]
-include = ["binance_data_engine*"]
+include = ["binance_data_engine*", "local_engine*"]
