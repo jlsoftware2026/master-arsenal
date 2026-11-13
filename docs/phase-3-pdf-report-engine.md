@@ -22,7 +22,7 @@ The composer renders optional executive summary, ticker and indicator values, va
 
 ## Current limitations
 
-- The intraday acquisition and PDF composition are connected through `generate_intraday_snapshot_pdf`; the Local Engine job handler is not yet implemented.
+- `JobRunner` now dispatches approved `market.intraday_snapshot` jobs to the Binance acquisition and PDF composition workflow. The handler accepts only `cutoff_utc`, `interval`, and `market`; requires an explicit UTC cutoff; fixes output to `reports/intraday`; and records the PDF path, size, SHA-256, report window, market, interval, and read-only provenance.
 - The general Binance snapshot still returns rolling klines; the dedicated intraday path separately requests the exact UTC-day window.
 - Macro/news acquisition and source citation contracts remain to be integrated.
 - Opening, closing, and independent audit PDF composers remain outstanding.
@@ -48,7 +48,7 @@ python -m unittest discover -s report_engine/tests -v
 - `generate_intraday_snapshot_pdf` delegates to the strict Binance UTC-day acquisition contract, then connects validated evidence to PDF composition in one callable workflow.
 - The PDF composer rejects first/last candle timestamps outside the declared report window and validates supplied candle lists for count consistency, ordering, uniqueness, and cutoff compliance. The PDF displays the candle retrieval timestamp from Binance response metadata.
 
-This increment still does not connect the workflow to the Local Engine job dispatcher. Live network execution is also not certified by fixture-based CI; geographic/API availability must be assessed separately and no restrictions are bypassed.
+Live network execution is not certified by fixture-based CI; geographic/API availability must be assessed separately and no restrictions are bypassed.
 
 
 ## Local Engine integration — intraday snapshot
@@ -78,3 +78,33 @@ ma-local --workspace ./MASTER-ARSENAL-LOCAL run JOB_UUID
 ```
 
 The completed job record stores the relative PDF artifact path and report window. The handler rejects missing/unknown parameters, non-UTC cutoffs, non-PDF output, unsafe workspace destinations, and incomplete Binance evidence. It uses public read-only endpoints only. Live execution still depends on the user's network and Binance endpoint eligibility.
+
+
+## Local Engine intraday job workflow
+
+Create a job template:
+```bash
+ma-local --workspace ./MASTER-ARSENAL-LOCAL new-job market.intraday_snapshot --output intraday-job.json
+```
+
+Edit the generated JSON `parameters` object with an explicit completed UTC cutoff:
+```json
+{
+  "cutoff_utc": "2026-11-13T03:00:00Z",
+  "interval": "1h",
+  "market": "spot"
+}
+```
+
+Submit, validate, explicitly approve, and run:
+```bash
+ma-local --workspace ./MASTER-ARSENAL-LOCAL submit intraday-job.json
+ma-local --workspace ./MASTER-ARSENAL-LOCAL validate JOB_UUID
+ma-local --workspace ./MASTER-ARSENAL-LOCAL approve JOB_UUID
+ma-local --workspace ./MASTER-ARSENAL-LOCAL run JOB_UUID
+ma-local --workspace ./MASTER-ARSENAL-LOCAL status JOB_UUID
+```
+
+The handler does not run before the job reaches the validated state with its explicit approval granted. It uses only Binance public read-only endpoints, rejects unsupported parameters and any output destination other than `reports/intraday`, and verifies the generated PDF signature before completing the job. The job result records the workspace-relative artifact path and SHA-256 digest. Acquisition, validation, or rendering errors move the job to `failed`; no successful result is recorded.
+
+The workflow remains local and synchronous. It does not execute shell commands, accept job-supplied code, use Binance credentials, access private account endpoints, or submit trades. A live job requires outbound network access to Binance public market-data endpoints.
