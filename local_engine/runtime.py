@@ -126,11 +126,18 @@ class JobManager:
             destination = self.workspace.job_path("inbox", job["job_id"])
             # Exclusive creation is a second guard against accidental replacement.
             fd = os.open(destination, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-            with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as stream:
-                json.dump(record, stream, indent=2, ensure_ascii=False)
-                stream.write("\n")
-                stream.flush()
-                os.fsync(stream.fileno())
+            try:
+                with os.fdopen(fd, "w", encoding="utf-8", newline="\\n") as stream:
+                    json.dump(record, stream, indent=2, ensure_ascii=False)
+                    stream.write("\\n")
+                    stream.flush()
+                    os.fsync(stream.fileno())
+            except Exception:
+                try:
+                    destination.unlink()
+                except OSError:
+                    pass
+                raise
             return record
 
     def _find(self, job_id: str):
