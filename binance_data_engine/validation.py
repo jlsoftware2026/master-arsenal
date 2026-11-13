@@ -20,8 +20,14 @@ def validate_candles(candles, expected_interval: str | None = None) -> list[Vali
     for index, c in enumerate(rows):
         if c.open_time.tzinfo is None or c.close_time.tzinfo is None:
             issues.append(ValidationIssue("naive_timestamp", "Timestamps must be timezone-aware UTC.", "error", index))
+        elif c.open_time.utcoffset().total_seconds() != 0 or c.close_time.utcoffset().total_seconds() != 0:
+            issues.append(ValidationIssue("non_utc_timestamp", "Timestamps must be normalized to UTC.", "error", index))
         if c.close_time < c.open_time:
             issues.append(ValidationIssue("invalid_time_range", "Close time precedes open time.", "error", index))
+        elif cadence:
+            duration = int((c.close_time - c.open_time).total_seconds() * 1000) + 1
+            if duration != cadence:
+                issues.append(ValidationIssue("invalid_candle_duration", f"Candle duration does not match {expected_interval}.", "error", index))
         if any(x <= 0 for x in (c.open, c.high, c.low, c.close)):
             issues.append(ValidationIssue("non_positive_price", "OHLC prices must be positive.", "error", index))
         if c.high < max(c.open, c.close, c.low):
