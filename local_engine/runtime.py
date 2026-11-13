@@ -39,6 +39,14 @@ class Workspace:
         self.root.mkdir(parents=True, exist_ok=True)
         for relative in DIRECTORIES:
             target = self.root / relative
+            # Check every existing component before mkdir: mkdir(parents=True)
+            # follows symlinks, so checking only after creation is too late.
+            current = self.root
+            for part in Path(relative).parts:
+                current = current / part
+                resolved = current.resolve()
+                if not resolved.is_relative_to(self.root):
+                    raise ValueError(f"Workspace path escapes root: {relative}")
             target.mkdir(parents=True, exist_ok=True)
             if not target.resolve().is_relative_to(self.root):
                 raise ValueError(f"Workspace path escapes root: {relative}")
