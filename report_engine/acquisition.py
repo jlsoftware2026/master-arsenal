@@ -20,7 +20,7 @@ def _utc(value: datetime, field: str) -> datetime:
 
 
 def _iso(value: datetime) -> str:
-    return value.isoformat(timespec="seconds").replace("+00:00", "Z")
+    return value.isoformat().replace("+00:00", "Z")
 
 
 def _capture_ticker(client: BinancePublicClient, symbol: str, market: str) -> dict[str, Any]:
