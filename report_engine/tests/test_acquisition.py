@@ -66,7 +66,7 @@ class IntradayAcquisitionTests(unittest.TestCase):
         self.assertEqual(btc["candle_count"], 3)
         self.assertEqual(btc["expected_candle_count"], 3)
         self.assertEqual(btc["ticker_24h"]["status"], "ok")
-        self.assertEqual(btc["response_metadata"]["candles"]["http_status"], 200)
+        self.assertEqual(btc["response_metadata"]["http_status"], 200)
         self.assertEqual(len(report["provenance"]), 2)
 
     def test_missing_candle_fails_closed(self):
