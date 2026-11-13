@@ -2,11 +2,13 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Any
 
 from binance_data_engine.client import BinancePublicClient
 from binance_data_engine.engine import CORE_SYMBOLS, analyze_candles
 from binance_data_engine.validation import interval_milliseconds, validate_candles
+from .intraday import build_intraday_snapshot_pdf
 
 
 def _utc(value: datetime, field: str) -> datetime:
@@ -112,10 +114,12 @@ def acquire_intraday_evidence(
         }
 
     generated = datetime.now(timezone.utc)
+    if generated < cutoff:
+        raise ValueError("Local system clock is behind cutoff_utc; refusing to misstate generation time")
     return {
         "window_start_utc": start.isoformat().replace("+00:00", "Z"),
         "cutoff_utc": cutoff.isoformat().replace("+00:00", "Z"),
-        "generated_at_utc": max(generated, cutoff).isoformat().replace("+00:00", "Z"),
+        "generated_at_utc": generated.isoformat().replace("+00:00", "Z"),
         "source": "Binance public REST API",
         "market": market,
         "interval": interval,
@@ -134,3 +138,17 @@ def acquire_intraday_evidence(
                    f"{server_time.isoformat().replace('+00:00', 'Z')}",
         }],
     }
+
+
+def generate_intraday_snapshot_pdf(
+    client: BinancePublicClient,
+    cutoff_utc: datetime,
+    output_directory: Path | str,
+    interval: str = "1h",
+    market: str = "spot",
+) -> Path:
+    """Acquire, validate, and render a UTC intraday snapshot PDF."""
+    evidence = acquire_intraday_evidence(
+        client, cutoff_utc=cutoff_utc, interval=interval, market=market
+    )
+    return build_intraday_snapshot_pdf(evidence, output_directory)
