@@ -113,7 +113,7 @@ class BinancePublicClient:
     def _parse_klines(self, symbol: str, interval: str, rows: list[list[Any]]) -> list[Candle]:
         candles = []
         for row in rows:
-            if len(row) < 6: raise BinanceAPIError("Malformed kline row", payload=row)
+            if len(row) < 12: raise BinanceAPIError("Malformed kline row: expected 12 fields", payload=row)
             candles.append(Candle(
                 symbol=symbol.upper(), interval=interval, open_time=utc_datetime(int(row[0])),
                 close_time=utc_datetime(int(row[6])) if len(row)>6 else utc_datetime(int(row[0])),
