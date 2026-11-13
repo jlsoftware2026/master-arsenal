@@ -28,8 +28,8 @@ def make_candles(symbol, count=3, omit=()):
     return rows
 
 class FakeClient:
-    def __init__(self, omit=(), incomplete=False, server_time=None):
-        self.omit = omit
+    def __init__(self, omit=None, incomplete=False, server_time=None):
+        self.omit = omit or {}
         self.incomplete = incomplete
         self.server_time = server_time or datetime(2026, 11, 13, 4, 0, tzinfo=UTC)
         self.last_response_metadata = {}
