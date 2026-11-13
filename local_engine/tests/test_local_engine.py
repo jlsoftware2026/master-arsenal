@@ -1,6 +1,9 @@
+import shutil
 import tempfile
+import threading
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from local_engine.protocol import JobValidationError, new_job, validate_job
 from local_engine.runtime import JobManager, JobRunner, Workspace
@@ -9,10 +12,19 @@ from local_engine.runtime import JobManager, JobRunner, Workspace
 class LocalEngineTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
-        self.manager = JobManager(Workspace(Path(self.temp.name) / "workspace"))
+        root = Path(self.temp.name) / "workspace"
+        self.manager = JobManager(Workspace(root))
+        self.second_manager = JobManager(Workspace(root))
 
     def tearDown(self):
         self.temp.cleanup()
+
+    def _approved_job(self, job_type="engine.health_check"):
+        job = new_job(job_type)
+        self.manager.submit(job)
+        self.manager.validate_pending(job["job_id"])
+        self.manager.approve(job["job_id"])
+        return job
 
     def test_new_job_requires_explicit_approval(self):
         job = new_job("engine.health_check")
@@ -56,19 +68,13 @@ class LocalEngineTests(unittest.TestCase):
         self.assertEqual(self.manager.get(job["job_id"])["status"], "validated")
 
     def test_health_check_completes(self):
-        job = new_job("engine.health_check")
-        self.manager.submit(job)
-        self.manager.validate_pending(job["job_id"])
-        self.manager.approve(job["job_id"])
+        job = self._approved_job()
         result = JobRunner(self.manager).run(job["job_id"])
         self.assertEqual(result["status"], "completed")
         self.assertTrue(self.manager.get(job["job_id"])["result"]["read_only"])
 
     def test_unsupported_handler_fails_explicitly(self):
-        job = new_job("market.opening_report")
-        self.manager.submit(job)
-        self.manager.validate_pending(job["job_id"])
-        self.manager.approve(job["job_id"])
+        job = self._approved_job("market.opening_report")
         result = JobRunner(self.manager).run(job["job_id"])
         self.assertEqual(result["status"], "failed")
         self.assertIn("not implemented in Phase 2", result["error"])
@@ -82,6 +88,76 @@ class LocalEngineTests(unittest.TestCase):
     def test_workspace_rejects_escape(self):
         with self.assertRaises(ValueError):
             self.manager.workspace.directory("../outside")
+
+    def test_interrupted_transition_leaves_one_valid_state(self):
+        job = new_job("engine.health_check")
+        self.manager.submit(job)
+        source = self.manager.workspace.job_path("inbox", job["job_id"])
+        target = self.manager.workspace.job_path("awaiting_approval", job["job_id"])
+        with patch("local_engine.runtime.os.replace", side_effect=OSError("simulated interruption")):
+            with self.assertRaises(OSError):
+                self.manager.validate_pending(job["job_id"])
+        self.assertTrue(source.is_file())
+        self.assertFalse(target.exists())
+        self.assertEqual(self.manager.get(job["job_id"])["status"], "inbox")
+
+    def test_legacy_duplicate_states_are_reported_not_silently_selected(self):
+        job = new_job("engine.health_check")
+        self.manager.submit(job)
+        source = self.manager.workspace.job_path("inbox", job["job_id"])
+        duplicate = self.manager.workspace.job_path("validated", job["job_id"])
+        shutil.copyfile(source, duplicate)
+        with self.assertRaisesRegex(JobValidationError, "multiple lifecycle states"):
+            self.manager.get(job["job_id"])
+
+    def test_concurrent_duplicate_submissions_allow_only_one(self):
+        job = new_job("engine.health_check")
+        barrier = threading.Barrier(2)
+        outcomes = []
+
+        def submit(manager):
+            barrier.wait()
+            try:
+                manager.submit(job)
+                outcomes.append("submitted")
+            except JobValidationError:
+                outcomes.append("duplicate")
+
+        threads = [
+            threading.Thread(target=submit, args=(self.manager,)),
+            threading.Thread(target=submit, args=(self.second_manager,)),
+        ]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join(timeout=5)
+        self.assertCountEqual(outcomes, ["submitted", "duplicate"])
+        self.assertTrue(all(not thread.is_alive() for thread in threads))
+
+    def test_concurrent_claims_allow_only_one_worker(self):
+        job = self._approved_job()
+        barrier = threading.Barrier(2)
+        outcomes = []
+
+        def claim(manager):
+            barrier.wait()
+            try:
+                manager.claim(job["job_id"])
+                outcomes.append("claimed")
+            except JobValidationError:
+                outcomes.append("unavailable")
+
+        threads = [
+            threading.Thread(target=claim, args=(self.manager,)),
+            threading.Thread(target=claim, args=(self.second_manager,)),
+        ]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join(timeout=5)
+        self.assertCountEqual(outcomes, ["claimed", "unavailable"])
+        self.assertTrue(all(not thread.is_alive() for thread in threads))
+        self.assertEqual(self.manager.get(job["job_id"])["status"], "running")
 
 
 if __name__ == "__main__":
