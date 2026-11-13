@@ -53,11 +53,9 @@ class IntradayAcquisitionTests(unittest.TestCase):
             self.assertEqual(item["expected_candle_count"], 3)
             self.assertEqual(item["last_close_time_utc"], "2026-11-13T02:59:59.999000Z")
 
-    def test_missing_candle_is_disclosed_and_report_marked_incomplete(self):
-        report = acquire_intraday_evidence(FakeClient(missing=True), CUTOFF, "1h")
-        self.assertEqual(report["data_status"], "incomplete")
-        self.assertTrue(any(x["code"] == "missing_candles"
-                            for x in report["symbols"]["BTCUSDT"]["validation"]))
+    def test_missing_candle_is_rejected(self):
+        with self.assertRaisesRegex(ValueError, "expected 3 candles, received 2"):
+            acquire_intraday_evidence(FakeClient(missing=True), CUTOFF, "1h")
 
     def test_end_to_end_workflow_writes_pdf_from_acquired_evidence(self):
         with TemporaryDirectory() as temp:
