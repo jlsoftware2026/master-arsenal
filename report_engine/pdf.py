@@ -130,7 +130,10 @@ def write_pdf_atomic(destination: Path, story, title: str) -> Path:
             raise ValueError("Generated artifact failed basic PDF integrity checks")
         if len(payload) < 512:
             raise ValueError("Generated PDF is unexpectedly small")
-        with open(temporary, "rb") as stream:
+        # ReportLab closes its output handle after build(). Reopen the completed
+        # file with write access: Windows requires a writable descriptor for
+        # os.fsync(), whereas a read-only descriptor raises EBADF.
+        with open(temporary, "r+b") as stream:
             os.fsync(stream.fileno())
         os.replace(temporary, destination)
         return destination
