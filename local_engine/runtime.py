@@ -95,9 +95,9 @@ class JobManager:
         path.parent.mkdir(parents=True, exist_ok=True)
         fd, temporary = tempfile.mkstemp(prefix=f".{path.stem}.", suffix=".tmp", dir=path.parent)
         try:
-            with os.fdopen(fd, "w", encoding="utf-8", newline="\\n") as stream:
+            with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as stream:
                 json.dump(payload, stream, indent=2, ensure_ascii=False)
-                stream.write("\\n")
+                stream.write("\n")
                 stream.flush()
                 os.fsync(stream.fileno())
             os.replace(temporary, path)
@@ -120,9 +120,9 @@ class JobManager:
             destination = self.workspace.job_path("inbox", job["job_id"])
             # Exclusive creation is a second guard against accidental replacement.
             fd = os.open(destination, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-            with os.fdopen(fd, "w", encoding="utf-8", newline="\\n") as stream:
+            with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as stream:
                 json.dump(record, stream, indent=2, ensure_ascii=False)
-                stream.write("\\n")
+                stream.write("\n")
                 stream.flush()
                 os.fsync(stream.fileno())
             return record
