@@ -30,11 +30,21 @@ class LocalEngineTests(unittest.TestCase):
         with self.assertRaises(JobValidationError):
             validate_job(job)
 
+    def test_rejects_non_string_enum_values(self):
+        job = new_job("engine.health_check")
+        job["requested_by"] = {}
+        with self.assertRaises(JobValidationError):
+            validate_job(job)
+
     def test_rejects_path_traversal(self):
         job = new_job("engine.health_check")
         job["output"]["directory"] = "..\\..\\outside"
         with self.assertRaises(JobValidationError):
             validate_job(job)
+
+    def test_rejects_job_id_path_traversal(self):
+        with self.assertRaises(ValueError):
+            self.manager.workspace.job_path("inbox", "../../outside")
 
     def test_job_requires_validation_and_approval(self):
         job = new_job("engine.health_check")
