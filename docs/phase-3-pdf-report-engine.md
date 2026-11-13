@@ -36,3 +36,15 @@ Run:
 python -m pip install -e .
 python -m unittest discover -s report_engine/tests -v
 ```
+
+
+## UTC intraday acquisition increment
+
+- `report_engine.acquisition.acquire_intraday_evidence` now requests a bounded UTC-day range from 00:00 UTC to the exclusive cutoff for BTCUSDT and ETHUSDT.
+- Only completed candles are retained; a candle whose close timestamp reaches or exceeds the cutoff is excluded.
+- Expected candle opens are calculated from the selected fixed-duration interval. Missing candles, invalid candle data, and incomplete pagination are disclosed and cause `data_status=incomplete`; no values are interpolated.
+- Binance server time is checked against the requested cutoff. A local clock behind the cutoff is treated as an error rather than fabricating a generation timestamp.
+- `generate_intraday_snapshot_pdf` connects acquisition, validation, and PDF composition in one callable workflow.
+- The PDF composer now rejects first/last candle timestamps outside the declared report window and validates any supplied candle list for count consistency, ordering, uniqueness, and cutoff compliance.
+
+This increment still does not connect the workflow to the Local Engine job dispatcher. Live network execution is also not certified by fixture-based CI; geographic/API availability must be assessed separately and no restrictions are bypassed.
