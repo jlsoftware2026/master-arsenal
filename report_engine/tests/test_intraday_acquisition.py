@@ -14,8 +14,9 @@ CUTOFF = START + timedelta(hours=3)
 
 
 class FakeClient:
-    def __init__(self, missing=False):
+    def __init__(self, missing=False, incomplete=False):
         self.missing = missing
+        self.incomplete = incomplete
         self.last_response_metadata = {"retrieved_at_utc": "2026-11-13T03:01:00Z"}
 
     def get_server_time(self, market):
@@ -36,7 +37,7 @@ class FakeClient:
             pages=1, returned=len(rows),
             requested_start=START.isoformat().replace("+00:00", "Z"),
             requested_end=CUTOFF.isoformat().replace("+00:00", "Z"),
-            complete=True,
+            complete=not self.incomplete,
         )
 
     def get_24h_ticker(self, symbol, market):
@@ -53,13 +54,19 @@ class IntradayAcquisitionTests(unittest.TestCase):
             self.assertEqual(item["expected_candle_count"], 3)
             self.assertEqual(item["last_close_time_utc"], "2026-11-13T02:59:59.999000Z")
 
-    def test_missing_candle_is_never_reported_as_complete(self):
-        report = acquire_intraday_evidence(FakeClient(missing=True), CUTOFF, "1h")
-        self.assertEqual(report["data_status"], "incomplete")
-        issue_codes = {
-            issue["code"] for issue in report["symbols"]["BTCUSDT"]["validation"]
-        }
-        self.assertIn("missing_candles", issue_codes)
+    def test_missing_candle_is_rejected(self):
+        with self.assertRaisesRegex(ValueError, "expected 3 candles, received 2"):
+            acquire_intraday_evidence(FakeClient(missing=True), CUTOFF, "1h")
+
+    def test_incomplete_pagination_is_rejected(self):
+        with self.assertRaisesRegex(ValueError, "pagination did not complete"):
+            acquire_intraday_evidence(FakeClient(incomplete=True), CUTOFF, "1h")
+
+    def test_unaligned_cutoff_is_rejected(self):
+        with self.assertRaisesRegex(ValueError, "align exactly"):
+            acquire_intraday_evidence(
+                FakeClient(), CUTOFF + timedelta(minutes=30), "1h"
+            )
 
     def test_end_to_end_workflow_writes_pdf_from_acquired_evidence(self):
         with TemporaryDirectory() as temp:
