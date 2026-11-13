@@ -101,6 +101,28 @@ class LocalEngineTests(unittest.TestCase):
         self.assertFalse(target.exists())
         self.assertEqual(self.manager.get(job["job_id"])["status"], "inbox")
 
+    def test_interruption_after_record_update_keeps_source_state_authoritative(self):
+        job = new_job("engine.health_check")
+        self.manager.submit(job)
+        source = self.manager.workspace.job_path("inbox", job["job_id"])
+        target = self.manager.workspace.job_path("awaiting_approval", job["job_id"])
+        real_replace = __import__("os").replace
+        calls = 0
+
+        def interrupt_before_rename(src, dst):
+            nonlocal calls
+            calls += 1
+            if calls == 1:
+                return real_replace(src, dst)
+            raise OSError("simulated crash before state rename")
+
+        with patch("local_engine.runtime.os.replace", side_effect=interrupt_before_rename):
+            with self.assertRaises(OSError):
+                self.manager.validate_pending(job["job_id"])
+        self.assertTrue(source.is_file())
+        self.assertFalse(target.exists())
+        self.assertEqual(self.manager.get(job["job_id"])["status"], "inbox")
+
     def test_legacy_duplicate_states_are_reported_not_silently_selected(self):
         job = new_job("engine.health_check")
         self.manager.submit(job)
