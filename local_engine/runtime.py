@@ -4,11 +4,13 @@ from __future__ import annotations
 import json
 import os
 import platform
+import re
 import sys
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+from uuid import UUID
 
 from . import __version__
 from .protocol import JobValidationError, load_job, utc_now, validate_job
@@ -22,6 +24,7 @@ DIRECTORIES = (
     "skills/binance-momento-mercado", "skills/binance-revision-skills", "temp",
 )
 STATES = ("inbox", "validated", "awaiting_approval", "running", "completed", "failed", "cancelled", "archive")
+JOB_ID_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$", re.I)
 
 
 class Workspace:
@@ -45,6 +48,13 @@ class Workspace:
     def job_path(self, state: str, job_id: str) -> Path:
         if state not in STATES:
             raise ValueError("Unknown job state")
+        if not isinstance(job_id, str) or not JOB_ID_RE.fullmatch(job_id):
+            raise ValueError("job_id must be a canonical UUID")
+        try:
+            if str(UUID(job_id)) != job_id.lower():
+                raise ValueError
+        except ValueError as exc:
+            raise ValueError("job_id must be a canonical UUID") from exc
         return self.directory(f"jobs/{state}") / f"{job_id}.json"
 
 
