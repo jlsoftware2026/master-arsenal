@@ -301,7 +301,7 @@ class JobRunner:
         return {
             "report_type": "market.intraday_snapshot",
             "format": "pdf",
-            "artifact_path": str(resolved_artifact.relative_to(self.manager.workspace.root)),
+            "artifact_path": resolved_artifact.relative_to(self.manager.workspace.root).as_posix(),
             "filename": resolved_artifact.name,
             "size_bytes": size_bytes,
             "sha256": digest,
