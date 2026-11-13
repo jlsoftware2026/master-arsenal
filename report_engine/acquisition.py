@@ -49,10 +49,6 @@ def acquire_intraday_evidence(
         raise ValueError("Binance server time must be timezone-aware UTC")
     if cutoff > server_time:
         raise ValueError("cutoff_utc is later than Binance server time")
-    generated = datetime.now(timezone.utc)
-    if generated < cutoff:
-        raise ValueError("Local system clock is behind cutoff_utc")
-
     symbols: dict[str, Any] = {}
     for symbol in CORE_SYMBOLS:
         candles, pagination = client.get_historical_klines(
@@ -60,6 +56,8 @@ def acquire_intraday_evidence(
         )
         if not pagination.complete:
             raise ValueError(f"{symbol}: Binance pagination did not complete the requested window")
+        if pagination.returned != len(candles):
+            raise ValueError(f"{symbol}: pagination metadata count does not match returned candles")
         if len(candles) != expected_count:
             raise ValueError(
                 f"{symbol}: expected {expected_count} candles, received {len(candles)}; "
@@ -107,6 +105,9 @@ def acquire_intraday_evidence(
             "pagination": pagination.to_dict(),
         }
 
+    generated = datetime.now(timezone.utc)
+    if generated < cutoff:
+        raise ValueError("Local system clock is behind cutoff_utc")
     generated_text = generated.isoformat().replace("+00:00", "Z")
     return {
         "schema_version": "1.0",
@@ -116,6 +117,7 @@ def acquire_intraday_evidence(
         "source": "Binance public REST API",
         "market": market,
         "interval": interval,
+        "binance_server_time_utc": server_time.isoformat().replace("+00:00", "Z"),
         "data_status": "complete",
         "executive_summary": (
             "All expected completed candles for BTCUSDT and ETHUSDT passed strict "
