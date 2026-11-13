@@ -93,6 +93,8 @@ def acquire_intraday_day(
         )
         if not pagination.complete:
             raise ValueError(f"{symbol}: Binance pagination did not complete the requested window")
+        if pagination.returned != len(candles):
+            raise ValueError(f"{symbol}: pagination metadata count does not match returned candles")
         if len(candles) != expected_count:
             raise ValueError(
                 f"{symbol}: expected {expected_count} candles, received {len(candles)}; "
