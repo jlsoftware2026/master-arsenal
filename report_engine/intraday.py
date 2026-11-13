@@ -8,10 +8,12 @@ from typing import Any
 from reportlab.lib.units import mm
 from reportlab.platypus import KeepTogether, Paragraph, Spacer
 
+from .charts import MarketChart
 from .pdf import (
     data_table, key_value_table, paragraph, report_styles, section_heading,
     write_pdf_atomic,
 )
+from .qa import inspect_pdf_artifact
 
 REQUIRED_SYMBOLS = ("BTCUSDT", "ETHUSDT")
 
@@ -170,6 +172,19 @@ def build_intraday_snapshot_pdf(report: dict[str, Any], output_directory: Path |
             if issue_rows:
                 story.append(data_table(["Issue", "Severity", "Details"], issue_rows, styles,
                                         widths=[30 * mm, 25 * mm, 112 * mm]))
+        candles = item.get("candles")
+        if candles:
+            labels = [str(candle["open_time"])[11:16] for candle in candles]
+            closes = [candle["close"] for candle in candles]
+            volumes = [candle["volume"] for candle in candles]
+            story.extend([
+                section_heading("Price and volume charts", styles),
+                MarketChart(f"{symbol} close price ({report.get('interval', 'interval')})",
+                            closes, labels, kind="line"),
+                Spacer(1, 2 * mm),
+                MarketChart(f"{symbol} base-asset volume ({report.get('interval', 'interval')})",
+                            volumes, labels, kind="bar"),
+            ])
         story.append(Spacer(1, 3 * mm))
 
     for section_key, title in (
@@ -203,4 +218,12 @@ def build_intraday_snapshot_pdf(report: dict[str, Any], output_directory: Path |
         "Disclaimer: This document is an informational market analysis, not investment advice. "
         "Scenarios are conditional and uncertain; they are not guaranteed outcomes.",
         styles["small"]))
-    return write_pdf_atomic(destination, story, f"MASTER ARSENAL Intraday Snapshot {date_text}")
+    artifact = write_pdf_atomic(
+        destination, story, f"MASTER ARSENAL Intraday Snapshot {date_text}"
+    )
+    try:
+        inspect_pdf_artifact(artifact)
+    except Exception:
+        artifact.unlink(missing_ok=True)
+        raise
+    return artifact
