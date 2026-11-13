@@ -273,9 +273,11 @@ class JobRunner:
             raise ValueError("parameters.interval must be a string")
         if not isinstance(market, str) or market not in {"spot", "usdm"}:
             raise ValueError("parameters.market must be 'spot' or 'usdm'")
-        if job["output"]["format"] != "pdf" or job["output"]["directory"] != "reports/intraday":
+        if job["output"]["format"] != "pdf":
+            raise ValueError("market.intraday_snapshot requires output.format='pdf'")
+        if job["output"]["directory"] != "reports/intraday":
             raise ValueError(
-                "market.intraday_snapshot output is fixed to PDF in reports/intraday"
+                "market.intraday_snapshot output directory is fixed to reports/intraday"
             )
 
         output_directory = self.manager.workspace.directory("reports/intraday")
