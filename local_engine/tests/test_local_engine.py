@@ -183,7 +183,7 @@ class LocalEngineTests(unittest.TestCase):
         with patch("local_engine.runtime.BinancePublicClient") as client_factory:
             result = JobRunner(self.manager).run(job["job_id"])
         self.assertEqual(result["status"], "failed")
-        self.assertIn("output directory is fixed to reports/intraday", result["error"])
+        self.assertIn("output is fixed to PDF in reports/intraday", result["error"])
         client_factory.assert_not_called()
         self.assertFalse(any(self.manager.workspace.directory("reports/closing").iterdir()))
 
@@ -203,7 +203,7 @@ class LocalEngineTests(unittest.TestCase):
         self.manager.approve(job["job_id"])
         result = JobRunner(self.manager).run(job["job_id"])
         self.assertEqual(result["status"], "failed")
-        self.assertIn("requires output.format='pdf'", result["error"])
+        self.assertIn("output is fixed to PDF in reports/intraday", result["error"])
 
     def test_unsupported_handler_fails_explicitly(self):
         job = self._approved_job("market.opening_report")
