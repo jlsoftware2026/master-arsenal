@@ -1,3 +1,4 @@
+import hashlib
 import json
 import multiprocessing
 import shutil
@@ -145,10 +146,46 @@ class LocalEngineTests(unittest.TestCase):
         self.assertTrue(artifact.startswith("reports/intraday/"))
         path = self.manager.workspace.directory(artifact)
         self.assertTrue(path.is_file())
-        self.assertTrue(path.read_bytes().startswith(b"%PDF-"))
+        pdf_bytes = path.read_bytes()
+        self.assertTrue(pdf_bytes.startswith(b"%PDF-"))
+        self.assertIn(b"%%EOF", pdf_bytes[-1024:])
+        self.assertEqual(result["result"]["size_bytes"], len(pdf_bytes))
+        self.assertEqual(
+            result["result"]["sha256"], hashlib.sha256(pdf_bytes).hexdigest()
+        )
+        self.assertEqual(result["result"]["artifact_path"], artifact)
         record = self.manager.get(job["job_id"])
         self.assertEqual(record["status"], "completed")
         self.assertEqual(record["result"]["format"], "pdf")
+
+    def test_intraday_snapshot_cannot_run_before_explicit_approval(self):
+        job = new_job("market.intraday_snapshot", {
+            "cutoff_utc": "2026-11-13T03:00:00Z"
+        })
+        self.manager.submit(job)
+        self.assertEqual(
+            self.manager.validate_pending(job["job_id"]), "awaiting_approval"
+        )
+        with patch("local_engine.runtime.BinancePublicClient") as client_factory:
+            with self.assertRaises(JobValidationError):
+                JobRunner(self.manager).run(job["job_id"])
+        client_factory.assert_not_called()
+        self.assertEqual(self.manager.get(job["job_id"])["status"], "awaiting_approval")
+
+    def test_intraday_snapshot_output_directory_is_fixed(self):
+        job = new_job("market.intraday_snapshot", {
+            "cutoff_utc": "2026-11-13T03:00:00Z"
+        })
+        job["output"]["directory"] = "reports/closing"
+        self.manager.submit(job)
+        self.manager.validate_pending(job["job_id"])
+        self.manager.approve(job["job_id"])
+        with patch("local_engine.runtime.BinancePublicClient") as client_factory:
+            result = JobRunner(self.manager).run(job["job_id"])
+        self.assertEqual(result["status"], "failed")
+        self.assertIn("fixed to PDF in reports/intraday", result["error"])
+        client_factory.assert_not_called()
+        self.assertFalse(any(self.manager.workspace.directory("reports/closing").iterdir()))
 
     def test_intraday_snapshot_job_requires_cutoff(self):
         job = self._approved_job("market.intraday_snapshot")
