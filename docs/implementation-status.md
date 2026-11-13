@@ -20,12 +20,12 @@ Last updated: 2026-11-13
 Command:
 `python -m unittest discover -s binance_data_engine/tests -v`
 
-Result on the local development environment: **24 tests passed**. Tests use controlled fixtures and mocked HTTP responses. They cover parsing, UTC normalization, OHLC validation, gap detection, indicator warm-up, retry behavior, Spot/Futures page limits, half-open pagination, and Futures 200-day chunking.
+Result on the local development environment: **26 tests passed**. Tests use controlled fixtures and mocked HTTP responses. They cover parsing, UTC normalization, OHLC validation, gap detection, indicator warm-up, retry behavior, Spot/Futures page limits, half-open pagination, and Futures 200-day chunking.
 
 Additional local checks:
 - Editable package installation succeeded with `--no-build-isolation` using the already-installed setuptools.
 - CLI help command succeeded.
-- Live Spot and Futures connectivity attempts could not complete because the execution environment could not resolve external DNS (network unavailable). This is an environment limitation, not a passing live test.
+- Live Spot and Futures connectivity attempts could not complete because the execution environment could not resolve external DNS (network unavailable). This is an environment limitation, not a passing live test. A manual GitHub Actions workflow, `Binance live smoke test`, is available under Actions → Binance live smoke test → Run workflow; it probes server time, BTCUSDT/ETHUSDT candles and 24h tickers, plus basic Futures premium index and open interest.
 
 ## Not yet validated
 - Live Binance API connectivity from this execution environment.
