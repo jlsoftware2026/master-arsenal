@@ -34,8 +34,15 @@ Market reports, skills audit, and snapshot validation are reserved protocol iden
 - No inbound network listener.
 - No subprocess or shell execution.
 - No Binance credentials or account endpoints.
-- Workspace paths are resolved and checked against the configured root.
-- Job state files are written atomically.
+- Workspace paths are resolved and checked against the configured root before directory creation; symlink escapes are rejected.
+- Job state files are written atomically and lifecycle transitions use same-workspace atomic renames.
 - Duplicate job identifiers are rejected.
+- Lifecycle operations use per-workspace thread locks and native OS file locks (POSIX `flock`, Windows `msvcrt.locking`).
+- Tests cover competing threads and separate spawned processes for duplicate submissions and job claims.
+- CI exercises Python 3.11 and 3.12 on Ubuntu and Windows.
 
-This is a development foundation, not a production-certified security boundary. Concurrent multi-process execution, stronger Windows ACL handling, crash recovery, and signed assistant-origin requests remain future validation items.
+This is a development foundation, not a production-certified security boundary. Stronger Windows ACL policy, recovery of jobs left in the running state after abrupt worker termination, signed assistant-origin requests, and broader filesystem/platform hardening remain future work.
+
+## Verification status
+
+The GitHub Actions matrix is the authoritative cross-platform check for this branch. A green run validates the Binance and Local Engine unit suites on each configured operating-system/Python combination. Symlink tests may be skipped on Windows environments where directory symlink creation is not permitted by the runner policy; the implementation still performs the containment check.
