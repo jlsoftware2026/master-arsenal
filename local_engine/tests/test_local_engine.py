@@ -1,3 +1,4 @@
+import json
 import shutil
 import tempfile
 import threading
@@ -78,6 +79,14 @@ class LocalEngineTests(unittest.TestCase):
         result = JobRunner(self.manager).run(job["job_id"])
         self.assertEqual(result["status"], "failed")
         self.assertIn("not implemented in Phase 2", result["error"])
+
+    def test_submitted_job_is_valid_json_with_real_newline(self):
+        job = new_job("engine.health_check")
+        self.manager.submit(job)
+        path = self.manager.workspace.job_path("inbox", job["job_id"])
+        raw = path.read_bytes()
+        self.assertTrue(raw.endswith(b"\n"))
+        self.assertEqual(json.loads(raw.decode("utf-8"))["job_id"], job["job_id"])
 
     def test_duplicate_job_id_is_rejected(self):
         job = new_job("engine.health_check")
