@@ -28,7 +28,11 @@ def _utc(value: Any, field: str) -> datetime:
     return parsed.astimezone(timezone.utc)
 
 
-def _iso_utc(value: datetime) -> str:\n    return value.isoformat(timespec="seconds").replace("+00:00", "Z")\n\n\ndef _display(value: Any) -> str:
+def _iso_utc(value: datetime) -> str:
+    return value.isoformat(timespec="seconds").replace("+00:00", "Z")
+
+
+def _display(value: Any) -> str:
     if value is None:
         return "Insufficient data / unavailable"
     if isinstance(value, float):
