@@ -29,10 +29,12 @@ def candles_for(symbol, omit=(), misalign=()):
     return result
 
 class FakeClient:
-    def __init__(self, omit=None, misalign=None, complete=True, server_time=None):
+    def __init__(self, omit=None, misalign=None, complete=True, server_time=None,
+                 metadata_mismatch=False):
         self.omit = omit or {}
         self.misalign = misalign or {}
         self.complete = complete
+        self.metadata_mismatch = metadata_mismatch
         self.server_time = server_time or datetime(2024, 5, 7, 4, 0, tzinfo=UTC)
         self.last_response_metadata = {}
     def get_server_time(self, market):
@@ -43,7 +45,7 @@ class FakeClient:
             "http_status": 200, "retrieved_at_utc": "2024-05-07T03:01:00Z"
         }
         return rows, PaginationMetadata(
-            pages=1, returned=len(rows), requested_start=start.isoformat(),
+            pages=1, returned=len(rows) + int(self.metadata_mismatch), requested_start=start.isoformat(),
             requested_end=end.isoformat(), complete=self.complete,
         )
     def get_24h_ticker(self, symbol, market):
@@ -80,6 +82,10 @@ class IntradayAcquisitionTests(unittest.TestCase):
     def test_incomplete_pagination_fails_closed(self):
         with self.assertRaisesRegex(ValueError, "pagination did not complete"):
             self.acquire(FakeClient(complete=False))
+
+    def test_pagination_count_mismatch_fails_closed(self):
+        with self.assertRaisesRegex(ValueError, "metadata count"):
+            self.acquire(FakeClient(metadata_mismatch=True))
 
     def test_cutoff_must_align_to_interval(self):
         with self.assertRaisesRegex(ValueError, "align exactly"):
