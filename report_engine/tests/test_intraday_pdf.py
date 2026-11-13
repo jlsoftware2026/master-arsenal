@@ -21,7 +21,7 @@ def fixture():
             symbol: {
                 "candle_count": 16,
                 "first_open_time_utc": "2026-11-13T00:00:00Z",
-                "last_close_time_utc": "2026-11-13T16:59:59Z",
+                "last_close_time_utc": "2026-11-13T15:59:59Z",
                 "ticker_24h": {"priceChangePercent": "1.2"},
                 "response_metadata": {"retrieved_at_utc": "2026-11-13T16:30:30Z"},
                 "indicators": {"ema_20": 100, "rsi_14": 55.2, "macd": {"line": 1.1}},
@@ -62,6 +62,13 @@ class IntradayPdfTests(unittest.TestCase):
         data["window_start_utc"] = "2026-11-13T01:00:00Z"
         with TemporaryDirectory() as temp:
             with self.assertRaisesRegex(ValueError, "00:00 UTC"):
+                build_intraday_snapshot_pdf(data, temp)
+
+    def test_rejects_candle_closing_after_exclusive_cutoff(self):
+        data = fixture()
+        data["symbols"]["BTCUSDT"]["last_close_time_utc"] = "2026-11-13T16:59:59Z"
+        with TemporaryDirectory() as temp:
+            with self.assertRaisesRegex(ValueError, "exclusive cutoff"):
                 build_intraday_snapshot_pdf(data, temp)
 
     def test_rejects_cutoff_before_start(self):
