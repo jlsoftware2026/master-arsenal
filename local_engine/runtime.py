@@ -17,6 +17,9 @@ from uuid import UUID
 from . import __version__
 from .protocol import JobValidationError, load_job, utc_now, validate_job
 
+from binance_data_engine.client import BinancePublicClient
+from report_engine import generate_intraday_snapshot_pdf
+
 DIRECTORIES = (
     "config", "jobs/inbox", "jobs/validated", "jobs/awaiting_approval", "jobs/running",
     "jobs/completed", "jobs/failed", "jobs/cancelled", "jobs/archive",
@@ -234,7 +237,10 @@ class JobManager:
 class JobRunner:
     def __init__(self, manager: JobManager):
         self.manager = manager
-        self.handlers = {"engine.health_check": self._health_check}
+        self.handlers = {
+            "engine.health_check": self._health_check,
+            "market.intraday_snapshot": self._intraday_snapshot,
+        }
 
     def _health_check(self, job: dict[str, Any]) -> dict[str, Any]:
         return {
@@ -245,11 +251,57 @@ class JobRunner:
             "implemented_job_types": sorted(self.handlers), "read_only": True,
         }
 
+    def _intraday_snapshot(self, job: dict[str, Any]) -> dict[str, Any]:
+        parameters = job["parameters"]
+        allowed = {"cutoff_utc", "interval", "market"}
+        unknown = set(parameters) - allowed
+        if unknown:
+            raise ValueError(f"Unknown intraday parameters: {sorted(unknown)}")
+        cutoff_text = parameters.get("cutoff_utc")
+        if not isinstance(cutoff_text, str):
+            raise ValueError("parameters.cutoff_utc is required as an ISO-8601 UTC string")
+        try:
+            cutoff = datetime.fromisoformat(cutoff_text.replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise ValueError("parameters.cutoff_utc must be an ISO-8601 UTC string") from exc
+        if cutoff.tzinfo is None or cutoff.utcoffset().total_seconds() != 0:
+            raise ValueError("parameters.cutoff_utc must include a UTC timezone")
+        interval = parameters.get("interval", "1h")
+        market = parameters.get("market", "spot")
+        if not isinstance(interval, str):
+            raise ValueError("parameters.interval must be a string")
+        if market not in {"spot", "usdm"}:
+            raise ValueError("parameters.market must be 'spot' or 'usdm'")
+        if job["output"]["format"] != "pdf":
+            raise ValueError("market.intraday_snapshot requires output.format='pdf'")
+
+        output_directory = self.manager.workspace.directory(job["output"]["directory"])
+        artifact = generate_intraday_snapshot_pdf(
+            BinancePublicClient(), cutoff, output_directory,
+            interval=interval, market=market,
+        )
+        resolved_artifact = artifact.resolve()
+        if not resolved_artifact.is_relative_to(self.manager.workspace.root):
+            raise ValueError("Generated report artifact escaped the workspace")
+        if not resolved_artifact.is_file():
+            raise ValueError("PDF report generation did not produce an artifact")
+        return {
+            "report_type": "market.intraday_snapshot",
+            "format": "pdf",
+            "artifact_path": str(resolved_artifact.relative_to(self.manager.workspace.root)),
+            "window_start_utc": cutoff.replace(hour=0, minute=0, second=0, microsecond=0)
+                                      .isoformat().replace("+00:00", "Z"),
+            "cutoff_utc": cutoff.isoformat().replace("+00:00", "Z"),
+            "market": market,
+            "interval": interval,
+            "read_only": True,
+        }
+
     def run(self, job_id: str) -> dict[str, Any]:
         job = self.manager.claim(job_id)
         handler = self.handlers.get(job["job_type"])
         if handler is None:
-            message = f"Job type {job['job_type']!r} is defined but not implemented in Phase 2"
+            message = f"Job type {job['job_type']!r} is defined but not implemented by this runtime"
             self.manager.finish(job_id, {"error": message}, success=False)
             return {"status": "failed", "error": message}
         try:
