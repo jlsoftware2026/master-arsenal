@@ -22,8 +22,8 @@ The composer renders optional executive summary, ticker and indicator values, va
 
 ## Current limitations
 
-- The first PDF workflow is a renderer/composer accepting structured evidence; it is not yet wired to live Binance acquisition or a Local Engine job handler.
-- The Binance snapshot currently returns recent rolling klines, not a complete UTC-day historical window. A dedicated intraday acquisition pipeline must be implemented before the skill can claim full-day coverage.
+- The intraday acquisition and PDF composition are connected through `generate_intraday_snapshot_pdf`; the Local Engine job handler is not yet implemented.
+- The general Binance snapshot still returns rolling klines; the dedicated intraday path separately requests the exact UTC-day window.
 - Macro/news acquisition and source citation contracts remain to be integrated.
 - Opening, closing, and independent audit PDF composers remain outstanding.
 - The artifact checks are basic structural checks, not a full independent PDF parser or visual QA.
@@ -34,6 +34,7 @@ The composer renders optional executive summary, ticker and indicator values, va
 Run:
 ```bash
 python -m pip install -e .
+python -m unittest discover -s binance_data_engine/tests -v
 python -m unittest discover -s report_engine/tests -v
 ```
 
@@ -42,9 +43,9 @@ python -m unittest discover -s report_engine/tests -v
 
 - `report_engine.acquisition.acquire_intraday_evidence` now requests a bounded UTC-day range from 00:00 UTC to the exclusive cutoff for BTCUSDT and ETHUSDT.
 - Only completed candles are retained; a candle whose close timestamp reaches or exceeds the cutoff is excluded.
-- Expected candle opens are calculated from the selected fixed-duration interval. Missing candles, invalid candle data, and incomplete pagination are disclosed and cause `data_status=incomplete`; no values are interpolated.
-- Binance server time is checked against the requested cutoff. A local clock behind the cutoff is treated as an error rather than fabricating a generation timestamp.
+- The cutoff must align exactly to the selected fixed-duration interval. Every expected candle open and inclusive close boundary is checked; missing, duplicate, misaligned, out-of-window, invalid, or incompletely paginated data produces explicit error issues and `data_status=incomplete`. No values are interpolated.
+- Binance server time is checked against the requested cutoff. Candle-page response metadata, pagination counts, ticker metadata, and per-symbol provenance are retained. A local clock behind the cutoff is treated as an error rather than fabricating a generation timestamp.
 - `generate_intraday_snapshot_pdf` connects acquisition, validation, and PDF composition in one callable workflow.
-- The PDF composer now rejects first/last candle timestamps outside the declared report window and validates any supplied candle list for count consistency, ordering, uniqueness, and cutoff compliance.
+- The PDF composer rejects first/last candle timestamps outside the declared report window and validates supplied candle lists for count consistency, ordering, uniqueness, and cutoff compliance. The PDF displays the candle retrieval timestamp from the nested provenance metadata.
 
 This increment still does not connect the workflow to the Local Engine job dispatcher. Live network execution is also not certified by fixture-based CI; geographic/API availability must be assessed separately and no restrictions are bypassed.
