@@ -270,7 +270,7 @@ class JobRunner:
         market = parameters.get("market", "spot")
         if not isinstance(interval, str):
             raise ValueError("parameters.interval must be a string")
-        if market not in {"spot", "usdm"}:
+        if not isinstance(market, str) or market not in {"spot", "usdm"}:
             raise ValueError("parameters.market must be 'spot' or 'usdm'")
         if job["output"]["format"] != "pdf":
             raise ValueError("market.intraday_snapshot requires output.format='pdf'")
