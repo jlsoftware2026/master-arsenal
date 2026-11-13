@@ -43,9 +43,9 @@ python -m unittest discover -s report_engine/tests -v
 
 - `report_engine.acquisition.acquire_intraday_evidence` now requests a bounded UTC-day range from 00:00 UTC to the exclusive cutoff for BTCUSDT and ETHUSDT.
 - Only completed candles are retained; a candle whose close timestamp reaches or exceeds the cutoff is excluded.
-- The cutoff must align exactly to the selected fixed-duration interval. Every expected candle open and inclusive close boundary is checked; missing, duplicate, misaligned, out-of-window, invalid, or incompletely paginated data produces explicit error issues and `data_status=incomplete`. No values are interpolated.
+- The cutoff must align exactly to the selected fixed-duration interval. Every expected candle open and inclusive close boundary is checked; missing, duplicate, misaligned, out-of-window, invalid, or incompletely paginated data fails closed before PDF publication. No values are interpolated or silently repaired.
 - Binance server time is checked against the requested cutoff. Candle-page response metadata, pagination counts, ticker metadata, and per-symbol provenance are retained. A local clock behind the cutoff is treated as an error rather than fabricating a generation timestamp.
 - `generate_intraday_snapshot_pdf` delegates to the strict Binance UTC-day acquisition contract, then connects validated evidence to PDF composition in one callable workflow.
-- The PDF composer rejects first/last candle timestamps outside the declared report window and validates supplied candle lists for count consistency, ordering, uniqueness, and cutoff compliance. The PDF displays the candle retrieval timestamp from the nested provenance metadata.
+- The PDF composer rejects first/last candle timestamps outside the declared report window and validates supplied candle lists for count consistency, ordering, uniqueness, and cutoff compliance. The PDF displays the candle retrieval timestamp from Binance response metadata.
 
 This increment still does not connect the workflow to the Local Engine job dispatcher. Live network execution is also not certified by fixture-based CI; geographic/API availability must be assessed separately and no restrictions are bypassed.
