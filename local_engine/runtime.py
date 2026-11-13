@@ -143,7 +143,11 @@ class JobManager:
             found = self._find(job_id)
             if not found:
                 raise FileNotFoundError(f"Job not found: {job_id}")
-            return json.loads(found[1].read_text(encoding="utf-8"))
+            record = json.loads(found[1].read_text(encoding="utf-8"))
+            # The directory is authoritative if recovery observes a crash between
+            # writing the transition record and renaming it into the next state.
+            record["status"] = found[0]
+            return record
 
     def _move(self, job: dict[str, Any], old_state: str, new_state: str) -> None:
         source = self.workspace.job_path(old_state, job["job_id"])
@@ -154,11 +158,13 @@ class JobManager:
             raise JobValidationError(f"Job already exists in state {new_state}")
         job["status"] = new_state
         job["updated_at_utc"] = utc_now()
-        # Both directories are inside the same workspace filesystem. A rename is
-        # atomic: after a crash the job is in either the old or the new state.
+        # Update the record first, then atomically rename it. If interrupted
+        # between these operations, the source directory remains authoritative
+        # and get() normalizes the visible status from that directory.
+        self._atomic_write(source, job)
+        # Both directories are within one workspace filesystem. This rename is
+        # atomic: after it, the job exists only in the destination state.
         os.replace(source, target)
-        # Persist the updated record atomically at its new location.
-        self._atomic_write(target, job)
 
     def validate_pending(self, job_id: str) -> str:
         with self._workspace_lock():
