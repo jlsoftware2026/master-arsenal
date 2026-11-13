@@ -127,9 +127,9 @@ class JobManager:
             # Exclusive creation is a second guard against accidental replacement.
             fd = os.open(destination, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
             try:
-                with os.fdopen(fd, "w", encoding="utf-8", newline="\\n") as stream:
+                with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as stream:
                     json.dump(record, stream, indent=2, ensure_ascii=False)
-                    stream.write("\\n")
+                    stream.write("\n")
                     stream.flush()
                     os.fsync(stream.fileno())
             except Exception:
