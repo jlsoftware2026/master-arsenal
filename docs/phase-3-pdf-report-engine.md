@@ -49,3 +49,32 @@ python -m unittest discover -s report_engine/tests -v
 - The PDF composer rejects first/last candle timestamps outside the declared report window and validates supplied candle lists for count consistency, ordering, uniqueness, and cutoff compliance. The PDF displays the candle retrieval timestamp from Binance response metadata.
 
 This increment still does not connect the workflow to the Local Engine job dispatcher. Live network execution is also not certified by fixture-based CI; geographic/API availability must be assessed separately and no restrictions are bypassed.
+
+
+## Local Engine integration — intraday snapshot
+
+The approved `market.intraday_snapshot` job now invokes the strict Binance acquisition and PDF pipeline.
+
+Create a job template:
+```bash
+ma-local --workspace ./MASTER-ARSENAL-LOCAL new-job market.intraday_snapshot --output intraday-job.json
+```
+
+The template defaults to PDF output in `reports/intraday`. Edit its `parameters` object to include a UTC cutoff aligned to the interval:
+```json
+{
+  "cutoff_utc": "2026-11-13T18:00:00Z",
+  "interval": "1h",
+  "market": "spot"
+}
+```
+
+Submit, validate, approve, and run:
+```bash
+ma-local --workspace ./MASTER-ARSENAL-LOCAL submit intraday-job.json
+ma-local --workspace ./MASTER-ARSENAL-LOCAL validate JOB_UUID
+ma-local --workspace ./MASTER-ARSENAL-LOCAL approve JOB_UUID
+ma-local --workspace ./MASTER-ARSENAL-LOCAL run JOB_UUID
+```
+
+The completed job record stores the relative PDF artifact path and report window. The handler rejects missing/unknown parameters, non-UTC cutoffs, non-PDF output, unsafe workspace destinations, and incomplete Binance evidence. It uses public read-only endpoints only. Live execution still depends on the user's network and Binance endpoint eligibility.
