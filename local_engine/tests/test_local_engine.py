@@ -203,7 +203,7 @@ class LocalEngineTests(unittest.TestCase):
         self.manager.approve(job["job_id"])
         result = JobRunner(self.manager).run(job["job_id"])
         self.assertEqual(result["status"], "failed")
-        self.assertIn("output is fixed to PDF in reports/intraday", result["error"])
+        self.assertIn("requires output.format='pdf'", result["error"])
 
     def test_unsupported_handler_fails_explicitly(self):
         job = self._approved_job("market.opening_report")
