@@ -28,7 +28,7 @@ def _utc(value: Any, field: str) -> datetime:
     return parsed.astimezone(timezone.utc)
 
 
-def _display(value: Any) -> str:
+def _iso_utc(value: datetime) -> str:\n    return value.isoformat(timespec="seconds").replace("+00:00", "Z")\n\n\ndef _display(value: Any) -> str:
     if value is None:
         return "Insufficient data / unavailable"
     if isinstance(value, float):
@@ -92,8 +92,8 @@ def build_intraday_snapshot_pdf(report: dict[str, Any], output_directory: Path |
         Paragraph("UTC-day market review with source and data-quality disclosures",
                   styles["subtitle"]),
         key_value_table([
-            ("Reporting window", f"{start.isoformat()}Z to {cutoff.isoformat()}Z (cutoff exclusive)"),
-            ("Generated at UTC", generated.isoformat()),
+            ("Reporting window", f"{_iso_utc(start)} to {_iso_utc(cutoff)} (cutoff exclusive)"),
+            ("Generated at UTC", _iso_utc(generated)),
             ("Primary source", report.get("source", "Not specified")),
             ("Market", report.get("market", "Not specified")),
             ("Interval", report.get("interval", "Not specified")),
