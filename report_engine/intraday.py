@@ -75,8 +75,43 @@ def _validate_input(report: dict[str, Any]):
     if absent:
         raise ValueError(f"Mandatory symbols missing: {', '.join(absent)}")
     for symbol in REQUIRED_SYMBOLS:
-        if not isinstance(symbols[symbol], dict):
+        item = symbols[symbol]
+        if not isinstance(item, dict):
             raise ValueError(f"{symbol} report data must be an object")
+        count = item.get("candle_count")
+        if count is not None and (not isinstance(count, int) or count < 0):
+            raise ValueError(f"{symbol} candle_count must be a non-negative integer")
+        first = item.get("first_open_time_utc")
+        last = item.get("last_close_time_utc")
+        if count and (first is None or last is None):
+            raise ValueError(f"{symbol} candle timestamps are required when candle_count is non-zero")
+        if first is not None:
+            first_open = _utc(first, f"{symbol}.first_open_time_utc")
+            if first_open < start or first_open >= cutoff:
+                raise ValueError(f"{symbol} first candle is outside the reporting window")
+        if last is not None:
+            last_close = _utc(last, f"{symbol}.last_close_time_utc")
+            if last_close >= cutoff:
+                raise ValueError(f"{symbol} includes a candle closing at or after the exclusive cutoff")
+            if first is not None and last_close < _utc(first, f"{symbol}.first_open_time_utc"):
+                raise ValueError(f"{symbol} last candle closes before its first candle opens")
+        candles = item.get("candles")
+        if candles is not None:
+            if not isinstance(candles, list):
+                raise ValueError(f"{symbol}.candles must be a list")
+            if count is not None and len(candles) != count:
+                raise ValueError(f"{symbol} candle_count does not match supplied candle evidence")
+            previous_open = None
+            for index, candle in enumerate(candles):
+                if not isinstance(candle, dict):
+                    raise ValueError(f"{symbol}.candles[{index}] must be an object")
+                opened = _utc(candle.get("open_time"), f"{symbol}.candles[{index}].open_time")
+                closed = _utc(candle.get("close_time"), f"{symbol}.candles[{index}].close_time")
+                if opened < start or opened >= cutoff or closed >= cutoff or closed < opened:
+                    raise ValueError(f"{symbol}.candles[{index}] falls outside the valid report window")
+                if previous_open is not None and opened <= previous_open:
+                    raise ValueError(f"{symbol} candle evidence must be strictly ordered and unique")
+                previous_open = opened
     return start, cutoff, generated
 
 
