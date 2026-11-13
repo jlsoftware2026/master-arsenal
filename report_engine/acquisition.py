@@ -30,7 +30,7 @@ def acquire_intraday_evidence(
         cutoff_utc=cutoff_utc,
         interval=interval,
         market=market,
-        symbols=CORE_SYMBOLS,
+        symbols=symbols,
         include_ticker=True,
     )
     if datetime.now(timezone.utc) < cutoff_utc:
