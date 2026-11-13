@@ -69,23 +69,17 @@ class IntradayAcquisitionTests(unittest.TestCase):
         self.assertEqual(btc["response_metadata"]["candles"]["http_status"], 200)
         self.assertEqual(len(report["provenance"]), 2)
 
-    def test_missing_candle_marks_report_incomplete(self):
-        report = self.acquire(FakeClient(omit={"BTCUSDT": (1,)}))
-        self.assertEqual(report["data_status"], "incomplete")
-        issue_codes = {issue["code"] for issue in report["symbols"]["BTCUSDT"]["validation"]}
-        self.assertIn("missing_candles", issue_codes)
+    def test_missing_candle_fails_closed(self):
+        with self.assertRaisesRegex(ValueError, "expected 3 candles, received 2"):
+            self.acquire(FakeClient(omit={"BTCUSDT": (1,)}))
 
-    def test_misaligned_candle_marks_report_incomplete(self):
-        report = self.acquire(FakeClient(misalign={"ETHUSDT": (1,)}))
-        self.assertEqual(report["data_status"], "incomplete")
-        issue_codes = {issue["code"] for issue in report["symbols"]["ETHUSDT"]["validation"]}
-        self.assertIn("misaligned_candle", issue_codes)
+    def test_misaligned_candle_fails_closed(self):
+        with self.assertRaisesRegex(ValueError, "misaligned"):
+            self.acquire(FakeClient(misalign={"ETHUSDT": (1,)}))
 
-    def test_incomplete_pagination_marks_report_incomplete(self):
-        report = self.acquire(FakeClient(complete=False))
-        self.assertEqual(report["data_status"], "incomplete")
-        issue_codes = {issue["code"] for issue in report["symbols"]["BTCUSDT"]["validation"]}
-        self.assertIn("pagination_incomplete", issue_codes)
+    def test_incomplete_pagination_fails_closed(self):
+        with self.assertRaisesRegex(ValueError, "pagination did not complete"):
+            self.acquire(FakeClient(complete=False))
 
     def test_cutoff_must_align_to_interval(self):
         with self.assertRaisesRegex(ValueError, "align exactly"):
