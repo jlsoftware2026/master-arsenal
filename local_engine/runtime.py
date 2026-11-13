@@ -1,4 +1,4 @@
-"""Workspace, atomic job lifecycle, approval gate, and allowlisted dispatcher."""
+"""Workspace, cross-process-safe job lifecycle, approval gate, and dispatcher."""
 from __future__ import annotations
 
 import json
@@ -7,9 +7,10 @@ import platform
 import re
 import sys
 import tempfile
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterator
 from uuid import UUID
 
 from . import __version__
@@ -63,14 +64,40 @@ class JobManager:
         self.workspace = workspace
         self.workspace.initialize()
 
+    @contextmanager
+    def _workspace_lock(self) -> Iterator[None]:
+        """Serialize lifecycle operations across processes on this local workspace."""
+        lock_path = self.workspace.directory("logs") / "job-manager.lock"
+        with lock_path.open("a+b") as lock_file:
+            if os.name == "nt":
+                import msvcrt
+                lock_file.seek(0, os.SEEK_END)
+                if lock_file.tell() == 0:
+                    lock_file.write(b"0")
+                    lock_file.flush()
+                lock_file.seek(0)
+                msvcrt.locking(lock_file.fileno(), msvcrt.LK_LOCK, 1)
+                try:
+                    yield
+                finally:
+                    lock_file.seek(0)
+                    msvcrt.locking(lock_file.fileno(), msvcrt.LK_UNLCK, 1)
+            else:
+                import fcntl
+                fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+                try:
+                    yield
+                finally:
+                    fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+
     @staticmethod
     def _atomic_write(path: Path, payload: dict[str, Any]) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
         fd, temporary = tempfile.mkstemp(prefix=f".{path.stem}.", suffix=".tmp", dir=path.parent)
         try:
-            with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as stream:
+            with os.fdopen(fd, "w", encoding="utf-8", newline="\\n") as stream:
                 json.dump(payload, stream, indent=2, ensure_ascii=False)
-                stream.write("\n")
+                stream.write("\\n")
                 stream.flush()
                 os.fsync(stream.fileno())
             os.replace(temporary, path)
@@ -86,73 +113,95 @@ class JobManager:
 
     def submit(self, job: dict[str, Any]) -> dict[str, Any]:
         validate_job(job)
-        if any(self.workspace.job_path(state, job["job_id"]).exists() for state in STATES):
-            raise JobValidationError(f"Duplicate job_id: {job['job_id']}")
-        record = {**job, "status": "inbox", "updated_at_utc": utc_now()}
-        self._atomic_write(self.workspace.job_path("inbox", job["job_id"]), record)
-        return record
+        with self._workspace_lock():
+            if any(self.workspace.job_path(state, job["job_id"]).exists() for state in STATES):
+                raise JobValidationError(f"Duplicate job_id: {job['job_id']}")
+            record = {**job, "status": "inbox", "updated_at_utc": utc_now()}
+            destination = self.workspace.job_path("inbox", job["job_id"])
+            # Exclusive creation is a second guard against accidental replacement.
+            fd = os.open(destination, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+            with os.fdopen(fd, "w", encoding="utf-8", newline="\\n") as stream:
+                json.dump(record, stream, indent=2, ensure_ascii=False)
+                stream.write("\\n")
+                stream.flush()
+                os.fsync(stream.fileno())
+            return record
 
     def _find(self, job_id: str):
-        for state in STATES:
-            path = self.workspace.job_path(state, job_id)
-            if path.is_file():
-                return state, path
-        return None
+        matches = [
+            (state, self.workspace.job_path(state, job_id))
+            for state in STATES
+            if self.workspace.job_path(state, job_id).is_file()
+        ]
+        if len(matches) > 1:
+            states = ", ".join(state for state, _ in matches)
+            raise JobValidationError(f"Job {job_id} exists in multiple lifecycle states: {states}")
+        return matches[0] if matches else None
 
     def get(self, job_id: str) -> dict[str, Any]:
-        found = self._find(job_id)
-        if not found:
-            raise FileNotFoundError(f"Job not found: {job_id}")
-        return json.loads(found[1].read_text(encoding="utf-8"))
+        with self._workspace_lock():
+            found = self._find(job_id)
+            if not found:
+                raise FileNotFoundError(f"Job not found: {job_id}")
+            return json.loads(found[1].read_text(encoding="utf-8"))
 
     def _move(self, job: dict[str, Any], old_state: str, new_state: str) -> None:
         source = self.workspace.job_path(old_state, job["job_id"])
         target = self.workspace.job_path(new_state, job["job_id"])
+        if not source.is_file():
+            raise JobValidationError(f"Job is no longer in state {old_state}")
         if target.exists():
             raise JobValidationError(f"Job already exists in state {new_state}")
         job["status"] = new_state
         job["updated_at_utc"] = utc_now()
+        # Both directories are inside the same workspace filesystem. A rename is
+        # atomic: after a crash the job is in either the old or the new state.
+        os.replace(source, target)
+        # Persist the updated record atomically at its new location.
         self._atomic_write(target, job)
-        source.unlink()
 
     def validate_pending(self, job_id: str) -> str:
-        found = self._find(job_id)
-        if not found or found[0] != "inbox":
-            raise JobValidationError("Only inbox jobs can be validated")
-        state, path = found
-        job = json.loads(path.read_text(encoding="utf-8"))
-        validate_job({k: v for k, v in job.items() if k not in {"status", "updated_at_utc"}})
-        target = "awaiting_approval" if job["approval"]["required"] and not job["approval"]["granted"] else "validated"
-        self._move(job, state, target)
-        return target
+        with self._workspace_lock():
+            found = self._find(job_id)
+            if not found or found[0] != "inbox":
+                raise JobValidationError("Only inbox jobs can be validated")
+            state, path = found
+            job = json.loads(path.read_text(encoding="utf-8"))
+            validate_job({k: v for k, v in job.items() if k not in {"status", "updated_at_utc"}})
+            target = "awaiting_approval" if job["approval"]["required"] and not job["approval"]["granted"] else "validated"
+            self._move(job, state, target)
+            return target
 
     def approve(self, job_id: str) -> None:
-        found = self._find(job_id)
-        if not found or found[0] != "awaiting_approval":
-            raise JobValidationError("Only jobs awaiting approval can be approved")
-        state, path = found
-        job = json.loads(path.read_text(encoding="utf-8"))
-        job["approval"]["granted"] = True
-        validate_job({k: v for k, v in job.items() if k not in {"status", "updated_at_utc"}})
-        self._move(job, state, "validated")
+        with self._workspace_lock():
+            found = self._find(job_id)
+            if not found or found[0] != "awaiting_approval":
+                raise JobValidationError("Only jobs awaiting approval can be approved")
+            state, path = found
+            job = json.loads(path.read_text(encoding="utf-8"))
+            job["approval"]["granted"] = True
+            validate_job({k: v for k, v in job.items() if k not in {"status", "updated_at_utc"}})
+            self._move(job, state, "validated")
 
     def claim(self, job_id: str) -> dict[str, Any]:
-        found = self._find(job_id)
-        if not found or found[0] != "validated":
-            raise JobValidationError("Only validated jobs can be executed")
-        job = json.loads(found[1].read_text(encoding="utf-8"))
-        if job["approval"]["required"] and not job["approval"]["granted"]:
-            raise JobValidationError("Job has not received explicit approval")
-        self._move(job, "validated", "running")
-        return job
+        with self._workspace_lock():
+            found = self._find(job_id)
+            if not found or found[0] != "validated":
+                raise JobValidationError("Only validated jobs can be executed")
+            job = json.loads(found[1].read_text(encoding="utf-8"))
+            if job["approval"]["required"] and not job["approval"]["granted"]:
+                raise JobValidationError("Job has not received explicit approval")
+            self._move(job, "validated", "running")
+            return job
 
     def finish(self, job_id: str, result: dict[str, Any], success: bool = True) -> None:
-        found = self._find(job_id)
-        if not found or found[0] != "running":
-            raise JobValidationError("Only running jobs can be completed")
-        job = json.loads(found[1].read_text(encoding="utf-8"))
-        job["result"] = result
-        self._move(job, "running", "completed" if success else "failed")
+        with self._workspace_lock():
+            found = self._find(job_id)
+            if not found or found[0] != "running":
+                raise JobValidationError("Only running jobs can be completed")
+            job = json.loads(found[1].read_text(encoding="utf-8"))
+            job["result"] = result
+            self._move(job, "running", "completed" if success else "failed")
 
 
 class JobRunner:
