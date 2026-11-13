@@ -74,6 +74,7 @@ def acquire_intraday_evidence(
         start + timedelta(milliseconds=index * cadence)
         for index in range(elapsed_ms // cadence)
     ]
+    expected_open_set = set(expected_opens)
     symbols_data: dict[str, Any] = {}
     all_complete = True
     for symbol in requested:
@@ -108,7 +109,7 @@ def acquire_intraday_evidence(
                 })
             seen_opens.add(candle.open_time)
             expected_close = candle.open_time + timedelta(milliseconds=cadence - 1)
-            if candle.open_time not in set(expected_opens) or candle.close_time != expected_close:
+            if candle.open_time not in expected_open_set or candle.close_time != expected_close:
                 issues.append({
                     "code": "misaligned_candle", "severity": "error",
                     "message": "Candle open/close timestamps do not match the requested interval grid.",
@@ -122,6 +123,11 @@ def acquire_intraday_evidence(
                 "code": "missing_candles", "severity": "error",
                 "message": f"{len(missing_opens)} expected completed {interval} candle(s) are missing.",
                 "missing_open_times_utc": [_iso(value) for value in missing_opens],
+            })
+        if pagination.returned != len(returned):
+            issues.append({
+                "code": "pagination_count_mismatch", "severity": "error",
+                "message": "Pagination metadata count does not match the returned candle rows.",
             })
         if not pagination.complete:
             issues.append({
