@@ -18,6 +18,9 @@ class FakeResponse:
     def read(self): return self.payload
 
 class ClientTests(unittest.TestCase):
+    def test_malformed_kline_row_rejected(self):
+        c=BinancePublicClient(opener=lambda *a,**k:FakeResponse([[0,"1","1","1","1","1"]]))
+        with self.assertRaises(BinanceAPIError): c.get_klines("BTCUSDT","1m",1)
     def test_kline_parse_decimal_utc(self):
         c=BinancePublicClient(opener=lambda *a,**k:FakeResponse([row(0,59999)]))
         x=c.get_klines("btcusdt","1m",1)
