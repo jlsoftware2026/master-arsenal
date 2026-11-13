@@ -57,7 +57,7 @@ def inspect_pdf_artifact(
                     raise ValueError(f"PDF page {number} contains text outside page bounds")
             pixmap = page.get_pixmap(matrix=fitz.Matrix(1, 1), alpha=False)
             samples = pixmap.samples
-            if not samples or len(set(samples[::max(1, len(samples) // 4096)])) < 2:
+            if not samples or len(set(samples)) < 2:
                 raise ValueError(f"PDF page {number} renders blank")
             if preview_root is not None:
                 pixmap.save(preview_root / f"page-{number:03d}.png")
