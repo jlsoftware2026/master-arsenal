@@ -1,4 +1,5 @@
 import json
+import multiprocessing
 import shutil
 import tempfile
 import threading
@@ -8,6 +9,22 @@ from unittest.mock import patch
 
 from local_engine.protocol import JobValidationError, new_job, validate_job
 from local_engine.runtime import JobManager, JobRunner, Workspace
+
+
+def _process_submit(root, job, queue):
+    try:
+        JobManager(Workspace(root)).submit(job)
+        queue.put("submitted")
+    except JobValidationError:
+        queue.put("duplicate")
+
+
+def _process_claim(root, job_id, queue):
+    try:
+        JobManager(Workspace(root)).claim(job_id)
+        queue.put("claimed")
+    except JobValidationError:
+        queue.put("unavailable")
 
 
 class LocalEngineTests(unittest.TestCase):
@@ -164,6 +181,38 @@ class LocalEngineTests(unittest.TestCase):
             thread.join(timeout=5)
         self.assertCountEqual(outcomes, ["submitted", "duplicate"])
         self.assertTrue(all(not thread.is_alive() for thread in threads))
+
+    def test_multiprocess_duplicate_submissions_allow_only_one(self):
+        job = new_job("engine.health_check")
+        context = multiprocessing.get_context("spawn")
+        queue = context.Queue()
+        processes = [
+            context.Process(target=_process_submit, args=(str(self.manager.workspace.root), job, queue))
+            for _ in range(2)
+        ]
+        for process in processes:
+            process.start()
+        outcomes = [queue.get(timeout=15) for _ in processes]
+        for process in processes:
+            process.join(timeout=15)
+        self.assertTrue(all(process.exitcode == 0 for process in processes))
+        self.assertCountEqual(outcomes, ["submitted", "duplicate"])
+
+    def test_multiprocess_claims_allow_only_one_worker(self):
+        job = self._approved_job()
+        context = multiprocessing.get_context("spawn")
+        queue = context.Queue()
+        processes = [
+            context.Process(target=_process_claim, args=(str(self.manager.workspace.root), job["job_id"], queue))
+            for _ in range(2)
+        ]
+        for process in processes:
+            process.start()
+        outcomes = [queue.get(timeout=15) for _ in processes]
+        for process in processes:
+            process.join(timeout=15)
+        self.assertTrue(all(process.exitcode == 0 for process in processes))
+        self.assertCountEqual(outcomes, ["claimed", "unavailable"])
 
     def test_concurrent_claims_allow_only_one_worker(self):
         job = self._approved_job()
