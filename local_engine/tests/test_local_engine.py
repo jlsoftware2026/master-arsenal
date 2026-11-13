@@ -111,6 +111,19 @@ class LocalEngineTests(unittest.TestCase):
         with self.assertRaises(JobValidationError):
             self.manager.submit(job)
 
+    def test_workspace_rejects_symlink_escape_before_creating_children(self):
+        root = Path(self.temp.name) / "symlink-workspace"
+        outside = Path(self.temp.name) / "outside"
+        root.mkdir()
+        outside.mkdir()
+        try:
+            (root / "jobs").symlink_to(outside, target_is_directory=True)
+        except (OSError, NotImplementedError) as exc:
+            self.skipTest(f"Directory symlinks unavailable: {exc}")
+        with self.assertRaisesRegex(ValueError, "escapes root"):
+            Workspace(root).initialize()
+        self.assertFalse((outside / "inbox").exists())
+
     def test_workspace_rejects_escape(self):
         with self.assertRaises(ValueError):
             self.manager.workspace.directory("../outside")
