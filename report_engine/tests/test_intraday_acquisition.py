@@ -1,10 +1,12 @@
 """Offline tests for completed-candle UTC acquisition."""
 from datetime import datetime, timedelta, timezone
 import unittest
+from tempfile import TemporaryDirectory
+
 
 from binance_data_engine.client import PaginationMetadata
 from binance_data_engine.models import Candle
-from report_engine.acquisition import acquire_intraday_evidence
+from report_engine.acquisition import acquire_intraday_evidence, generate_intraday_snapshot_pdf
 
 
 START = datetime(2026, 11, 13, tzinfo=timezone.utc)
@@ -56,6 +58,13 @@ class IntradayAcquisitionTests(unittest.TestCase):
         self.assertEqual(report["data_status"], "incomplete")
         self.assertTrue(any(x["code"] == "missing_candles"
                             for x in report["symbols"]["BTCUSDT"]["validation"]))
+
+    def test_end_to_end_workflow_writes_pdf_from_acquired_evidence(self):
+        with TemporaryDirectory() as temp:
+            result = generate_intraday_snapshot_pdf(FakeClient(), CUTOFF, temp, "1h")
+            self.assertTrue(result.is_file())
+            self.assertEqual(result.name, "snapshot-mercado-2026-11-13_03-00.pdf")
+            self.assertTrue(result.read_bytes().startswith(b"%PDF-"))
 
     def test_rejects_unsupported_interval(self):
         with self.assertRaisesRegex(ValueError, "Unsupported"):
