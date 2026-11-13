@@ -17,6 +17,7 @@ def acquire_intraday_evidence(
     cutoff_utc: datetime,
     interval: str = "1h",
     market: str = "spot",
+    symbols: tuple[str, ...] = CORE_SYMBOLS,
 ) -> dict[str, Any]:
     """Acquire a complete, aligned UTC-day evidence set for BTCUSDT and ETHUSDT."""
     if not isinstance(cutoff_utc, datetime) or cutoff_utc.tzinfo is None:
