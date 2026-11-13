@@ -183,7 +183,7 @@ class LocalEngineTests(unittest.TestCase):
         with patch("local_engine.runtime.BinancePublicClient") as client_factory:
             result = JobRunner(self.manager).run(job["job_id"])
         self.assertEqual(result["status"], "failed")
-        self.assertIn("fixed to PDF in reports/intraday", result["error"])
+        self.assertIn("output directory is fixed to reports/intraday", result["error"])
         client_factory.assert_not_called()
         self.assertFalse(any(self.manager.workspace.directory("reports/closing").iterdir()))
 
