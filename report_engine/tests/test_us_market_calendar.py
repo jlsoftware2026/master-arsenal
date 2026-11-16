@@ -11,13 +11,13 @@ class USMarketCalendarTests(unittest.TestCase):
         result = classify_us_equity_session(datetime(2026, 3, 9, 14, 0, tzinfo=timezone.utc))
         self.assertEqual(result["status"], "ok")
         self.assertEqual(result["session_state"], "regular")
-        self.assertEqual(result["session_open_utc"], "2026-03-09T13:30:00+00:00")
+        self.assertEqual(result["session_open_utc"], "2026-03-09T13:30:00Z")
         self.assertEqual(result["session_open_et"], "2026-03-09T09:30:00-04:00")
 
     def test_standard_time_open_is_1430_utc(self):
         result = classify_us_equity_session(datetime(2026, 11, 16, 15, 0, tzinfo=timezone.utc))
         self.assertEqual(result["session_state"], "regular")
-        self.assertEqual(result["session_open_utc"], "2026-11-16T14:30:00+00:00")
+        self.assertEqual(result["session_open_utc"], "2026-11-16T14:30:00Z")
         self.assertEqual(result["session_open_et"], "2026-11-16T09:30:00-05:00")
 
     def test_thanksgiving_is_closed_and_points_to_next_session(self):
