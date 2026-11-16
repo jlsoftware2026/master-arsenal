@@ -69,7 +69,7 @@ def acquire_session_report_evidence(
     report["cutoff_resolution"] = (
         "previous_local_calendar_day" if report_kind == "opening" else
         "explicit_local_cutoff" if cutoff_local is not None else
-        "execution_time_local_default" if report_kind == "closing" and target_date == current_local_report_date(now) else
+        "execution_time_local_default" if report_kind == "closing" and target_date == current_local_report_date(execution_now) else
         "completed_historical_local_day"
     )
     report["report_timezone"] = REPORT_TIMEZONE
