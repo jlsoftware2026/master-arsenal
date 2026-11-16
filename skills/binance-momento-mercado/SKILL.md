@@ -25,7 +25,7 @@ Generate a detailed intraday PDF snapshot from Dominican local midnight through 
 6. Macro/news catalysts with source timestamps.
 7. Bullish/long and bearish/short conditional scenarios, invalidation levels, risk, limitations, and source register.
 
-Do not predict the rest of the session unless the user explicitly requests a clearly labeled scenario. Use the best-effort Yahoo Finance snapshot for major U.S. indices, VIX, futures, rates, DXY, commodities, and sector ETFs; retain each quote's observation timestamp and source URL. Disclose missing symbols, delayed/incomplete data, and the fact that this is not an execution feed. Breadth, stock-level leaders/laggards, and If a supported transaction-history CSV exists in data/account_exports, summarize events by type and asset. Do not infer account equity, unrealized PnL or flow-adjusted returns. The XNYS calendar supplies session state, not prices.
+Do not predict the rest of the session unless the user explicitly requests a clearly labeled scenario. Use the best-effort Yahoo Finance snapshot for major U.S. indices, VIX, futures, rates, DXY, commodities, and sector ETFs; retain each quote's observation timestamp and source URL. Disclose missing symbols, delayed/incomplete data, and the fact that this is not an execution feed. Market breadth and stock-level leaders/laggards remain unavailable. If a supported transaction-history CSV exists in data/account_exports, summarize events by type and asset. Do not infer account equity, unrealized PnL or flow-adjusted returns. The XNYS calendar supplies session state, not prices.
 
 ## Local Engine workflow
 - Job type: `market.intraday_snapshot`
