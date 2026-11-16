@@ -59,6 +59,13 @@ def build_skills_audit_pdf(report: dict[str, Any], output_directory: Path | str)
         raise ValueError("audit_date_local must be canonical YYYY-MM-DD")
     if generated.astimezone(ZoneInfo(report_timezone)).date().isoformat() != audit_date_local:
         raise ValueError("audit_date_local must match generated_at_utc in the report timezone")
+    audit_verdict = report.get("audit_verdict", "No aprobado")
+    if audit_verdict not in {"No aprobado", "Aprobado con reservas", "Aprobado"}:
+        raise ValueError("audit_verdict must be one of the three original-skill verdicts")
+    desk_checks_input = report.get("desk_checks") or []
+    for item in desk_checks_input:
+        if not isinstance(item, dict) or item.get("severity") not in {"Critical", "High", "Medium", "Low", "critical", "high", "medium", "low"}:
+            raise ValueError("Every desk check must declare a recognized severity")
 
     artifacts = report.get("artifacts", [])
     findings = report.get("findings", [])
