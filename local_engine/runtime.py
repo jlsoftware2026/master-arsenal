@@ -671,6 +671,54 @@ class JobRunner:
             and not calendar_evidence_reconciles(item)
             for item in all_reports
         )
+        def market_data_provenance_reconciles(report):
+            snapshot = report.get("us_equity_market_data")
+            if not isinstance(snapshot, dict) or snapshot.get("status") not in {"partial", "unavailable"}:
+                return False
+            if not isinstance(snapshot.get("provider"), str) or "Yahoo Finance" not in snapshot["provider"]:
+                return False
+            try:
+                as_of = datetime.fromisoformat(snapshot["as_of_utc"].replace("Z", "+00:00"))
+                expected = int(snapshot["expected_instruments"])
+                available_count = int(snapshot["available_instruments"])
+            except (KeyError, TypeError, ValueError, AttributeError):
+                return False
+            if as_of.tzinfo is None or expected <= 0 or available_count < 0 or available_count > expected:
+                return False
+            groups = snapshot.get("groups")
+            if not isinstance(groups, dict):
+                return False
+            quotes = [entry for values in groups.values() if isinstance(values, list) for entry in values]
+            if len(quotes) != expected:
+                return False
+            valid_count = 0
+            unavailable_symbols = []
+            for entry in quotes:
+                if not isinstance(entry, dict):
+                    return False
+                if entry.get("status") != "ok":
+                    unavailable_symbols.append(entry.get("symbol"))
+                    continue
+                try:
+                    price = float(entry["last_price"])
+                    observed = datetime.fromisoformat(entry["observed_at_utc"].replace("Z", "+00:00"))
+                except (KeyError, TypeError, ValueError, AttributeError):
+                    return False
+                if not math.isfinite(price) or price <= 0 or observed.tzinfo is None or observed > as_of:
+                    return False
+                if not str(entry.get("source", "")).startswith("Yahoo Finance"):
+                    return False
+                if not str(entry.get("source_url", "")).startswith("https://query1.finance.yahoo.com/v8/finance/chart/"):
+                    return False
+                valid_count += 1
+            return (
+                valid_count == available_count
+                and unavailable_symbols == snapshot.get("unavailable_symbols")
+                and snapshot.get("status") == ("unavailable" if valid_count == 0 else "partial")
+            )
+        market_data_provenance_ok = bool(all_reports) and all(
+            market_data_provenance_reconciles(item) for item in all_reports
+        )
         local_windows_ok = bool(all_reports) and len(evidence_manifests) == len(manifest_paths) and all(
             item.get("status") == "passed" for item in evidence_manifests
         ) and all(
@@ -767,6 +815,11 @@ class JobRunner:
                   "La evidencia XNYS de cada informe se recalculó de forma independiente y coincide con la última sesión completada y la siguiente sesión."
                   if us_calendar_ok else "La evidencia del calendario XNYS está ausente, no disponible o no coincide con una recalculación independiente.",
                   "Conservar manifiestos de apertura, cierre e intradía y corregir cualquier discrepancia de calendario."),
+            check("US-DATA-01", "Proveniencia y corte de cotizaciones estadounidenses",
+                  "passed" if market_data_provenance_ok else "not_verified", "Medio",
+                  "Las cotizaciones disponibles tienen proveedor, URL de origen y timestamp no posterior al corte; los símbolos no disponibles se declaran."
+                  if market_data_provenance_ok else "No hay evidencia suficiente para verificar proveedor, URL, timestamp y cobertura del snapshot bursátil.",
+                  "Conservar el manifiesto con URLs y marcas temporales originales; no completar valores faltantes por inferencia."),
             check("US-02", "Horario bursátil y cambio horario de EE. UU.",
                   "passed" if us_calendar_ok else "failed" if us_calendar_failed else "not_verified", "Medio",
                   "La clasificación premercado/regular/posmercado, los horarios ET/local y cierres anticipados coinciden con el calendario XNYS recalculado."
@@ -939,6 +992,7 @@ class JobRunner:
             "us_session_status": next((x["status"] for x in desk_checks if x["id"] == "US-02"), "not_verified"),
             "us_holiday_status": next((x["status"] for x in desk_checks if x["id"] == "US-01"), "not_verified"),
             "scorecard_status": next((x["status"] for x in desk_checks if x["id"] == "SCORE-01"), "not_verified"),
+            "us_market_data_provenance_status": next((x["status"] for x in desk_checks if x["id"] == "US-DATA-01"), "not_verified"),
             "audit_date_local": audit_date_local,
             "read_only": True,
         }
