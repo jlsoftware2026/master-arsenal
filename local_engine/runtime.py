@@ -737,33 +737,39 @@ class JobRunner:
         market_data_provenance_ok = bool(all_reports) and all(
             market_data_provenance_reconciles(item) for item in all_reports
         )
-        def account_export_evidence_reconciles(report):
+        def account_export_evidence_findings(report):
+            findings = []
             snapshot = report.get("binance_account_data")
-            if not isinstance(snapshot, dict) or snapshot.get("status") != "complete":
-                return False
+            if not isinstance(snapshot, dict):
+                return ["account export evidence is missing"]
+            if snapshot.get("status") != "complete":
+                findings.append("CSV import status is " + str(snapshot.get("status")))
             try:
                 account_start = datetime.fromisoformat(snapshot["window_start_utc"].replace("Z", "+00:00"))
                 account_end = datetime.fromisoformat(snapshot["window_end_utc"].replace("Z", "+00:00"))
                 report_start = datetime.fromisoformat(report["window_start_utc"].replace("Z", "+00:00"))
                 report_end = datetime.fromisoformat(report["window_end_utc"].replace("Z", "+00:00"))
             except (KeyError, TypeError, ValueError, AttributeError):
-                return False
+                return findings + ["report/account UTC window is missing or invalid"]
             if (
                 account_start.tzinfo is None or account_end.tzinfo is None
                 or report_start.tzinfo is None or report_end.tzinfo is None
                 or account_start.astimezone(timezone.utc) != report_start.astimezone(timezone.utc)
                 or account_end.astimezone(timezone.utc) != report_end.astimezone(timezone.utc)
-                or snapshot.get("file_count", 0) <= 0
+            ):
+                findings.append("account export window does not match report window")
+            if (
+                snapshot.get("file_count", 0) <= 0
                 or snapshot.get("supported_file_count") != snapshot.get("file_count")
                 or snapshot.get("parse_errors")
                 or snapshot.get("unsupported_files")
                 or snapshot.get("assumptions")
                 or snapshot.get("unknown_operation_count", 0) != 0
             ):
-                return False
+                findings.append("CSV files are unsupported, partial, ambiguous, or contain parse errors")
             files = snapshot.get("files")
             if not isinstance(files, list) or len(files) != snapshot.get("file_count"):
-                return False
+                return findings + ["CSV manifest file count is inconsistent"]
             try:
                 account_directory = self.manager.workspace.directory("data/account_exports")
                 csv_paths = sorted(
@@ -771,12 +777,14 @@ class JobRunner:
                     if path.suffix.lower() == ".csv" and not path.is_symlink()
                 )
             except OSError:
-                return False
+                return findings + ["fixed account export directory is missing or inaccessible"]
             if len(csv_paths) != snapshot.get("file_count"):
-                return False
+                findings.append("CSV file set changed after report generation")
+                return findings
             for item in files:
                 if not isinstance(item, dict):
-                    return False
+                    findings.append("CSV manifest entry is malformed")
+                    continue
                 digest = item.get("sha256")
                 file_id = item.get("file_id")
                 if (
@@ -788,23 +796,33 @@ class JobRunner:
                     or item.get("format") != "binance_transaction_history_csv"
                     or not isinstance(item.get("bytes"), int)
                     or item["bytes"] <= 0
+                    or item["bytes"] > 20_000_000
                     or not isinstance(item.get("rows_scanned"), int)
                 ):
-                    return False
+                    findings.append("CSV manifest metadata is malformed")
+                    continue
                 try:
                     file_index = int(file_id.rsplit("_", 1)[1]) - 1
                     source_path = csv_paths[file_index]
-                    if source_path.stat().st_size != item["bytes"] or item["bytes"] > 20_000_000:
-                        return False
+                    if source_path.stat().st_size != item["bytes"]:
+                        findings.append("CSV file size changed after report generation")
+                        continue
                     raw = source_path.read_bytes()
                 except (ValueError, IndexError, OSError):
-                    return False
+                    findings.append("CSV source file cannot be reopened for integrity verification")
+                    continue
                 if len(raw) != item["bytes"] or hashlib.sha256(raw).hexdigest() != digest:
-                    return False
-            return True
-        account_export_ok = bool(all_reports) and all(
-            account_export_evidence_reconciles(item) for item in all_reports
-        )
+                    findings.append("CSV SHA-256 changed after report generation")
+            return findings
+
+        account_export_findings = []
+        for item in all_reports:
+            findings = account_export_evidence_findings(item)
+            if findings:
+                account_export_findings.append(
+                    str(item.get("report_type", "report")) + ": " + "; ".join(findings)
+                )
+        account_export_ok = bool(all_reports) and not account_export_findings
         local_windows_ok = bool(all_reports) and len(evidence_manifests) == len(manifest_paths) and all(
             item.get("status") == "passed" for item in evidence_manifests
         ) and all(
@@ -907,7 +925,7 @@ class JobRunner:
             check("ACCOUNT-01", "Importación CSV de actividad de cuenta con integridad verificable",
                   "passed" if account_export_ok else "not_verified", "Alto",
                   "Los archivos CSV admitidos tienen hashes SHA-256, esquema, ventana temporal y filas clasificadas verificables."
-                  if account_export_ok else "No hay exportaciones compatibles completas y trazables para esta ventana.",
+                  if account_export_ok else "; ".join(account_export_findings[:5]) or "No hay exportaciones compatibles completas y trazables para esta ventana.",
                   "Exportar el historial de transacciones Binance con el esquema admitido y colocarlo en data/account_exports."),
             check("ACCOUNT-02", "Patrimonio, PnL no realizado y rentabilidad ajustada por flujos",
                   "not_implemented", "Alto",
@@ -1092,6 +1110,7 @@ class JobRunner:
             "us_holiday_status": next((x["status"] for x in desk_checks if x["id"] == "US-01"), "not_verified"),
             "scorecard_status": next((x["status"] for x in desk_checks if x["id"] == "SCORE-01"), "not_verified"),
             "account_export_status": next((x["status"] for x in desk_checks if x["id"] == "ACCOUNT-01"), "not_verified"),
+            "account_export_findings": account_export_findings,
             "us_market_data_provenance_status": next((x["status"] for x in desk_checks if x["id"] == "US-DATA-01"), "not_verified"),
             "audit_date_local": audit_date_local,
             "read_only": True,
