@@ -2,7 +2,7 @@
 
 **Source of truth:** the four user-supplied Claude `.skill` packages received on 2026-11-16.  
 **Target branch:** `feature/phase-3-pdf-report-engine`.  
-**Status:** timezone-window integration implemented on the feature branch; final regression/CI verification and remaining source requirements are still outstanding. Phase 3 is not merge-ready.
+**Status:** Dominican timezone windows, partial closing, Spanish PDF localization, and the current code test matrix are implemented and verified on the feature branch. Remaining original-skill requirements are still outstanding. Phase 3 is not merge-ready.
 
 ## Executive finding
 
@@ -72,7 +72,7 @@ The feature branch now contains the following timezone work:
 2. **Partial closing day:** closing supports a current local-day cutoff; the requested cutoff is retained and any unfinished final candle is excluded. Historical closing dates without a cutoff use the completed local day.
 3. **Intraday cutoff:** cutoff_local is supported, and an omitted cutoff resolves execution-time Dominican local time. A legacy UTC cutoff remains accepted for compatibility.
 4. **Evidence traceability:** evidence schema v2 stores local-window metadata, PDF SHA-256, and a canonical raw-candle/warm-up evidence SHA-256. The audit independently verifies these fields.
-5. **Regression coverage:** tests cover local-midnight conversion, previous-local-day opening, partial closing, optional intraday cutoff, cross-UTC-date windows, unfinished-candle exclusion, PDF marker validation, evidence cutoffs, and Windows line-ending behavior. The final CI run after the latest PDF-marker normalization is still pending.
+5. **Regression coverage:** tests cover local-midnight conversion, previous-local-day opening, partial closing, optional intraday cutoff, cross-UTC-date windows, unfinished-candle exclusion, PDF marker validation, evidence cutoffs, and Windows line-ending behavior. The full four-job matrix passed in GitHub Actions run `43921585562` (Ubuntu/Windows × Python 3.11/3.12). A subsequent commit changed only this reconciliation document.
 
 Remaining source-derived blockers:
 - **U.S. market context/calendar:** full index, VIX, Treasury, DXY, WTI, gold, breadth/sectors, economic catalysts, exchange-calendar, holiday, and DST-aware session-state coverage is not integrated. Reports explicitly disclose this as unavailable/not verified.
@@ -83,12 +83,12 @@ Remaining source-derived blockers:
 
 ## Merge gate
 
-Do not merge Phase 3 until the latest code head passes the full cross-platform CI matrix, the remaining source-derived gaps are either implemented or clearly disclosed in both reports and audit, and no unresolved Crítico/Alto temporal or data-integrity findings remain.
+Do not merge Phase 3 until any subsequent code changes pass the full cross-platform CI matrix, the remaining source-derived gaps are either implemented or clearly disclosed in both reports and audit, and no unresolved Crítico/Alto temporal or data-integrity findings remain.
 
 This document records source-derived requirements and the observed code gap. It does not claim that the listed adaptations have already been implemented.
 
 
 ## Additional source-parity finding
-- The original three operational skills specify Spanish-language PDF reports. The opening, closing, and intraday composers and the audit PDF have been localized. LANG-01 now requires all three operational PDF types to pass independent Spanish-marker QA on the same final code head.
+- The original three operational skills specify Spanish-language PDF reports. The opening, closing, and intraday composers and the audit PDF have been localized. LANG-01 requires all three operational PDF types to pass independent Spanish-marker QA; the PDF marker regression tests passed in run `43921585562`.
 - The original intraday filename is `snapshot-mercado_YYYY-MM-DD_HH-mm.pdf` (underscore after `mercado`); the implementation and tests have been corrected to this exact source contract.
 - Original archive SHA-256 and extracted SKILL.md SHA-256 values are recorded in `docs/original-skills-source/manifest.json`. The ZIP payloads are not embedded in the repository, so runtime package-integrity status remains NOT VERIFIED.
