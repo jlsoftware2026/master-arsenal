@@ -60,6 +60,8 @@ def _window_manifest(report: dict[str, Any], report_type: str) -> dict[str, Any]
         "window_semantics": report.get("window_semantics"),
         "is_partial": report.get("is_partial"),
         "interval": report.get("interval"),
+        "cutoff_resolution": report.get("cutoff_resolution"),
+        "requested_report_date_local": report.get("requested_report_date_local"),
     }
 
 
