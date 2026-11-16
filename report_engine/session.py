@@ -135,7 +135,7 @@ def _source_rows(items: Any) -> list[list[str]]:
             _text(item.get("publisher", item.get("source", "Not supplied"))),
             _text(item.get("published_at_utc", "Not supplied")),
             _text(item.get("url", "URL not supplied")),
-            _text(item.get("relevance", item.get("summary", "No relevance note supplied"))),
+            _text(item.get("summary") or item.get("relevance", "No summary or relevance note supplied")),
         ])
     return rows
 
