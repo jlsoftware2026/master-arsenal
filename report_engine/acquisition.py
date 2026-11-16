@@ -100,6 +100,7 @@ def acquire_intraday_evidence(
     report["limitations"] = (
         "Los saldos, posiciones, comisiones, financiación y PnL ajustado por flujos de la cuenta privada de Binance no están disponibles. "
          "Las cotizaciones bursátiles son best-effort desde Yahoo Finance, pueden estar retrasadas o incompletas y no constituyen un feed de ejecución; amplitud y líderes/rezagados por acción no están incluidos. El calendario XNYS clasifica horarios/feriados, pero no aporta precios. "
+        + market_evidence.get("limitations", "No se suministraron limitaciones del proveedor bursátil.") + " "
         + context["context_limitations"]
     )
     bullish, bearish = [], []
