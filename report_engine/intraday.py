@@ -300,21 +300,22 @@ def build_intraday_snapshot_pdf(report: dict[str, Any], output_directory: Path |
             ])
 
     context_sources = report.get("context_sources") or []
-    if context_sources:
-        context_rows = [[
-            str(item.get("publisher", "Desconocido")),
-            str(item.get("kind", "Desconocido")),
-            str(item.get("status", "no verificado")),
-            str(item.get("retrieved_at_utc", "No suministrado")),
-            str(item.get("matching_items", item.get("error", "No suministrado"))),
-            str(item.get("feed_url", "URL no suministrada")),
-        ] for item in context_sources if isinstance(item, dict)]
-        if context_rows:
-            story.extend([
-                section_heading("Registro de consulta de fuentes macro/noticias", styles),
-                data_table(["Editor", "Tipo", "Estado", "Consultado en UTC", "Elementos / error", "URL del feed"],
-                           context_rows, styles, widths=[25*mm, 15*mm, 18*mm, 30*mm, 40*mm, 37*mm]),
-            ])
+    context_rows = [[
+        str(item.get("publisher", "Desconocido")),
+        str(item.get("kind", "Desconocido")),
+        _label(item.get("status", "not_verified")),
+        str(item.get("retrieved_at_utc", "No suministrado")),
+        str(item.get("matching_items", item.get("error", "No suministrado"))),
+        str(item.get("feed_url", "URL no suministrada")),
+    ] for item in context_sources if isinstance(item, dict)]
+    if not context_rows:
+        context_rows = [["No consultado", "No consultado", "No verificado", "N/A",
+                         "No hay elementos; disponibilidad no verificada", "URL no disponible"]]
+    story.extend([
+        section_heading("Registro de consulta de fuentes macro/noticias", styles),
+        data_table(["Editor", "Tipo", "Estado", "Consultado en UTC", "Elementos / error", "URL del feed"],
+                   context_rows, styles, widths=[25*mm, 15*mm, 18*mm, 30*mm, 40*mm, 37*mm]),
+    ])
 
     provenance = report.get("provenance") or []
     story.append(section_heading("Fuentes y notas de procedencia", styles))
@@ -326,9 +327,8 @@ def build_intraday_snapshot_pdf(report: dict[str, Any], output_directory: Path |
                                 widths=[42 * mm, 45 * mm, 80 * mm]))
     else:
         story.append(paragraph(
-            "No se suministró un manifiesto de procedencia independiente. Los valores anteriores conservan únicamente los "
-            "metadatos presentes en la entrada del informe.", styles["body"]))
-
+            "No se suministró un manifiesto de procedencia independiente. Los valores anteriores conservan únicamente los metadatos presentes en la entrada del informe.",
+            styles["body"]))
     story.append(Spacer(1, 4 * mm))
     story.append(paragraph(
         "Aviso: Este documento es un análisis informativo del mercado, no asesoramiento de inversión. "
