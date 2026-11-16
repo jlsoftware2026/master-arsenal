@@ -85,3 +85,9 @@ Remaining source-derived blockers:
 Do not merge Phase 3 until the timezone and partial-window changes pass the full cross-platform CI matrix on the final code head, the remaining source-derived gaps are either implemented or clearly disclosed in both reports and audit, and no unresolved critical/high temporal or data-integrity findings remain.
 
 This document records source-derived requirements and the observed code gap. It does not claim that the listed adaptations have already been implemented.
+
+
+## Additional source-parity finding
+- The original three operational skills specify Spanish-language PDF reports. The current PDF composers still render English headings and labels. This is recorded as high-severity audit check LANG-01 and remains a merge blocker until the operational PDFs are localized and regression-tested.
+- The original intraday filename is `snapshot-mercado_YYYY-MM-DD_HH-mm.pdf` (underscore after `mercado`); the implementation and tests have been corrected to this exact source contract.
+- Original archive SHA-256 and extracted SKILL.md SHA-256 values are recorded in `docs/original-skills-source/manifest.json`. The ZIP payloads are not embedded in the repository, so runtime package-integrity status remains NOT VERIFIED.
