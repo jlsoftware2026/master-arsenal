@@ -82,9 +82,9 @@ def acquire_session_report_evidence(
     )
     report["activation_timing_status"] = "not_automated"
     report["source_skill_limitations"] = [
-        "Private Binance account balances, positions, fees, funding, and flow-adjusted PnL are unavailable; public market candles are not account data.",
-        "Full U.S. equity indices, VIX, rates, DXY, commodities, sector breadth, and exchange-calendar evidence are not integrated or verified.",
-        "Opening/closing activation timing is not automated; the same-date opening forecast scorecard is not implemented.",
+        "Los saldos, posiciones, comisiones, financiación y PnL ajustado por flujos de la cuenta privada de Binance no están disponibles; las velas públicas del mercado no son datos de cuenta.",
+        "Los índices bursátiles estadounidenses, VIX, tasas, DXY, materias primas, amplitud sectorial y calendario bursátil completo no están integrados ni verificados.",
+        "El horario de activación de apertura/cierre no está automatizado; la comparación del pronóstico de apertura con el cierre de esa misma fecha no está implementada.",
     ]
 
     changes = []
@@ -92,53 +92,53 @@ def acquire_session_report_evidence(
         performance = report["symbols"][symbol]["performance"]
         value = performance.get("change_percent")
         changes.append(
-            f"{symbol}: {value}% change from first observed open to last fully closed candle"
-            if value is not None else f"{symbol}: percentage change unavailable"
+            f"{symbol}: variación de {value}% desde la primera apertura observada hasta la última vela completamente cerrada"
+            if value is not None else f"{symbol}: variación porcentual no disponible"
         )
-    period_label = "previous local calendar day" if report_kind == "opening" else (
-        "partial local calendar day through the stated cutoff" if window.is_partial
-        else "completed local calendar day"
+    period_label = "día calendario local anterior" if report_kind == "opening" else (
+        "día calendario local parcial hasta la hora de corte indicada" if window.is_partial
+        else "día calendario local completado"
     )
     report["executive_summary"] = (
-        f"Binance reference: {period_label} ({target_date.isoformat()} {REPORT_TIMEZONE}). "
-        "Observed performance (first candle open to last fully closed candle): "
+        "Referencia de Binance: {period_label} ({target_date.isoformat()} {REPORT_TIMEZONE}). "
+        "Rendimiento observado (desde la apertura de la primera vela hasta el cierre de la última vela completa): "
         + "; ".join(changes)
-        + ". Descriptive measurements only; no causal explanation or forecast is inferred."
+        + ". Mediciones descriptivas únicamente; no se infieren causas ni pronósticos."
     )
     report["technical_analysis"] = (
-        "Indicator values use the separate pre-window warm-up series plus fully closed "
-        "report-window candles. Warm-up candles are excluded from period performance and charts."
+        "Los indicadores utilizan una serie independiente de calentamiento previa a la ventana y velas completamente cerradas "
+        "de la ventana del informe. Las velas de calentamiento se excluyen del rendimiento del período y de los gráficos."
     )
     bullish, bearish = [], []
     for symbol in ("BTCUSDT", "ETHUSDT"):
         performance = report["symbols"][symbol]["performance"]
         high, low, close = performance["high"], performance["low"], performance["close"]
         bullish.append(
-            f"{symbol}: bullish continuation is conditional on acceptance above observed high {high}; "
-            f"the scenario is invalidated below observed low {low}. Last close: {close}."
+            "f"{symbol}: la continuación alcista depende de la aceptación por encima del máximo observado {high}; "
+            f"el escenario se invalida por debajo del mínimo observado {low}. Último cierre: {close}."
         )
         bearish.append(
-            f"{symbol}: bearish continuation is conditional on acceptance below observed low {low}; "
-            f"the scenario is invalidated above observed high {high}. Last close: {close}."
+            "f"{symbol}: la continuación bajista depende de la aceptación por debajo del mínimo observado {low}; "
+            f"el escenario se invalida por encima del máximo observado {high}. Último cierre: {close}."
         )
-    report["bullish_scenario"] = " ".join(bullish) + " Conditional reference levels, not targets or probabilities."
-    report["bearish_scenario"] = " ".join(bearish) + " Conditional reference levels, not targets or probabilities."
+    report["bullish_scenario"] = " ".join(bullish) + " Niveles de referencia condicionales, no objetivos ni probabilidades."
+    report["bearish_scenario"] = " ".join(bearish) + " Niveles de referencia condicionales, no objetivos ni probabilidades."
     report["assumptions_and_invalidation"] = (
-        "Breakout acceptance requires independent confirmation from current price action and volume. "
-        "Opposite period extremes are simple invalidation references; no target or probability is inferred."
+        "La aceptación de una ruptura requiere confirmación independiente de la acción del precio y del volumen actuales. "
+        "Los extremos opuestos del período son referencias simples de invalidación; no se infiere ningún objetivo ni probabilidad."
     )
     report["risks"] = (
-        "False breakouts, low liquidity, volatility shocks, spread/slippage, and events outside "
-        "the configured feeds can invalidate these reference scenarios."
+        "Las rupturas falsas, la baja liquidez, los choques de volatilidad, el spread/deslizamiento y los eventos fuera "
+        "de los feeds configurados pueden invalidar estos escenarios de referencia."
     )
     context = collect_market_context(window.start_utc, window.end_utc)
     report.update(context)
     report["generated_at_utc"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     report["limitations"] = (
-        "RSS context is date-bounded but not exhaustive. Full U.S. equity-market coverage, "
-        "private Binance account analytics, and automated opening/closing activation timing "
-        "are unavailable in this build. The same-date opening-forecast scorecard is not implemented. "
-        + context.get("context_limitations", "Feed limitations not supplied.")
+        "El contexto RSS está limitado por fecha, pero no es exhaustivo. La cobertura completa del mercado bursátil estadounidense, "
+        "el análisis de la cuenta privada de Binance y la activación automática de apertura/cierre "
+        "no están disponibles en esta versión. La comparación del pronóstico de apertura con el cierre de esa misma fecha no está implementada. "
+        + context.get("context_limitations", "No se suministraron limitaciones de los feeds.")
     )
     return report
 
