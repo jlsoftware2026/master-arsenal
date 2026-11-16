@@ -237,7 +237,7 @@ def _build_session_pdf(report: dict[str, Any], output_directory: Path | str, kin
         requested_date, time(9, 30) if kind == "opening" else time(16, 0), tzinfo=eastern
     )
     scheduled_local = scheduled_et.astimezone(dominican)
-    session_clock_label = "Apertura regular de EE. UU. (ET / hora local)" if kind == "opening" else "Cierre regular de EE. UU. (ET / hora local)"
+    session_clock_label = "Hora programada de apertura regular de EE. UU. (ET / hora local)" if kind == "opening" else "Hora programada de cierre regular de EE. UU. (ET / hora local)"
     session_clock_value = (
         f"{scheduled_et.strftime('%Y-%m-%d %H:%M %Z')} / "
         f"{scheduled_local.strftime('%Y-%m-%d %H:%M %Z')}"
