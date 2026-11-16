@@ -806,13 +806,15 @@ class JobRunner:
             "Las velas sin completar se excluyen y se conserva por separado el límite de la última vela cerrada.",
             "El esquema de evidencia v2 registra ventanas locales/UTC y hashes SHA-256; el QA de PDF y las pruebas de escritorio son independientes.",
             "Los metadatos de las Skills adaptadas están versionados; los hashes de los archivos originales están registrados, pero el contenido ZIP no se verifica dentro del repositorio.",
-            "Siguen pendientes el calendario bursátil/DST de EE. UU., el libro mayor de la cuenta privada, la comparación apertura/cierre y el CI del commit final.",
+            "Siguen pendientes el calendario bursátil completo de EE. UU., el libro mayor de la cuenta privada y la comparación apertura/cierre. El manifiesto de CI no está adjunto a esta auditoría local, por lo que su estado queda NO VERIFICADO en este documento.",
         ]
         changes_applied = [
             "Implementación de adquisición por día local dominicano y validación PDF para apertura, cierre e intradía.",
             "Añadido soporte para cierres parciales y hora de corte local predeterminada según el momento de ejecución para intradía.",
             "Añadido esquema de evidencia v2 con metadatos de ventana, hash del PDF y hash de velas originales/período de calentamiento.",
             "Añadidas pruebas de escritorio, severidades/veredictos en español, fecha local de auditoría e historial de versiones/cambios.",
+            "Localizados los tres PDF operativos y la auditoría; añadidos resúmenes ejecutivos de siete puntos y referencias horarias ET/local con reglas DST.",
+            "Ajustada la nomenclatura del PDF de apertura para usar la fecha local de solicitud y reforzada la auditoría de nombres de archivo/manifiestos.",
             "Añadidos versionado en frontmatter y requisitos originales de activación/secciones a las cuatro instrucciones adaptadas.",
         ]
         pending_items = [
@@ -820,27 +822,27 @@ class JobRunner:
             for item in unresolved + medium_unresolved
         ]
         reviewed_files = (
-            [item.get("filename", "Unknown artifact") for item in artifacts]
-            + [item.get("manifest", "Unknown evidence manifest") for item in evidence_manifests]
+            [item.get("filename", "Archivo desconocido") for item in artifacts]
+            + [item.get("manifest", "Manifiesto de evidencia desconocido") for item in evidence_manifests]
         )
         for item in unresolved:
             findings.append({
-                "severity": item["severity"], "title": f"Desk check {item['id']}: {item['case']}",
+                "severity": item["severity"], "title": f"Prueba de escritorio {item['id']}: {item['case']}",
                 "evidence": item["evidence"], "recommendation": item["recommendation"],
             })
         for item in medium_unresolved:
             findings.append({
-                "severity": item["severity"], "title": f"Desk check {item['id']}: {item['case']}",
+                "severity": item["severity"], "title": f"Prueba de escritorio {item['id']}: {item['case']}",
                 "evidence": item["evidence"], "recommendation": item["recommendation"],
             })
         change_history = [
             {
                 "date": audit_date_local, "version": __version__,
-                "change": "Motor PDF de Fase 3 con días calendario dominicanos y esquema de evidencia v2; los hashes de los archivos originales están registrados, pero falta verificar sus contenidos.",
+                "change": "Motor PDF de Fase 3 con días calendario dominicanos, horarios ET/local con DST, resúmenes de siete puntos y esquema de evidencia v2; los hashes de los archivos originales están registrados, pero falta verificar sus contenidos en el runtime.",
             },
             {
                 "date": audit_date_local, "version": "original-skill-parity",
-                "change": "U.S. market/calendar, private-account, scorecard, and full audit-matrix parity remain incomplete.",
+                "change": "La cobertura completa del calendario/mercado estadounidense, la cuenta privada, el scorecard y la paridad total de la matriz de auditoría siguen incompletos.",
             },
         ]
         report = {
