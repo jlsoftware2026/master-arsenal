@@ -60,8 +60,13 @@ def _validate(report: dict[str, Any]):
         raise ValueError("Local report window timestamps must include their UTC offsets")
     if local_start.astimezone(timezone.utc) != start or local_end.astimezone(timezone.utc) != end:
         raise ValueError("Local and UTC report window boundaries do not match")
-    if local_start.date() != report_date or local_end.date() != report_date:
-        raise ValueError("Local report window must remain within report_date_local")
+    if local_start.date() != report_date:
+        raise ValueError("Local report start must match report_date_local")
+    if report.get("is_partial") is True:
+        if local_end.date() != report_date:
+            raise ValueError("Partial local report cutoff must remain on report_date_local")
+    elif local_end.date() != report_date + timedelta(days=1) or local_end.time().isoformat() != "00:00:00":
+        raise ValueError("Completed local report must end at the next local midnight")
     if end <= start:
         raise ValueError("Report window cutoff must be later than its start")
     is_partial = report.get("is_partial") is True
