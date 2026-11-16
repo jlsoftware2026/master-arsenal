@@ -1,7 +1,7 @@
 """PDF composers for completed UTC market-day opening and closing reports."""
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -54,7 +54,7 @@ def _validate(report: dict[str, Any]):
     if not isinstance(report, dict):
         raise ValueError("Report input must be an object")
     required = {"session_start_utc", "session_end_utc", "generated_at_utc", "symbols",
-                "report_timezone", "report_date_local", "window_start_local", "cutoff_local", "window_semantics", "is_partial"}
+                "report_timezone", "report_date_local", "requested_report_date_local", "cutoff_resolution", "window_start_local", "cutoff_local", "window_semantics", "is_partial"}
     missing = required - set(report)
     if missing:
         raise ValueError(f"Missing required report fields: {sorted(missing)}")
@@ -65,6 +65,12 @@ def _validate(report: dict[str, Any]):
         raise ValueError("Report timezone must be America/Santo_Domingo")
     if report["window_semantics"] != "[start, cutoff)" or not isinstance(report["is_partial"], bool):
         raise ValueError("Report must declare half-open window semantics and a boolean partial-day status")
+    try:
+        requested_date = date.fromisoformat(report["requested_report_date_local"])
+    except (TypeError, ValueError) as exc:
+        raise ValueError("requested_report_date_local must be YYYY-MM-DD") from exc
+    if requested_date.isoformat() != report["requested_report_date_local"]:
+        raise ValueError("requested_report_date_local must be canonical YYYY-MM-DD")
     try:
         local_start = datetime.fromisoformat(report["window_start_local"])
         local_end = datetime.fromisoformat(report["cutoff_local"])
@@ -184,8 +190,20 @@ def _build_session_pdf(report: dict[str, Any], output_directory: Path | str, kin
     start, end, generated = _validate(report)
     if kind not in {"opening", "closing"}:
         raise ValueError("kind must be 'opening' or 'closing'")
-    if kind == "opening" and report.get("is_partial") is True:
-        raise ValueError("Opening reports must use the previous completed local calendar day")
+    if kind == "opening":
+        if report.get("is_partial") is True:
+            raise ValueError("Opening reports must use the previous completed local calendar day")
+        if report["report_date_local"] != (requested_date - timedelta(days=1)).isoformat():
+            raise ValueError("Opening report must use the previous Dominican local calendar day")
+        if report["cutoff_resolution"] != "previous_local_calendar_day":
+            raise ValueError("Opening report must declare previous-local-day cutoff resolution")
+    else:
+        if report["report_date_local"] != requested_date.isoformat():
+            raise ValueError("Closing report date must match requested_report_date_local")
+        if report["cutoff_resolution"] not in {
+            "explicit_local_cutoff", "execution_time_local_default", "completed_historical_local_day"
+        }:
+            raise ValueError("Closing report has an invalid cutoff-resolution method")
     date_text = report["report_date_local"]
     filename = ("apertura-mercado_" if kind == "opening" else "cierre-mercado_") + date_text + ".pdf"
     title = "Market Opening Report" if kind == "opening" else "Market Closing Report"
