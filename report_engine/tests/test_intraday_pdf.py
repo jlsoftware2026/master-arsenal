@@ -12,6 +12,8 @@ def fixture():
         "window_start_utc": "2026-11-13T04:00:00Z",
         "report_timezone": "America/Santo_Domingo",
         "report_date_local": "2026-11-13",
+        "requested_report_date_local": "2026-11-13",
+        "cutoff_resolution": "explicit_utc_cutoff",
         "window_start_local": "2026-11-13T00:00:00-04:00",
         "cutoff_local": "2026-11-13T12:30:00-04:00",
         "is_partial": True,
