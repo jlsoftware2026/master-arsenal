@@ -131,10 +131,13 @@ def audit_evidence_manifest(path: str | Path, workspace_root: str | Path) -> dic
     if not isinstance(report, dict):
         return {"manifest": manifest_path.name, "status": "failed",
                 "findings": findings + ["Missing report evidence object."]}
-    pdf_path = (root / "reports" / {
+    report_directory = (root / "reports" / {
         "opening": "opening", "closing": "closing", "intraday": "intraday"
-    }.get(report_type, "invalid") / str(payload.get("pdf_filename", ""))).resolve()
-    if not pdf_path.is_relative_to(root) or not pdf_path.is_file():
+    }.get(report_type, "invalid")).resolve()
+    pdf_filename = str(payload.get("pdf_filename", ""))
+    pdf_path = (report_directory / pdf_filename).resolve()
+    if (Path(pdf_filename).name != pdf_filename or not pdf_path.is_relative_to(report_directory)
+            or not pdf_path.is_file()):
         findings.append("Linked PDF artifact is missing or escapes its fixed report directory.")
     elif _sha256(pdf_path) != payload.get("pdf_sha256"):
         findings.append("Linked PDF SHA-256 does not match the evidence manifest.")
