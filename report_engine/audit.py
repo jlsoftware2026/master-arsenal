@@ -110,6 +110,25 @@ def build_skills_audit_pdf(report: dict[str, Any], output_directory: Path | str)
             paragraph("No additional findings were supplied. Absence of findings is not proof that "
                       "the underlying market analysis is correct.", styles["body"]),
         ])
+    test_evidence = report.get("test_evidence") or []
+    story.append(section_heading("Testing evidence", styles))
+    if test_evidence:
+        test_rows = [[
+            str(item.get("suite", "Unknown")),
+            str(item.get("status", "not verified")),
+            str(item.get("run_id", "Not supplied")),
+            str(item.get("details", "Not supplied")),
+        ] for item in test_evidence if isinstance(item, dict)]
+        if test_rows:
+            story.append(data_table(["Suite", "Status", "Run ID", "Details"], test_rows, styles))
+        else:
+            story.append(paragraph("Test evidence was supplied but contained no usable records.", styles["body"]))
+    else:
+        story.append(paragraph(
+            "No CI test-run manifest was supplied to this local audit. Offline unit-test status, "
+            "live Binance status, and RSS-provider live status are NOT VERIFIED here.",
+            styles["body"],
+        ))
     story.extend([
         section_heading("Verification boundaries", styles),
         paragraph(
