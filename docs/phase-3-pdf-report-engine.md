@@ -114,3 +114,7 @@ The three original operational skills specify Spanish-language PDF output. The o
 
 ## Final distribution requirement
 The mandatory single-download executable JAR requirement is recorded in `docs/distribution-requirements.md`. It is a release gate outside this PDF-engine phase; no bootstrapper, Python provisioning, packaging, signing, or CI/CD changes are implemented or authorized by this documentation entry.
+
+
+## Cross-platform verification
+The full CI matrix passed in GitHub Actions run `43921585562`: Ubuntu and Windows, Python 3.11 and 3.12; Binance Data Engine (27 tests), Local Engine (29 tests), and PDF Report Engine (62 tests) passed in each job. A subsequent commit changed only documentation. Any later code change must rerun the full matrix.
