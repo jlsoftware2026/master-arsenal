@@ -111,11 +111,50 @@ def acquire_intraday_evidence(
         "Las rupturas falsas, los cambios de liquidez, la expansión de volatilidad, el spread/deslizamiento y los eventos "
         "no representados en los feeds configurados pueden invalidar estos niveles de referencia."
     )
-    report["executive_summary"] = (
-        f"Snapshot del día calendario dominicano {target_date.isoformat()} hasta {window.end_local.isoformat()}. "
-        "Se verificaron las velas completamente cerradas de BTCUSDT y ETHUSDT respecto a los límites de la ventana, la paginación "
-        "y la integridad de los datos. El último intervalo incompleto se excluye."
+    summary_points = [
+        f"Ventana intradía local: {target_date.isoformat()} desde medianoche hasta {window.end_local.isoformat()} ({REPORT_TIMEZONE}); "
+        f"el corte es exclusivo y no se incluyen velas posteriores."
+    ]
+    for symbol in ("BTCUSDT", "ETHUSDT"):
+        item = report["symbols"][symbol]
+        performance = item.get("performance") or {}
+        change = performance.get("change_percent")
+        change_text = f"{change}%" if change is not None else "no disponible"
+        summary_points.append(
+            f"{symbol}: variación observada desde medianoche {change_text}; "
+            f"rango {performance.get('low', 'N/D')}–{performance.get('high', 'N/D')}; "
+            f"último cierre completo {performance.get('close', 'N/D')}."
+        )
+    ticker_parts = []
+    for symbol in ("BTCUSDT", "ETHUSDT"):
+        ticker = report["symbols"][symbol].get("ticker_24h") or {}
+        ticker_data = ticker.get("data", ticker) if isinstance(ticker, dict) else {}
+        change_24h = ticker_data.get("priceChangePercent") if isinstance(ticker_data, dict) else None
+        ticker_parts.append(f"{symbol}: {change_24h}%" if change_24h is not None else f"{symbol}: no disponible")
+    summary_points.append(
+        "Variación móvil de 24 horas, separada del rendimiento desde medianoche local: " + "; ".join(ticker_parts) + "."
     )
+    indicator_parts = []
+    for symbol in ("BTCUSDT", "ETHUSDT"):
+        item = report["symbols"][symbol]
+        indicators = item.get("indicators") or {}
+        indicator_parts.append(
+            f"{symbol} EMA20={indicators.get('ema_20', 'N/D')}, "
+            f"EMA50={indicators.get('ema_50', 'N/D')}, RSI14={indicators.get('rsi_14', 'N/D')} "
+            f"({item.get('candle_count', 0)} velas locales)"
+        )
+    summary_points.append("Indicadores y cobertura de velas: " + "; ".join(indicator_parts) + ".")
+    feeds = report.get("context_sources") or []
+    available_feeds = sum(1 for item in feeds if isinstance(item, dict) and item.get("status") == "ok")
+    summary_points.append(
+        f"Contexto macroeconómico/noticias: {available_feeds} de {len(feeds)} feeds consultados con estado correcto; "
+        "los titulares son contexto, no prueba de causalidad."
+    )
+    summary_points.append(
+        "Limitaciones: la cuenta privada de Binance y la cobertura completa del mercado bursátil estadounidense "
+        "no están integradas; la clasificación de sesión estadounidense no está verificada."
+    )
+    report["executive_summary"] = summary_points
     return report
 
 
