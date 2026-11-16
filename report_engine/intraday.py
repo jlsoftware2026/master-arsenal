@@ -47,6 +47,23 @@ def _local_time(value: Any) -> str:
         return "Marca de tiempo no válida"
 
 
+def _label(value: Any) -> str:
+    if isinstance(value, bool):
+        return "Sí" if value else "No"
+    labels = {
+        "unavailable": "No disponible", "not_integrated": "No integrado",
+        "not_available": "No disponible", "not_implemented": "No implementado",
+        "not_applicable": "No aplica", "not_automated": "No automatizado",
+        "complete": "Completo", "partial": "Parcial", "ok": "Correcto",
+        "not_verified": "No verificado", "execution_time_local_default": "Hora local de ejecución",
+        "explicit_local_cutoff": "Hora de corte local explícita",
+        "explicit_utc_cutoff": "Hora de corte UTC explícita",
+        "Binance public REST API": "API REST pública de Binance",
+        "spot": "Spot", "usdm": "Futuros USDⓈ-M",
+    }
+    return labels.get(str(value), str(value) if value is not None else "No suministrado")
+
+
 def _display(value: Any) -> str:
     if value is None:
         return "Datos insuficientes / no disponibles"
@@ -183,18 +200,18 @@ def build_intraday_snapshot_pdf(report: dict[str, Any], output_directory: Path |
             ("Ventana de análisis local", f"{report['window_start_local']} to {report['cutoff_local']} ({report['report_timezone']})"),
             ("Ventana de evidencia UTC", f"{_iso_utc(start)} to {_iso_utc(cutoff)} (cutoff exclusive)"),
             ("Límite de la última vela cerrada (UTC)", report.get("data_cutoff_utc", "No suministrado")),
-            ("Se excluyó el intervalo final incompleto", (report.get("indicator_methodology") or {}).get("partial_final_interval_excluded", False)),
+            ("Se excluyó el intervalo final incompleto", _label((report.get("indicator_methodology") or {}).get("partial_final_interval_excluded", False))),
             ("Estado de la ventana", "DÍA LOCAL PARCIAL"),
             ("Fecha de solicitud local", report.get("requested_report_date_local", report.get("report_date_local"))),
-            ("Resolución de la hora de corte", report.get("cutoff_resolution", "not supplied")),
-            ("Análisis de la cuenta Binance", report.get("binance_account_data_status", "unavailable")),
-            ("Cobertura del mercado bursátil estadounidense", report.get("us_equity_market_data_status", "not_integrated")),
+            ("Resolución de la hora de corte", _label(report.get("cutoff_resolution"))),
+            ("Análisis de la cuenta Binance", _label(report.get("binance_account_data_status", "unavailable"))),
+            ("Cobertura del mercado bursátil estadounidense", _label(report.get("us_equity_market_data_status", "not_integrated"))),
             ("Generado en UTC", _iso_utc(generated)),
-            ("Fuente principal", report.get("source", "Not specified")),
-            ("Mercado", report.get("market", "Not specified")),
+            ("Fuente principal", _label(report.get("source", "No especificado"))),
+            ("Mercado", _label(report.get("market", "No especificado"))),
             ("Intervalo", report.get("interval", "Not specified")),
-            ("Estado de los datos", report.get("data_status", "Not independently certified")),
-            ("Estado de la sesión bursátil estadounidense", report.get("us_equity_session_state", "not_available")),
+            ("Estado de los datos", _label(report.get("data_status", "No certificado de forma independiente"))),
+            ("Estado de la sesión bursátil estadounidense", _label(report.get("us_equity_session_state", "not_available"))),
             ("Base de comparación", report.get("comparison_basis", "Ventana del día local; el período móvil de 24 horas es distinto")),
             ("Análisis de la cuenta Binance", report.get("binance_account_data_status", "unavailable")),
             ("Cobertura del mercado bursátil estadounidense", report.get("us_equity_market_data_status", "not_integrated")),
