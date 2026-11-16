@@ -19,6 +19,8 @@ from . import __version__
 from .protocol import JobValidationError, load_job, utc_now, validate_job
 
 from binance_data_engine.client import BinancePublicClient
+from report_engine.timezone import REPORT_TIMEZONE, current_local_report_date
+
 from report_engine import (
     build_skills_audit_pdf, generate_closing_report_pdf,
     generate_intraday_snapshot_pdf, generate_opening_report_pdf,
@@ -372,7 +374,8 @@ class JobRunner:
                 or job["output"]["directory"] != "reports/audit"):
             raise ValueError("skills.audit output is fixed to PDF in reports/audit")
         generated = datetime.now(timezone.utc)
-        audit_date = generated.date().isoformat()
+        audit_date_utc = generated.date().isoformat()
+        audit_date_local = current_local_report_date(generated).isoformat()
         artifacts = []
         findings = []
         for report_type, relative_directory in (
@@ -490,9 +493,145 @@ class JobRunner:
                 "evidence": "No opening, closing, or intraday PDF files were found in the workspace.",
                 "recommendation": "Generate reports before attempting a full cross-report audit.",
             })
+        manifest_reports = []
+        for manifest_path in manifest_paths:
+            try:
+                manifest_payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+                manifest_report = manifest_payload.get("report")
+                if isinstance(manifest_report, dict):
+                    manifest_reports.append({
+                        "report_type": manifest_payload.get("report_type"),
+                        "report": manifest_report,
+                        "manifest": manifest_path.name,
+                    })
+            except Exception:
+                continue
+
+        def check(check_id, title, status, severity, evidence, recommendation):
+            return {
+                "id": check_id, "case": title, "status": status, "severity": severity,
+                "evidence": evidence, "recommendation": recommendation,
+            }
+
+        opening_reports = [x["report"] for x in manifest_reports if x["report_type"] == "opening"]
+        closing_reports = [x["report"] for x in manifest_reports if x["report_type"] == "closing"]
+        intraday_reports = [x["report"] for x in manifest_reports if x["report_type"] == "intraday"]
+        all_reports = [x["report"] for x in manifest_reports]
+        local_windows_ok = bool(all_reports) and all(
+            item.get("report_timezone") == REPORT_TIMEZONE
+            and item.get("window_semantics") == "[start, cutoff)"
+            and isinstance(item.get("is_partial"), bool)
+            for item in all_reports
+        )
+        opening_dates_ok = bool(opening_reports) and all(
+            item.get("cutoff_resolution") == "previous_local_calendar_day"
+            and item.get("report_date_local") == (
+                datetime.fromisoformat(item["requested_report_date_local"]).date()
+                - __import__("datetime").timedelta(days=1)
+            ).isoformat()
+            for item in opening_reports
+            if isinstance(item.get("requested_report_date_local"), str)
+        )
+        closing_windows_ok = bool(closing_reports) and all(
+            item.get("cutoff_resolution") in {
+                "explicit_local_cutoff", "execution_time_local_default", "completed_historical_local_day"
+            }
+            and item.get("report_date_local") == item.get("requested_report_date_local")
+            for item in closing_reports
+        )
+        account_disclosed = bool(all_reports) and all(
+            item.get("binance_account_data_status") == "unavailable" for item in all_reports
+        )
+        scorecard_missing = bool(closing_reports) and all(
+            item.get("opening_forecast_scorecard_status") == "not_implemented"
+            for item in closing_reports
+        )
+        desk_checks = [
+            check("TIME-01", "Dominican local-day boundaries", "passed" if local_windows_ok else "not_verified",
+                  "critical", "All retained manifests declare the IANA timezone and half-open window." if local_windows_ok
+                  else "No complete set of valid local-window manifests is available.",
+                  "Regenerate and independently audit every operational report."),
+            check("OPEN-01", "Opening uses previous local calendar day", "passed" if opening_dates_ok else "not_verified",
+                  "high", "Opening request dates and reference dates were reconciled from evidence manifests." if opening_dates_ok
+                  else "No opening evidence proves the previous-local-day rule.",
+                  "Generate an opening report and retain its request-date evidence."),
+            check("CLOSE-01", "Closing partial-day cutoff", "passed" if closing_windows_ok else "not_verified",
+                  "high", "Closing manifests declare explicit, execution-time, or historical-complete cutoff resolution." if closing_windows_ok
+                  else "No closing evidence proves partial-day cutoff handling.",
+                  "Generate a current-day closing report before local midnight and inspect the exact cutoff."),
+            check("INTRA-01", "Intraday omitted-cutoff default", "passed" if any(
+                      x.get("cutoff_resolution") == "execution_time_local_default" for x in intraday_reports
+                  ) else "not_exercised" if intraday_reports else "not_verified",
+                  "medium", "An intraday report records execution-time local cutoff." if any(
+                      x.get("cutoff_resolution") == "execution_time_local_default" for x in intraday_reports
+                  ) else "No retained intraday report proves the omitted-cutoff path.",
+                  "Run an intraday job with no cutoff parameter."),
+            check("US-01", "U.S. exchange weekends and holidays", "not_implemented", "high",
+                  "No exchange-calendar adapter is integrated.",
+                  "Implement and independently test weekend/holiday last-session selection."),
+            check("US-02", "U.S. cash-session DST and state", "not_implemented", "high",
+                  "Premarket/regular/postmarket classification and DST-aware session calendar are not integrated.",
+                  "Add an authoritative exchange calendar and test both U.S. DST transitions."),
+            check("ACCT-01", "Missing private Binance account access", "disclosed" if account_disclosed else "not_verified",
+                  "medium", "Reports explicitly label private account analytics unavailable." if account_disclosed
+                  else "No retained report proves account-data unavailability is disclosed.",
+                  "Keep the unavailable disclosure until an authorized read-only source or export parser exists."),
+            check("ACCT-02", "External deposits/withdrawals excluded from PnL", "not_applicable", "high",
+                  "No private account ledger or portfolio return calculation is implemented.",
+                  "Implement ledger reconciliation before reporting portfolio returns; exclude deposits/withdrawals from PnL."),
+            check("ACCT-03", "Missing historical account balances", "not_applicable", "medium",
+                  "No private account history or balance snapshots are ingested.",
+                  "Require complete historical balances before making account-performance claims."),
+            check("SCORE-01", "Same-date opening forecast scorecard", "not_implemented" if scorecard_missing else "not_verified",
+                  "high", "Closing reports disclose that scorecard linkage is not implemented." if scorecard_missing
+                  else "No closing report proves scorecard linkage or explicit unavailability.",
+                  "Persist opening scenarios and compare them with same-date observed outcomes."),
+            check("PKG-01", "Original skill package integrity and version history", "not_verified", "high",
+                  "The local workspace does not contain a signed source-package integrity record.",
+                  "Add package hashes, version identifiers, and inspectable change history to the audit input."),
+            check("CI-01", "Cross-platform CI evidence on audited code head", "not_verified", "high",
+                  "No trusted CI run manifest is attached to this local workspace audit.",
+                  "Attach the final-head Ubuntu/Windows Python 3.11/3.12 Actions run and inspect all jobs."),
+        ]
+        unresolved = [
+            item for item in desk_checks
+            if item["severity"] in {"critical", "high"}
+            and item["status"] in {"failed", "not_implemented", "not_verified", "not_applicable"}
+        ]
+        medium_unresolved = [
+            item for item in desk_checks
+            if item["severity"] == "medium"
+            and item["status"] in {"failed", "not_implemented", "not_verified", "not_applicable", "not_exercised"}
+        ]
+        audit_verdict = (
+            "No aprobado" if unresolved else
+            "Aprobado con reservas" if medium_unresolved else
+            "Aprobado"
+        )
+        for item in unresolved:
+            findings.append({
+                "severity": item["severity"], "title": f"Desk check {item['id']}: {item['case']}",
+                "evidence": item["evidence"], "recommendation": item["recommendation"],
+            })
+        change_history = [
+            {
+                "date": audit_date_local, "version": __version__,
+                "change": "Phase 3 PDF reporting with Dominican local-day windows and evidence schema v2.",
+            },
+            {
+                "date": audit_date_local, "version": "original-skill-parity",
+                "change": "U.S. market/calendar, private-account, scorecard, and full audit-matrix parity remain incomplete.",
+            },
+        ]
         report = {
-            "audit_date_utc": audit_date,
+            "audit_date_utc": audit_date_utc,
+            "audit_date_local": audit_date_local,
+            "report_timezone": REPORT_TIMEZONE,
             "generated_at_utc": generated.isoformat().replace("+00:00", "Z"),
+            "report_engine_version": __version__,
+            "audit_verdict": audit_verdict,
+            "desk_checks": desk_checks,
+            "change_history": change_history,
             "artifacts": artifacts,
             "evidence_manifests": evidence_manifests,
             "cross_report_consistency": cross_report,
