@@ -173,7 +173,7 @@ def build_intraday_snapshot_pdf(report: dict[str, Any], output_directory: Path |
     start, cutoff, generated = _validate_input(report)
     date_text = report["report_date_local"]
     time_text = datetime.fromisoformat(report["cutoff_local"]).strftime("%H-%M")
-    destination = Path(output_directory) / f"snapshot-mercado-{date_text}_{time_text}.pdf"
+    destination = Path(output_directory) / f"snapshot-mercado_{date_text}_{time_text}.pdf"
     styles = report_styles()
     story = [
         Paragraph("Intraday Market Snapshot", styles["title"]),
