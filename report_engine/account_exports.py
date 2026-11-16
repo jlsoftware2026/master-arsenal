@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import csv
 import hashlib
+import io
 import re
 from collections import defaultdict
 from datetime import datetime, timezone
@@ -104,7 +105,21 @@ def collect_binance_account_exports(
             "flow_adjusted_return_status": "not_available",
         }
 
-    root = Path(directory).expanduser().resolve()
+    supplied_root = Path(directory).expanduser()
+    if supplied_root.is_symlink():
+        return {
+            "status": "failed", "source": "local Binance CSV exports",
+            "window_start_utc": start.isoformat().replace("+00:00", "Z"),
+            "window_end_utc": end.isoformat().replace("+00:00", "Z"),
+            "files": [], "file_count": 0, "rows_scanned": 0, "events_in_window": 0,
+            "duplicate_rows": 0, "parse_errors": ["The fixed account-export directory must not be a symlink."],
+            "unsupported_files": [], "aggregates_by_event_and_asset": empty_aggregates,
+            "event_counts": {event: 0 for event in EVENT_TYPES},
+            "assumptions": [], "limitations": "Unsafe import directory.",
+            "portfolio_equity_status": "not_available",
+            "flow_adjusted_return_status": "not_available",
+        }
+    root = supplied_root.resolve()
     if not root.exists() or not root.is_dir():
         files = []
     else:
@@ -149,22 +164,23 @@ def collect_binance_account_exports(
     rows_scanned = events_in_window = duplicates = 0
     supported_files = 0
 
-    for path in files:
+    for file_index, path in enumerate(files, start=1):
+        file_id = f"account_export_{file_index:03d}"
         try:
             resolved = path.resolve(strict=True)
             if not resolved.is_relative_to(root):
-                parse_errors.append(f"{path.name}: file resolves outside the fixed import directory")
+                parse_errors.append(f"{file_id}: file resolves outside the fixed import directory")
                 continue
             size = resolved.stat().st_size
             if size <= 0 or size > MAX_FILE_BYTES:
-                parse_errors.append(f"{path.name}: file is empty or exceeds the 20 MB limit")
+                parse_errors.append(f"{file_id}: file is empty or exceeds the 20 MB limit")
                 continue
             raw = resolved.read_bytes()
             digest = hashlib.sha256(raw).hexdigest()
             text = raw.decode("utf-8-sig")
-            reader = csv.DictReader(text.splitlines())
+            reader = csv.DictReader(io.StringIO(text, newline=""))
             if not reader.fieldnames:
-                unsupported_files.append(path.name)
+                unsupported_files.append(file_id)
                 continue
             mapping = {_header(name): name for name in reader.fieldnames}
             if not REQUIRED_HEADERS.issubset(mapping):
@@ -176,7 +192,7 @@ def collect_binance_account_exports(
                 file_rows += 1
                 rows_scanned += 1
                 if file_rows > MAX_ROWS_PER_FILE:
-                    parse_errors.append(f"{path.name}: more than 100,000 rows")
+                    parse_errors.append(f"{file_id}: more than 100,000 rows")
                     break
                 try:
                     timestamp, assumed_utc = _timestamp(row.get(mapping["utctime"], ""))
@@ -205,16 +221,17 @@ def collect_binance_account_exports(
                     events_in_window += 1
                     file_events += 1
                 except Exception as exc:
-                    parse_errors.append(f"{path.name}: row {row_number}: {type(exc).__name__}: {exc}")
+                    parse_errors.append(f"{file_id}: row {row_number}: {type(exc).__name__}: {exc}")
             file_records.append({
-                "filename": path.name, "sha256": digest, "bytes": size,
+                "file_id": file_id, "sha256": digest, "bytes": size,
                 "format": "binance_transaction_statement_csv",
                 "rows_scanned": file_rows, "events_in_window": file_events,
             })
         except Exception as exc:
-            parse_errors.append(f"{path.name}: {type(exc).__name__}: {exc}")
+            parse_errors.append(f"{file_id}: {type(exc).__name__}: {exc}")
 
     status = (
+        "partial" if supported_files == 0 and (unsupported_files or parse_errors) else
         "unavailable" if supported_files == 0 else
         "complete" if not parse_errors and not unsupported_files and not assumptions else
         "partial"
@@ -225,7 +242,7 @@ def collect_binance_account_exports(
         "window_start_utc": start.isoformat().replace("+00:00", "Z"),
         "window_end_utc": end.isoformat().replace("+00:00", "Z"),
         "files": file_records,
-        "file_count": len(file_records),
+        "file_count": len(files),
         "supported_file_count": supported_files,
         "rows_scanned": rows_scanned,
         "events_in_window": events_in_window,
