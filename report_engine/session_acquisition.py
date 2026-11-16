@@ -39,9 +39,30 @@ def acquire_session_report_evidence(
         "Interpret indicator values alongside the raw candle evidence; unavailable values are "
         "not imputed."
     )
+    bullish, bearish = [], []
+    for symbol in ("BTCUSDT", "ETHUSDT"):
+        performance = report["symbols"][symbol]["performance"]
+        high, low, close = performance["high"], performance["low"], performance["close"]
+        bullish.append(
+            f"{symbol}: bullish continuation is conditional on acceptance above the prior-session "
+            f"high {high}; the scenario is invalidated below the prior-session low {low}. "
+            f"Last session close: {close}."
+        )
+        bearish.append(
+            f"{symbol}: bearish continuation is conditional on acceptance below the prior-session "
+            f"low {low}; the scenario is invalidated above the prior-session high {high}. "
+            f"Last session close: {close}."
+        )
+    report["bullish_scenario"] = " ".join(bullish) + " These are conditional reference levels, not price targets or probability forecasts."
+    report["bearish_scenario"] = " ".join(bearish) + " These are conditional reference levels, not price targets or probability forecasts."
     report["assumptions_and_invalidation"] = (
-        "No forward scenario levels were inferred automatically. Add a separately reviewed "
-        "technical scenario before using this report for a trading decision."
+        "Breakout acceptance must be independently confirmed with current price action and volume. "
+        "The opposite side of the prior-session range is used as a simple invalidation reference; "
+        "no target or probability is inferred."
+    )
+    report["risks"] = (
+        "False breakouts, low liquidity, volatility shocks, spread/slippage, and events outside "
+        "the configured RSS feeds can invalidate these reference scenarios."
     )
     start = datetime.fromisoformat(report["session_start_utc"].replace("Z", "+00:00"))
     end = datetime.fromisoformat(report["session_end_utc"].replace("Z", "+00:00"))
