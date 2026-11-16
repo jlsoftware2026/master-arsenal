@@ -112,7 +112,7 @@ def acquire_intraday_evidence(
         "no representados en los feeds configurados pueden invalidar estos niveles de referencia."
     )
     report["executive_summary"] = (
-        "Snapshot del día calendario dominicano {target_date.isoformat()} hasta {window.end_local.isoformat()}. "
+        f"Snapshot del día calendario dominicano {target_date.isoformat()} hasta {window.end_local.isoformat()}. "
         "Se verificaron las velas completamente cerradas de BTCUSDT y ETHUSDT respecto a los límites de la ventana, la paginación "
         "y la integridad de los datos. El último intervalo incompleto se excluye."
     )
