@@ -130,7 +130,7 @@ DIRECTORIES = (
     "config", "jobs/inbox", "jobs/validated", "jobs/awaiting_approval", "jobs/running",
     "jobs/completed", "jobs/failed", "jobs/cancelled", "jobs/archive",
     "reports/opening", "reports/closing", "reports/intraday", "reports/audit",
-    "data/cache", "data/snapshots", "data/manifests", "logs",
+    "data/cache", "data/snapshots", "data/manifests", "data/account_exports", "logs",
     "skills/binance-apertura-mercado", "skills/binance-cierre-mercado",
     "skills/binance-momento-mercado", "skills/binance-revision-skills", "temp",
 )
