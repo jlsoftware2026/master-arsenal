@@ -3,6 +3,12 @@
 ## Purpose
 Generate a detailed PDF report using the previous completed America/Santo_Domingo local calendar day as the Binance reference.
 
+## Activation and scheduling
+- Activate on “apertura de mercado”, “preapertura”, “resumen antes de abrir”, or an equivalent clear request.
+- The original target is 15–20 minutes before the U.S. regular cash open (9:30 a.m. ET). Convert ET using the current U.S. DST rule; do not assume a fixed Dominican clock time.
+- On U.S. weekends/holidays, disclose that no regular session opens and use the last completed U.S. cash session for equity context. Keep the Binance reference on the previous Dominican local calendar day.
+- The current Local Engine does not schedule or enforce this activation time; disclose that limitation and require the caller to initiate the job.
+
 ## Local Engine workflow
 - Job type: `market.opening_report`
 - Fixed output directory: `reports/opening`
