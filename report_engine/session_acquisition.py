@@ -42,7 +42,11 @@ def acquire_session_report_evidence(
         window = completed_local_day(target_date)
     elif report_kind == "closing":
         target_date = request_date
-        window = local_day_window(target_date, cutoff_local, now=now)
+        execution_date = current_local_report_date(now)
+        if cutoff_local is None and target_date < execution_date:
+            window = completed_local_day(target_date)
+        else:
+            window = local_day_window(target_date, cutoff_local, now=now)
     else:
         target_date = request_date
         window = completed_local_day(target_date)
