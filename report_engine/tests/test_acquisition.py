@@ -80,6 +80,8 @@ class IntradayAcquisitionTests(unittest.TestCase):
         self.assertEqual(report["data_status"], "partial")
         self.assertEqual(report["window_start_utc"], "2024-05-06T04:00:00Z")
         self.assertEqual(report["cutoff_utc"], "2024-05-07T03:00:00Z")
+        self.assertIn("2024-05-06", report["executive_summary"])
+        self.assertIn("2024-05-06T23:00:00-04:00", report["executive_summary"])
         self.assertEqual(set(report["symbols"]), {"BTCUSDT", "ETHUSDT"})
         btc = report["symbols"]["BTCUSDT"]
         self.assertEqual(btc["candle_count"], 23)
