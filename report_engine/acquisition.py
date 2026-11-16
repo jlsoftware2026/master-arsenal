@@ -9,7 +9,7 @@ from binance_data_engine.client import BinancePublicClient
 from binance_data_engine.engine import CORE_SYMBOLS
 from binance_data_engine.intraday import acquire_intraday_day
 
-from .intraday import build_intraday_snapshot_pdf
+from .intraday import build_intraday_snapshot_pdf\nfrom .context import collect_market_context
 
 
 def acquire_intraday_evidence(
@@ -35,9 +35,16 @@ def acquire_intraday_evidence(
     )
     if datetime.now(timezone.utc) < cutoff_utc:
         raise ValueError("Local system clock is behind cutoff_utc; refusing to misstate generation time")
+    context = collect_market_context(
+        datetime.combine(cutoff_utc.date(), datetime.min.time(), tzinfo=timezone.utc),
+        cutoff_utc,
+    )
+    report.update(context)
+    report["limitations"] = context["context_limitations"]
     report["executive_summary"] = (
         "All expected completed candles for BTCUSDT and ETHUSDT passed strict "
-        "UTC-window, pagination, and data-integrity checks."
+        "UTC-window, pagination, and data-integrity checks. Macro/news context is "
+        + context["context_status"] + " and is reported with publication timestamps and source URLs."
     )
     return report
 
