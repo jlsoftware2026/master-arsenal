@@ -35,7 +35,7 @@ Phase 3 now contains the shared PDF foundation and end-to-end acquisition/compos
 - The report window is `[00:00 UTC, cutoff_utc)` with an explicit UTC cutoff aligned to the selected interval.
 - BTCUSDT and ETHUSDT are mandatory.
 - The exact report-window candle count and each open/close boundary are validated; no interpolation or synthetic candles are used.
-- The output includes source-attributed market context, technical indicator tables, session-only charts, conditional range scenarios, risk notes, and provenance when evidence is available.
+- The output includes source-attributed market context, technical indicator tables, session-only charts, conditional range scenarios, risk notes, and provenance when evidence is available. With `market=usdm`, it also attempts premium index, funding history, open interest, global long/short account ratio, basis, mark-price klines, and index-price klines; each unavailable endpoint is disclosed rather than silently omitted.
 - Output: `snapshot-mercado-YYYY-MM-DD_HH-mm.pdf`, based on UTC cutoff.
 
 ### Macro and news context
@@ -44,6 +44,8 @@ The standard-library RSS collector uses configured public feeds for:
 - Digital-asset news: CoinDesk, Cointelegraph, and The Block.
 - Macroeconomic/central-bank releases: Federal Reserve, Bureau of Labor Statistics, and European Central Bank.
 
+For USD-M reports, optional derivatives evidence includes premium index, funding history, current/historical open interest, global long/short account ratio, basis, and mark/index-price klines. Endpoint errors are recorded as unavailable; no restriction is bypassed.
+
 Only items with publisher timestamps inside the report's UTC window are included. Each displayed item carries publisher, publication timestamp, URL, and a relevance disclaimer. Retrieval time and feed status are retained. Failed feeds are reported as unavailable; an empty feed result is not presented as proof that no relevant event occurred. Headlines are candidate context only and are not treated as proof of price causation. RSS coverage is not exhaustive.
 
 ### Independent skills audit
@@ -51,7 +53,7 @@ Only items with publisher timestamps inside the report's UTC window are included
 - `report_engine.audit.build_skills_audit_pdf` creates `auditoria-skills-binance_YYYY-MM-DD.pdf`.
 - The Local Engine audit handler scans the fixed opening, closing, and intraday report directories, computes SHA-256 digests, and independently parses/renders every discovered PDF.
 - Missing artifacts and QA failures become explicit findings. No artifacts means insufficient evidence, not a pass.
-- The automated audit checks artifact structure/readability, expected filename prefixes, BTC/ETH presence, required scenario/context/provenance headings, and the macro/news feed retrieval register. It does not yet independently recalculate every market indicator, verify the factual accuracy of news claims, or certify scenario quality or parity with the original Claude skill source files.
+- The automated audit checks artifact structure/readability, expected filename prefixes, BTC/ETH presence, required scenario/context/provenance headings, and the macro/news feed retrieval register. It explicitly reports missing CI-run manifests and raw-candle/indicator evidence. It does not yet independently recalculate every market indicator, verify the factual accuracy of news claims, or certify scenario quality or parity with the original Claude skill source files.
 
 ## Local Engine job integration
 
