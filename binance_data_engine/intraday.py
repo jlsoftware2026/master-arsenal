@@ -16,7 +16,6 @@ def _require_utc(value: datetime, field: str) -> datetime:
 
 
 def _iso(value: datetime) -> str:
-    # Preserve the millisecond precision of Binance candle close timestamps.
     return value.isoformat().replace("+00:00", "Z")
 
 
@@ -30,6 +29,31 @@ def _capture_ticker(client: BinancePublicClient, symbol: str, market: str) -> di
                 "response_metadata": dict(client.last_response_metadata)}
 
 
+def _validate_series(candles, symbol: str, interval: str, start: datetime,
+                     end: datetime, expected_count: int, label: str) -> None:
+    issues = validate_candles(candles, interval)
+    errors = [issue for issue in issues if issue.severity == "error"]
+    if errors:
+        raise ValueError(f"{symbol}: invalid {label} candle data: " +
+                         "; ".join(issue.message for issue in errors))
+    if len(candles) != expected_count:
+        raise ValueError(
+            f"{symbol}: expected {expected_count} {label} candles, received {len(candles)}"
+        )
+    interval_ms = interval_milliseconds(interval)
+    for index, candle in enumerate(candles):
+        expected_open = start + timedelta(milliseconds=index * interval_ms)
+        expected_close = expected_open + timedelta(milliseconds=interval_ms - 1)
+        if candle.symbol != symbol:
+            raise ValueError(f"{symbol}: {label} response contains candle for {candle.symbol}")
+        if candle.open_time != expected_open or candle.close_time != expected_close:
+            raise ValueError(
+                f"{symbol}: {label} candle {index} is missing, duplicated, misaligned, or not closed"
+            )
+        if candle.open_time < start or candle.open_time >= end or candle.close_time >= end:
+            raise ValueError(f"{symbol}: {label} candle falls outside its exclusive time window")
+
+
 def acquire_intraday_day(
     client: BinancePublicClient,
     report_date: date,
@@ -38,12 +62,13 @@ def acquire_intraday_day(
     market: str = "spot",
     symbols: tuple[str, ...] | list[str] = CORE_SYMBOLS,
     include_ticker: bool = True,
+    indicator_lookback: int = 250,
 ) -> dict[str, Any]:
-    """Acquire and verify every closed candle in [00:00 UTC, cutoff_utc).
+    """Acquire a verified UTC-day window plus separate pre-window indicator history.
 
-    The cutoff must align to the requested fixed intraday interval. Missing,
-    duplicated, misaligned, partial, or invalid candles cause acquisition to fail;
-    no interpolation or synthetic candles are produced.
+    Report candles remain exactly in [00:00 UTC, cutoff_utc). The preceding
+    lookback is used only to warm up rolling indicators; it is not included in
+    report-window counts, charts, or period-performance calculations.
     """
     if not isinstance(report_date, date) or isinstance(report_date, datetime):
         raise ValueError("report_date must be a datetime.date, not a datetime")
@@ -56,6 +81,8 @@ def acquire_intraday_day(
     interval_ms = interval_milliseconds(interval)
     if interval_ms is None or interval in {"1d", "3d", "1w"}:
         raise ValueError(f"Unsupported fixed intraday interval: {interval!r}")
+    if isinstance(indicator_lookback, bool) or not isinstance(indicator_lookback, int) or indicator_lookback < 200:
+        raise ValueError("indicator_lookback must be an integer of at least 200 candles")
     elapsed_ms = int((cutoff - start).total_seconds() * 1000)
     if elapsed_ms % interval_ms:
         raise ValueError("cutoff_utc must align exactly to the requested candle interval")
@@ -75,6 +102,7 @@ def acquire_intraday_day(
     if cutoff > server_time:
         raise ValueError("cutoff_utc is later than Binance server time; future candles cannot be acquired")
 
+    history_start = start - timedelta(milliseconds=indicator_lookback * interval_ms)
     result: dict[str, Any] = {
         "schema_version": "1.0",
         "source": "Binance public REST API",
@@ -84,50 +112,54 @@ def acquire_intraday_day(
         "cutoff_utc": _iso(cutoff),
         "binance_server_time_utc": _iso(server_time),
         "data_status": "complete",
+        "indicator_methodology": {
+            "calculation_series": "pre-window lookback + report-window candles",
+            "lookback_candles": indicator_lookback,
+            "report_window_excludes_lookback": True,
+            "note": "Historical warm-up candles are excluded from report-window statistics and charts.",
+        },
         "read_only": True,
         "symbols": {},
     }
     for symbol in requested:
+        history, history_pagination = client.get_historical_klines(
+            symbol, interval, history_start, start, market=market
+        )
+        if not history_pagination.complete or history_pagination.returned != len(history):
+            raise ValueError(f"{symbol}: indicator-history pagination did not complete")
+        _validate_series(history, symbol, interval, history_start, start,
+                         indicator_lookback, "indicator-history")
+        history_metadata = dict(client.last_response_metadata)
+
         candles, pagination = client.get_historical_klines(
             symbol, interval, start, cutoff, market=market
         )
+        candle_metadata = dict(client.last_response_metadata)
         if not pagination.complete:
             raise ValueError(f"{symbol}: Binance pagination did not complete the requested window")
         if pagination.returned != len(candles):
             raise ValueError(f"{symbol}: pagination metadata count does not match returned candles")
-        if len(candles) != expected_count:
-            raise ValueError(
-                f"{symbol}: expected {expected_count} candles, received {len(candles)}; "
-                "the UTC-day window is incomplete"
-            )
-        issues = validate_candles(candles, interval)
-        errors = [issue for issue in issues if issue.severity == "error"]
-        if errors:
-            raise ValueError(f"{symbol}: invalid candle data: " +
-                             "; ".join(issue.message for issue in errors))
-        for index, candle in enumerate(candles):
-            expected_open = start + timedelta(milliseconds=index * interval_ms)
-            expected_close = expected_open + timedelta(milliseconds=interval_ms - 1)
-            if candle.symbol != symbol:
-                raise ValueError(f"{symbol}: response contains candle for {candle.symbol}")
-            if candle.open_time != expected_open or candle.close_time != expected_close:
-                raise ValueError(
-                    f"{symbol}: candle {index} is missing, duplicated, misaligned, or not closed"
-                )
-            if candle.close_time >= cutoff:
-                raise ValueError(f"{symbol}: candle close time reaches the exclusive cutoff")
+        _validate_series(candles, symbol, interval, start, cutoff,
+                         expected_count, "report-window")
 
-        response_metadata = dict(client.last_response_metadata)
         item: dict[str, Any] = {
             "candles": [candle.to_dict() for candle in candles],
             "candle_count": len(candles),
             "expected_candle_count": expected_count,
             "first_open_time_utc": _iso(candles[0].open_time),
             "last_close_time_utc": _iso(candles[-1].close_time),
-            "validation": [issue.to_dict() for issue in issues],
-            "indicators": analyze_candles(candles),
+            "validation": [issue.to_dict() for issue in validate_candles(candles, interval)],
+            "indicators": analyze_candles(history + candles),
+            "indicator_history": {
+                "candle_count": len(history),
+                "expected_candle_count": indicator_lookback,
+                "first_open_time_utc": _iso(history[0].open_time),
+                "last_close_time_utc": _iso(history[-1].close_time),
+                "pagination": history_pagination.to_dict(),
+                "response_metadata": history_metadata,
+            },
             "pagination": pagination.to_dict(),
-            "response_metadata": response_metadata,
+            "response_metadata": {"candles": candle_metadata},
         }
         if include_ticker:
             item["ticker_24h"] = _capture_ticker(client, symbol, market)
@@ -137,9 +169,10 @@ def acquire_intraday_day(
     result["generated_at_utc"] = _iso(generated)
     result["provenance"] = [
         {"source": "Binance public REST API",
-         "retrieved_at_utc": item["response_metadata"].get("retrieved_at_utc", "Not supplied"),
-         "note": f"{symbol}: {item['candle_count']} verified {interval} candles; "
-                 "window is [00:00 UTC, cutoff_utc)."}
+         "retrieved_at_utc": item["response_metadata"]["candles"].get("retrieved_at_utc", "Not supplied"),
+         "note": f"{symbol}: {item['candle_count']} verified report-window candles and "
+                 f"{item['indicator_history']['candle_count']} separate indicator warm-up candles; "
+                 "report window is [00:00 UTC, cutoff_utc)."}
         for symbol, item in result["symbols"].items()
     ]
     return result
