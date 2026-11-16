@@ -363,6 +363,7 @@ def audit_market_report_artifact(path: str | Path, report_type: str) -> dict[str
             "Registro de consulta de fuentes macro/noticias", "URL del feed", "UTC", "Aviso importante",
             "America/Santo_Domingo", "Ventana de análisis local", "DÍA LOCAL COMPLETO",
             "Análisis de la cuenta Binance", "Cobertura del mercado bursátil estadounidense", "Horario de la sesión bursátil estadounidense", "Horario de activación",
+            "Apertura regular de EE. UU. (ET / hora local)", "Generado en hora local", "Generado en ET",
         ),
         "closing": (
             "BTCUSDT", "ETHUSDT", "Indicador técnico", "Validación de datos",
@@ -372,6 +373,7 @@ def audit_market_report_artifact(path: str | Path, report_type: str) -> dict[str
             "America/Santo_Domingo", "Ventana de análisis local", "Análisis de la cuenta Binance",
             "Cobertura del mercado bursátil estadounidense", "Horario de la sesión bursátil estadounidense",
             "Horario de activación", "Comparación del pronóstico de apertura",
+            "Cierre regular de EE. UU. (ET / hora local)", "Generado en hora local", "Generado en ET",
         ),
         "intraday": (
             "BTCUSDT", "ETHUSDT", "Indicador técnico", "Validación de datos", "Contexto macroeconómico", "Noticias relevantes",
@@ -380,6 +382,7 @@ def audit_market_report_artifact(path: str | Path, report_type: str) -> dict[str
             "America/Santo_Domingo", "Ventana de análisis local", "DÍA LOCAL PARCIAL",
             "Estado de la sesión bursátil estadounidense", "Base de comparación", "Análisis de la cuenta Binance",
             "Cobertura del mercado bursátil estadounidense", "Límite de la última vela cerrada (UTC)",
+            "Hora de corte ET", "Generado en hora local", "Generado en ET",
         ),
     }
     if report_type not in requirements:
@@ -400,6 +403,8 @@ def audit_market_report_artifact(path: str | Path, report_type: str) -> dict[str
     filename_ok = source.name.startswith(filename_prefix) and source.suffix.lower() == ".pdf"
     if not filename_ok:
         missing.append(f"Expected filename prefix: {filename_prefix}")
+    if report_type == "closing" and not any(marker in normalized for marker in ("día local parcial", "día local completo")):
+        missing.append("El informe de cierre debe identificar el día local como parcial o completo.")
     return {
         "structural_qa": structural,
         "report_type": report_type,
