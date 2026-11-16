@@ -715,6 +715,11 @@ class JobRunner:
                 "severity": item["severity"], "title": f"Desk check {item['id']}: {item['case']}",
                 "evidence": item["evidence"], "recommendation": item["recommendation"],
             })
+        for item in medium_unresolved:
+            findings.append({
+                "severity": item["severity"], "title": f"Desk check {item['id']}: {item['case']}",
+                "evidence": item["evidence"], "recommendation": item["recommendation"],
+            })
         change_history = [
             {
                 "date": audit_date_local, "version": __version__,
