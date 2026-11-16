@@ -255,6 +255,15 @@ def audit_evidence_manifest(path: str | Path, workspace_root: str | Path) -> dic
         url = source.get("feed_url", "")
         if not isinstance(url, str) or not url.startswith("https://"):
             findings.append("Macro/news feed record has no HTTPS source URL.")
+        if source.get("status") != "ok":
+            findings.append(f"Macro/news feed unavailable: {source.get('publisher', 'unknown')}.")
+        retrieved = source.get("retrieved_at_utc")
+        if retrieved:
+            try:
+                if _strict_utc(retrieved) > generated_at:
+                    findings.append("Macro/news feed retrieval timestamp follows report generation.")
+            except Exception:
+                findings.append("Macro/news feed retrieval timestamp is invalid.")
     return {
         "manifest": manifest_path.name,
         "report_type": report_type,
