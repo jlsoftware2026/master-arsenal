@@ -181,6 +181,21 @@ def audit_evidence_manifest(path: str | Path, workspace_root: str | Path) -> dic
         "opening": "opening", "closing": "closing", "intraday": "intraday"
     }.get(report_type, "invalid")).resolve()
     pdf_filename = str(payload.get("pdf_filename", ""))
+    try:
+        if report_type == "opening":
+            expected_filename = f"apertura-mercado_{report.get('requested_report_date_local')}.pdf"
+        elif report_type == "closing":
+            expected_filename = f"cierre-mercado_{report.get('report_date_local')}.pdf"
+        else:
+            cutoff_local_for_name = datetime.fromisoformat(report.get("cutoff_local"))
+            expected_filename = (
+                f"snapshot-mercado_{report.get('report_date_local')}_"
+                f"{cutoff_local_for_name.strftime('%H-%M')}.pdf"
+            )
+        if pdf_filename != expected_filename:
+            findings.append("PDF filename does not match the report's Dominican local date and cutoff.")
+    except (TypeError, ValueError):
+        findings.append("PDF filename cannot be reconciled with the report's Dominican local date and cutoff.")
     pdf_path = (report_directory / pdf_filename).resolve()
     if (Path(pdf_filename).name != pdf_filename or not pdf_path.is_relative_to(report_directory)
             or not pdf_path.is_file()):
