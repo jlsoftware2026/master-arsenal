@@ -102,11 +102,11 @@ class SessionAcquisitionTests(unittest.TestCase):
         cutoff = datetime(2026, 11, 14, 18, 30)
         with TemporaryDirectory() as temp:
             artifact = generate_closing_report_pdf(
-                FakeClient(), temp, START.date(), manifest_directory=f"{temp}/manifests",
-                cutoff_local=cutoff,
+                FakeClient(), Path(temp) / "reports" / "closing", START.date(),
+                manifest_directory=Path(temp) / "data" / "manifests", cutoff_local=cutoff,
             )
             self.assertEqual(artifact.name, "cierre-mercado_2026-11-14.pdf")
-            manifests = list((Path(temp) / "manifests").glob("*.evidence.json"))
+            manifests = list((Path(temp) / "data" / "manifests").glob("*.evidence.json"))
             self.assertEqual(len(manifests), 1)
             payload = json.loads(manifests[0].read_text(encoding="utf-8"))
             report = payload["report"]
