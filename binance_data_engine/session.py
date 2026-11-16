@@ -243,6 +243,7 @@ def acquire_market_window(
             "candles": [candle.to_dict() for candle in candles],
             "candle_count": len(candles),
             "expected_candle_count": expected_count,
+            "data_cutoff_utc": data_end.isoformat().replace("+00:00", "Z"),
             "first_open_time_utc": candles[0].open_time.isoformat().replace("+00:00", "Z"),
             "last_close_time_utc": candles[-1].close_time.isoformat().replace("+00:00", "Z"),
             "performance": {
