@@ -773,7 +773,7 @@ class JobRunner:
                     or not isinstance(digest, str)
                     or len(digest) != 64
                     or any(char not in "0123456789abcdef" for char in digest.lower())
-                    or item.get("format") != "binance_transaction_statement_csv"
+                    or item.get("format") != "binance_transaction_history_csv"
                     or not isinstance(item.get("bytes"), int)
                     or item["bytes"] <= 0
                     or not isinstance(item.get("rows_scanned"), int)
