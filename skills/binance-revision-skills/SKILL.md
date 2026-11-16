@@ -59,4 +59,4 @@ Adapted against the user-supplied original Claude audit skill. The PDF records a
 - 0.3.0 — 2026-11-16: Localized report headings, tables, scenario narratives, disclaimers, and audit output into Spanish; added independent language-marker QA.
 - 0.5.0 — 2026-11-16: Added XNYS calendar desk-check reconciliation, including holidays, early closes, DST, and session-state classification; corrected source instruction typos.
 - 0.6.0 — 2026-11-16: Added source/cutoff provenance checks for Yahoo Finance market quote evidence.
-- 0.7.0 — 2026-11-16: Added SHA-256 and schema checks for local Binance transaction-statement CSV imports; portfolio equity and flow-adjusted returns remain outside supported scope.
+- 0.7.0 — 2026-11-16: Added SHA-256 and schema checks for local Binance transaction-history CSV imports; portfolio equity and flow-adjusted returns remain outside supported scope.
