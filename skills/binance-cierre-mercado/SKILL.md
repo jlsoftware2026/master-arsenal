@@ -1,7 +1,7 @@
 ---
 name: binance-cierre-mercado
 description: 'Informe de cierre y recapitulación diaria. Activar cuando el usuario diga “cierre de mercado”, “resumen de cierre” o solicite cómo terminó la sesión. Analiza el día de la fecha local de solicitud, tanto la sesión bursátil estadounidense como la actividad de la cuenta Binance.'
-version: 0.4.0
+version: 0.5.0
 last_reviewed: 2026-11-16
 ---
 
@@ -28,7 +28,7 @@ Generate a detailed PDF report for the current Dominican local calendar day, inc
 8. Same-date opening forecast scorecard when an opening report exists.
 9. Bullish/long and bearish/short scenarios, risks, source register, limitations, and conclusion.
 
-If account, U.S. market, or opening-scorecard evidence is unavailable, disclose it. Never call a partial Binance local day complete. The current build does not yet integrate full U.S. market/calendar data, private-account exports, or opening-scorecard linkage.
+If account, U.S. market, or opening-scorecard evidence is unavailable, disclose it. Never call a partial Binance local day complete. The XNYS calendar now supplies session holidays, early closes, and DST-aware session-state classification. U.S. market prices, private-account exports, and opening-scorecard linkage remain unavailable.
 
 ## Local Engine workflow
 - Job type: `market.closing_report`
@@ -51,7 +51,7 @@ The Local Engine may retain a source-linked raw-evidence manifest under `data/ma
 Disclose incomplete data and unavailable feeds. Headlines are candidate context only, not proof of market causation. Scenario levels are conditional references, not forecasts, targets, or probabilities. Never fabricate values, events, citations, or forecasts. Generate and independently inspect the PDF; if PDF generation or QA fails, fail the job and do not substitute another format.
 
 ## Status
-Adapted against the user-supplied original Claude skill package. U.S. market data/calendar, private-account analytics, automated activation timing, and same-date opening forecast scorecard remain unavailable/not implemented and are disclosed.
+Adapted against the user-supplied original Claude skill package. U.S. market prices, private-account analytics, automated activation timing, and same-date opening forecast scorecard remain unavailable/not implemented and are disclosed. XNYS calendar/session classification is integrated.
 
 ## Version history
 - 0.1.0 — 2026-11-16: Initial ChatGPT/MASTER ARSENAL adaptation; preserves the original skill identity and documents the Local Engine/PDF workflow and current implementation gaps.
@@ -63,3 +63,4 @@ The opening, closing, and intraday PDF composers and the audit PDF use Spanish l
 - 0.2.0 — 2026-11-16: Reconciled activation phrases, Dominican local-day semantics, PDF-only delivery, explicit limitations, and source-derived report requirements. Outstanding parity gaps remain disclosed.
 
 - 0.3.0 — 2026-11-16: Localized report headings, tables, scenario narratives, disclaimers, and audit output into Spanish; added independent language-marker QA.
+- 0.5.0 — 2026-11-16: Integrated XNYS holiday/early-close calendar and exact-cutoff session classification; U.S. market prices, account ledger, and same-date scorecard remain outstanding.
