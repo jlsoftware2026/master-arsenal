@@ -43,6 +43,28 @@ def acquire_intraday_evidence(
     report.update(context)
     report["news_context"] = context["news"]
     report["limitations"] = context["context_limitations"]
+    bullish, bearish = [], []
+    for symbol in ("BTCUSDT", "ETHUSDT"):
+        candles = report["symbols"][symbol]["candles"]
+        high = max(float(candle["high"]) for candle in candles)
+        low = min(float(candle["low"]) for candle in candles)
+        last = candles[-1]["close"]
+        bullish.append(
+            f"{symbol}: remaining-session continuation requires acceptance above the "
+            f"observed high {high:g}; invalidation reference is below the observed low {low:g}. "
+            f"Last close: {last}."
+        )
+        bearish.append(
+            f"{symbol}: remaining-session weakness requires acceptance below the "
+            f"observed low {low:g}; invalidation reference is above the observed high {high:g}. "
+            f"Last close: {last}."
+        )
+    report["bullish_scenario"] = " ".join(bullish) + " Conditional levels only; no probability or target is inferred."
+    report["bearish_scenario"] = " ".join(bearish) + " Conditional levels only; no probability or target is inferred."
+    report["risk_factors"] = (
+        "False breakouts, liquidity changes, volatility expansion, spread/slippage, and events "
+        "not represented in the configured RSS feeds may invalidate these reference levels."
+    )
     report["executive_summary"] = (
         "All expected completed candles for BTCUSDT and ETHUSDT passed strict "
         "UTC-window, pagination, and data-integrity checks. Macro/news context is "
