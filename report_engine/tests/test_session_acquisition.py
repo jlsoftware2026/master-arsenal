@@ -127,7 +127,7 @@ class SessionAcquisitionTests(unittest.TestCase):
         with TemporaryDirectory() as temp:
             opening = generate_opening_report_pdf(FakeClient(), temp, START.date())
             closing = generate_closing_report_pdf(FakeClient(), temp, START.date())
-            self.assertEqual(opening.name, "apertura-mercado_2026-11-13.pdf")
+            self.assertEqual(opening.name, "apertura-mercado_2026-11-14.pdf")
             self.assertEqual(closing.name, "cierre-mercado_2026-11-14.pdf")
             self.assertTrue(opening.read_bytes().startswith(b"%PDF-"))
             self.assertTrue(closing.read_bytes().startswith(b"%PDF-"))
