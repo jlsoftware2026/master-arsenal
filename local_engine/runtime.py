@@ -75,6 +75,7 @@ def verify_original_skill_packages(repository_root: Path | str) -> dict[str, Any
             adapted_path = root / "skills" / name / "SKILL.md"
             adapted_bytes = adapted_path.read_bytes()
             adapted_text = adapted_bytes.decode("utf-8").replace("\r\n", "\n").replace("\r", "\n")
+            canonical_adapted_bytes = adapted_text.encode("utf-8")
             if not adapted_text.startswith("---\n") or "\n---\n" not in adapted_text[4:]:
                 raise ValueError(f"{name}: adapted SKILL.md YAML frontmatter is missing")
             frontmatter = adapted_text.split("\n---", 1)[0]
@@ -95,7 +96,7 @@ def verify_original_skill_packages(repository_root: Path | str) -> dict[str, Any
                 "status": "not_verified",
                 "archive_sha256": archive_sha,
                 "source_skill_sha256": source_sha,
-                "adapted_skill_sha256": hashlib.sha256(adapted_bytes).hexdigest(),
+                "adapted_skill_sha256": hashlib.sha256(canonical_adapted_bytes).hexdigest(),
                 "adapted_version": fields.get("version"),
                 "last_reviewed": fields.get("last_reviewed"),
                 "archive_members": expected_member,
