@@ -181,8 +181,13 @@ def _build_session_pdf(report: dict[str, Any], output_directory: Path | str, kin
             ("Market", report.get("market", "Not specified")),
             ("Interval", report.get("interval", "Not specified")),
             ("Data status", report.get("data_status", "Not independently certified")),
-            ("Report perspective", "Pre-session context from the prior completed day" if kind == "opening"
-             else "Observed results from the just-completed day"),
+            ("Binance account analytics", report.get("binance_account_data_status", "unavailable")),
+            ("U.S. equity-market coverage", report.get("us_equity_market_data_status", "not_integrated")),
+            ("Opening forecast scorecard", report.get("opening_forecast_scorecard_status", "not_available")),
+            ("Activation timing", report.get("activation_timing_status", "not_automated")),
+            ("Report perspective", "Previous Dominican local calendar day for the upcoming U.S. session" if kind == "opening"
+             else ("Accumulated Dominican local day through the exact stated cutoff" if report.get("is_partial")
+                   else "Completed Dominican local calendar day")),
         ], styles),
         Spacer(1, 4 * mm),
         section_heading("Executive summary", styles),
