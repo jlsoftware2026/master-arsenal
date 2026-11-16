@@ -6,7 +6,8 @@ from pathlib import Path
 from typing import Any
 
 from binance_data_engine.client import BinancePublicClient
-from binance_data_engine.session import acquire_completed_market_day\nfrom .context import collect_market_context
+from binance_data_engine.session import acquire_completed_market_day
+from .context import collect_market_context
 
 from .session import build_closing_report_pdf, build_opening_report_pdf
 
