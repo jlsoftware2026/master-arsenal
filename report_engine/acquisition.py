@@ -12,6 +12,7 @@ from binance_data_engine.intraday import acquire_intraday_day
 
 from .intraday import build_intraday_snapshot_pdf
 from .context import collect_market_context
+from .evidence import write_evidence_manifest
 
 
 def acquire_intraday_evidence(
@@ -82,9 +83,13 @@ def generate_intraday_snapshot_pdf(
     output_directory: Path | str,
     interval: str = "1h",
     market: str = "spot",
+    manifest_directory: Path | str | None = None,
 ) -> Path:
     """Acquire, validate, and render a UTC intraday snapshot PDF."""
     evidence = acquire_intraday_evidence(
         client, cutoff_utc=cutoff_utc, interval=interval, market=market
     )
-    return build_intraday_snapshot_pdf(evidence, output_directory)
+    artifact = build_intraday_snapshot_pdf(evidence, output_directory)
+    if manifest_directory is not None:
+        write_evidence_manifest(evidence, "intraday", artifact, manifest_directory)
+    return artifact
