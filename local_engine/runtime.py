@@ -74,7 +74,7 @@ def verify_original_skill_packages(repository_root: Path | str) -> dict[str, Any
                 raise ValueError(f"{name}: source payload storage status is inconsistent")
             adapted_path = root / "skills" / name / "SKILL.md"
             adapted_bytes = adapted_path.read_bytes()
-            adapted_text = adapted_bytes.decode("utf-8")
+            adapted_text = adapted_bytes.decode("utf-8").replace("\r\n", "\n").replace("\r", "\n")
             if not adapted_text.startswith("---\n") or "\n---\n" not in adapted_text[4:]:
                 raise ValueError(f"{name}: adapted SKILL.md YAML frontmatter is missing")
             frontmatter = adapted_text.split("\n---", 1)[0]
