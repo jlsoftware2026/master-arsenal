@@ -250,7 +250,12 @@ def audit_evidence_manifest(path: str | Path, workspace_root: str | Path) -> dic
         "report_type": report_type,
         "pdf_filename": payload.get("pdf_filename"),
         "symbols_checked": checked,
-        "indicator_recalculation": "passed" if not any("indicators do not match" in item for item in findings) else "failed",
+        "indicator_recalculation": (
+            "failed" if any(
+                any(term in item.casefold() for term in ("indicator", "candle", "warm-up", "raw candle"))
+                for item in findings
+            ) else "passed"
+        ),
         "status": "passed" if not findings else "failed",
         "findings": findings,
     }
