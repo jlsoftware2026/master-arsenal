@@ -180,9 +180,10 @@ class LocalEngineTests(unittest.TestCase):
             ("market.opening_report", "reports/opening", "apertura-mercado_2026-11-12.pdf", "2026-11-12"),
             ("market.closing_report", "reports/closing", "cierre-mercado_2026-11-11.pdf", "2026-11-11"),
         ):
-            job = self._approved_job(job_type, {
-                "session_date_local": report_date, "interval": "1h", "market": "spot"
-            })
+            parameters = {"session_date_local": report_date, "interval": "1h", "market": "spot"}
+            if job_type == "market.closing_report":
+                parameters["cutoff_local"] = "2026-11-11T12:00:00-04:00"
+            job = self._approved_job(job_type, parameters)
             with patch("local_engine.runtime.BinancePublicClient", return_value=FakeBinanceClient()), \
                  patch("report_engine.session_acquisition.collect_market_context", return_value={
                      "macro_context": "No macro items.", "news": "No news items.",
@@ -203,7 +204,7 @@ class LocalEngineTests(unittest.TestCase):
             self.assertTrue(manifest.is_file())
 
         intraday_job = self._approved_job("market.intraday_snapshot", {
-            "cutoff_local": "2026-11-12T12:00:00-04:00", "interval": "1h", "market": "spot"
+            "interval": "1h", "market": "spot"
         })
         with patch("local_engine.runtime.BinancePublicClient", return_value=FakeBinanceClient()), patch(
             "report_engine.acquisition.collect_market_context", return_value={
@@ -214,7 +215,7 @@ class LocalEngineTests(unittest.TestCase):
         ):
             intraday_result = JobRunner(self.manager).run(intraday_job["job_id"])
         self.assertEqual(intraday_result["status"], "completed", intraday_result)
-        self.assertEqual(intraday_result["result"]["filename"], "snapshot-mercado_2026-11-12_12-00.pdf")
+        self.assertTrue(intraday_result["result"]["filename"].startswith("snapshot-mercado_"))
 
         audit_job = self._approved_job("skills.audit")
         audit_result = JobRunner(self.manager).run(audit_job["job_id"])
@@ -223,6 +224,11 @@ class LocalEngineTests(unittest.TestCase):
         self.assertEqual(audit["artifacts_inspected"], 3)
         self.assertEqual(audit["evidence_manifests_checked"], 3)
         self.assertEqual(audit["cross_report_consistency_status"], "passed")
+        self.assertEqual(audit["opening_window_status"], "passed")
+        self.assertEqual(audit["closing_window_status"], "passed")
+        self.assertEqual(audit["intraday_cutoff_status"], "passed")
+        self.assertEqual(audit["language_parity_status"], "passed")
+        self.assertEqual(audit["us_session_status"], "partial")
         self.assertGreater(audit["overlapping_candles_checked"], 0)
 
     def test_intraday_snapshot_cannot_run_before_explicit_approval(self):
