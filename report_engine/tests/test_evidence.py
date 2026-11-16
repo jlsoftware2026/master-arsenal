@@ -41,7 +41,9 @@ def _report():
                 "candles": [item.to_dict() for item in history],
                 "candle_count": len(history),
                 "expected_candle_count": 250,
+                "pagination": {"complete": True, "returned": len(history)},
             },
+            "pagination": {"complete": True, "returned": len(candles)},
             "indicators": analyze_candles(history + candles),
         }
     return {
@@ -49,6 +51,8 @@ def _report():
         "cutoff_utc": CUTOFF.isoformat().replace("+00:00", "Z"),
         "generated_at_utc": (CUTOFF + timedelta(minutes=1)).isoformat().replace("+00:00", "Z"),
         "interval": "1h",
+        "source": "Binance public REST API",
+        "read_only": True,
         "indicator_methodology": {"lookback_candles": 250},
         "symbols": symbols,
     }
