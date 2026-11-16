@@ -1,20 +1,25 @@
 # binance-cierre-mercado
 
 ## Purpose
-Generate a detailed PDF report for the market session/day that has just closed.
+Generate a detailed PDF report for a market day that has just completed.
 
-## Required workflow
-1. Confirm that the target session is complete; state its exact UTC start and end.
-2. Acquire and validate Binance market data. BTCUSDT and ETHUSDT are mandatory.
-3. Analyze the completed session: price action, trend, volatility, volume, technical indicators, derivatives context when available, macroeconomic drivers, and relevant news.
-4. Present bullish/long and bearish/short scenarios with assumptions, invalidation conditions, and risk factors. Distinguish observed results from forward-looking interpretation.
-5. Generate and verify the PDF.
+## Local Engine workflow
+- Job type: `market.closing_report`
+- Fixed output directory: `reports/closing`
+- Filename: `cierre-mercado_YYYY-MM-DD.pdf`
+- Optional `parameters.session_date_utc` selects a specific completed UTC date. If omitted, the engine selects the most recently completed UTC calendar day.
+- The job must pass submit → validate → explicit approval → execute.
 
-## Output
-cierre-mercado_YYYY-MM-DD.pdf
+## Required report evidence
+1. Confirm the entire 24-hour UTC session is complete according to Binance server time.
+2. Binance public market data for mandatory BTCUSDT and ETHUSDT.
+3. Session OHLC/volume, performance, technical indicators, validation results, and provenance.
+4. A separate 250-candle pre-session warm-up for indicator calculations; exclude it from session statistics and charts.
+5. Date-bounded macroeconomic and digital-asset news context, with publisher, publication timestamp, URL, and feed status.
+6. Conditional bullish and bearish scenarios using the completed session range, assumptions, invalidation references, and risk caveats. Separate observed session results from forward-looking interpretation.
 
 ## Integrity rules
-Disclose missing intervals, stale or partial data, unavailable sources, and provisional methodology. Never fabricate values, events, citations, or forecasts. If PDF generation fails, report the blocker; do not substitute another format.
+Disclose incomplete data and unavailable feeds. Headlines are candidate context only, not proof of market causation. Scenario levels are conditional references, not forecasts, targets, or probabilities. Never fabricate values, events, citations, or forecasts. Generate and independently inspect the PDF; if PDF generation or QA fails, fail the job and do not substitute another format.
 
 ## Status
 Provisional ChatGPT adaptation. Exact original Claude skill parameters and report layout have not yet been reconciled against the original .skill source.
