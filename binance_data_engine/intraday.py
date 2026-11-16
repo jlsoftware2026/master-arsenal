@@ -5,7 +5,7 @@ from datetime import date, datetime, time, timedelta, timezone
 from typing import Any
 
 from .client import BinancePublicClient
-from .engine import CORE_SYMBOLS, analyze_candles
+from .engine import CORE_SYMBOLS, analyze_candles, acquire_derivatives_context
 from .validation import interval_milliseconds, validate_candles
 
 
@@ -165,6 +165,8 @@ def acquire_intraday_day(
         }
         if include_ticker:
             item["ticker_24h"] = _capture_ticker(client, symbol, market)
+        if market == "usdm":
+            item["derivatives"] = acquire_derivatives_context(client, symbol, interval)
         result["symbols"][symbol] = item
 
     generated = datetime.now(timezone.utc)
