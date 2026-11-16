@@ -25,6 +25,13 @@ class AuditReportTests(unittest.TestCase):
             path = build_skills_audit_pdf(report, temp)
             self.assertEqual(path.name, "auditoria-skills-binance_2026-11-16.pdf")
             self.assertTrue(path.read_bytes().startswith(b"%PDF-"))
+            import pymupdf as fitz
+            with fitz.open(path) as document:
+                extracted = " ".join(page.get_text("text") for page in document)
+            self.assertIn("Auditoría independiente de las Skills de Binance", extracted)
+            self.assertIn("No se suministró la tabla de resultados por Skill", extracted)
+            self.assertNotIn("No per-skill result table", extracted)
+            self.assertNotIn("Expected:", extracted)
 
 
     def test_market_report_audit_checks_required_content_and_filename(self):
