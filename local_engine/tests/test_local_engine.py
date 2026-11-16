@@ -15,7 +15,7 @@ from binance_data_engine.client import PaginationMetadata
 from binance_data_engine.models import Candle
 
 from local_engine.protocol import JobValidationError, new_job, validate_job
-from local_engine.runtime import JobManager, JobRunner, Workspace
+from local_engine.runtime import JobManager, JobRunner, Workspace, verify_original_skill_packages
 
 
 def _process_submit(root, job, queue):
@@ -429,6 +429,34 @@ class LocalEngineTests(unittest.TestCase):
         self.assertCountEqual(outcomes, ["claimed", "unavailable"])
         self.assertTrue(all(not thread.is_alive() for thread in threads))
         self.assertEqual(self.manager.get(job["job_id"])["status"], "running")
+
+
+class OriginalSkillIntegrityTests(unittest.TestCase):
+    REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
+
+    def test_all_four_adaptations_match_recorded_original_skill_identities(self):
+        result = verify_original_skill_packages(self.REPOSITORY_ROOT)
+        self.assertEqual(result["status"], "not_verified")
+        self.assertEqual(len(result["packages"]), 4)
+        self.assertEqual(result["adaptation_status"], "passed")
+        self.assertEqual(len(result["manifest_sha256"]), 64)
+        self.assertTrue(all(item["status"] == "not_verified" for item in result["packages"]))
+        self.assertTrue(any("ZIP payloads are not embedded" in item for item in result["findings"]))
+
+    def test_adaptation_identity_mismatch_is_rejected(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            shutil.copytree(self.REPOSITORY_ROOT / "docs" / "original-skills-source",
+                            root / "docs" / "original-skills-source")
+            shutil.copytree(self.REPOSITORY_ROOT / "skills", root / "skills")
+            adapted = root / "skills" / "binance-apertura-mercado" / "SKILL.md"
+            original = adapted.read_text(encoding="utf-8")
+            adapted.write_text(original.replace(
+                "# binance-apertura-mercado\\n", "# wrong-skill-name\\n", 1
+            ), encoding="utf-8")
+            result = verify_original_skill_packages(root)
+            self.assertEqual(result["status"], "failed")
+            self.assertTrue(any("metadata/heading does not match" in item for item in result["findings"]))
 
 
 if __name__ == "__main__":
