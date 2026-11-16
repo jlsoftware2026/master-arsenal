@@ -741,9 +741,18 @@ class JobRunner:
             snapshot = report.get("binance_account_data")
             if not isinstance(snapshot, dict) or snapshot.get("status") != "complete":
                 return False
+            try:
+                account_start = datetime.fromisoformat(snapshot["window_start_utc"].replace("Z", "+00:00"))
+                account_end = datetime.fromisoformat(snapshot["window_end_utc"].replace("Z", "+00:00"))
+                report_start = datetime.fromisoformat(report["window_start_utc"].replace("Z", "+00:00"))
+                report_end = datetime.fromisoformat(report["window_end_utc"].replace("Z", "+00:00"))
+            except (KeyError, TypeError, ValueError, AttributeError):
+                return False
             if (
-                snapshot.get("window_start_utc") != report.get("window_start_utc")
-                or snapshot.get("window_end_utc") != report.get("window_end_utc")
+                account_start.tzinfo is None or account_end.tzinfo is None
+                or report_start.tzinfo is None or report_end.tzinfo is None
+                or account_start.astimezone(timezone.utc) != report_start.astimezone(timezone.utc)
+                or account_end.astimezone(timezone.utc) != report_end.astimezone(timezone.utc)
                 or snapshot.get("file_count", 0) <= 0
                 or snapshot.get("supported_file_count") != snapshot.get("file_count")
                 or snapshot.get("parse_errors")
