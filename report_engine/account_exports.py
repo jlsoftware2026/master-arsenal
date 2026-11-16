@@ -233,7 +233,7 @@ def collect_binance_account_exports(
     status = (
         "partial" if supported_files == 0 and (unsupported_files or parse_errors) else
         "unavailable" if supported_files == 0 else
-        "complete" if not parse_errors and not unsupported_files and not assumptions else
+        "complete" if not parse_errors and not unsupported_files and not assumptions and counts["other"] == 0 else
         "partial"
     )
     return {
@@ -254,6 +254,7 @@ def collect_binance_account_exports(
             for event, values in aggregates.items()
         },
         "event_counts": counts,
+        "unknown_operation_count": counts["other"],
         "assumptions": sorted(assumptions),
         "limitations": (
             "This parser supports Binance transaction-statement CSV files with the documented User_ID, UTC_Time, "
