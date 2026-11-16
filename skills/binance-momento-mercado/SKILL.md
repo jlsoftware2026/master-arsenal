@@ -1,7 +1,7 @@
 ---
 name: binance-momento-mercado
 description: 'Informe de mercado a una hora concreta o snapshot intradía. Activar cuando el usuario diga “momento específico del mercado”, “estado del mercado ahora”, “resumen a esta hora”, “snapshot intradía” o solicite el comportamiento del día hasta una hora indicada. El análisis empieza al inicio del día local y termina en la hora de corte solicitada.'
-version: 0.4.0
+version: 0.5.0
 last_reviewed: 2026-11-16
 ---
 
@@ -13,7 +13,7 @@ Generate a detailed intraday PDF snapshot from Dominican local midnight through 
 ## Activation
 - Activate on “momento específico del mercado”, “estado del mercado ahora”, “resumen a esta hora”, “snapshot intradía”, or equivalent wording.
 - If no hour is supplied, use execution-time America/Santo_Domingo local time. Never reuse a stale or guessed cutoff.
-- State whether U.S. equities are premarket, regular session, or postmarket only when reliable session-calendar evidence exists. Otherwise label the classification unavailable.
+- Use the integrated XNYS calendar to classify premarket, regular session, postmarket, or closed at the exact cutoff. If calendar evidence is unavailable, label the classification unavailable.
 - Distinguish the local-calendar-day move from the rolling 24-hour ticker change. Do not call the snapshot a closing report or extrapolate the remaining session as observed fact.
 
 ## Required PDF sections
@@ -25,7 +25,7 @@ Generate a detailed intraday PDF snapshot from Dominican local midnight through 
 6. Macro/news catalysts with source timestamps.
 7. Bullish/long and bearish/short conditional scenarios, invalidation levels, risk, limitations, and source register.
 
-Do not predict the rest of the session unless the user explicitly requests a clearly labeled scenario. Private-account analytics and full U.S. session/calendar coverage must be disclosed as unavailable until implemented.
+Do not predict the rest of the session unless the user explicitly requests a clearly labeled scenario. Private-account analytics and U.S. market price coverage must be disclosed as unavailable. The XNYS session calendar is integrated, but it does not supply market prices.
 
 ## Local Engine workflow
 - Job type: `market.intraday_snapshot`
@@ -60,3 +60,4 @@ The opening, closing, and intraday PDF composers and the audit PDF use Spanish l
 - 0.2.0 — 2026-11-16: Reconciled activation phrases, Dominican local-day semantics, PDF-only delivery, explicit limitations, and source-derived report requirements. Outstanding parity gaps remain disclosed.
 
 - 0.3.0 — 2026-11-16: Localized report headings, tables, scenario narratives, disclaimers, and audit output into Spanish; added independent language-marker QA.
+- 0.5.0 — 2026-11-16: Integrated XNYS holiday, early-close, DST, and exact-cutoff session-state classification; U.S. price data and private-account analytics remain unavailable.
