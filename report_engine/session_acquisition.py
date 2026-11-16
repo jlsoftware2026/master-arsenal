@@ -124,8 +124,9 @@ def acquire_session_report_evidence(
     report.update(context)
     report["generated_at_utc"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     report["limitations"] = (
-        "RSS context is date-bounded but not exhaustive. Full U.S. equity-market coverage and "
-        "private Binance account analytics are unavailable in this build. "
+        "RSS context is date-bounded but not exhaustive. Full U.S. equity-market coverage, "
+        "private Binance account analytics, and automated opening/closing activation timing "
+        "are unavailable in this build. The same-date opening-forecast scorecard is not implemented. "
         + context.get("context_limitations", "Feed limitations not supplied.")
     )
     return report
