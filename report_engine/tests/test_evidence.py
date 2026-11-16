@@ -50,6 +50,8 @@ def _report():
         "window_start_utc": START.isoformat().replace("+00:00", "Z"),
         "report_timezone": "America/Santo_Domingo",
         "report_date_local": "2026-11-16",
+        "requested_report_date_local": "2026-11-16",
+        "cutoff_resolution": "execution_time_local_default",
         "window_start_local": "2026-11-16T00:00:00-04:00",
         "cutoff_local": "2026-11-16T03:00:00-04:00",
         "is_partial": True,
