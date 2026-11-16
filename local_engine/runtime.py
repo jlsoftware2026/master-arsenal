@@ -361,6 +361,8 @@ class JobRunner:
         unknown = set(parameters) - allowed
         if unknown:
             raise ValueError(f"Unknown {kind} report parameters: {sorted(unknown)}")
+        if parameters.get("session_date_local") is not None and parameters.get("session_date_utc") is not None:
+            raise ValueError("Supply session_date_local or the legacy session_date_utc alias, not both")
         session_date_text = parameters.get("session_date_local", parameters.get("session_date_utc"))
         if "session_date_local" in parameters and "session_date_utc" in parameters:
             raise ValueError("Specify session_date_local only; session_date_utc is a legacy alias")
