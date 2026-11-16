@@ -43,6 +43,7 @@ def acquire_intraday_evidence(
         cutoff_utc,
     )
     report.update(context)
+    report["generated_at_utc"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     report["news_context"] = context["news"]
     if market == "usdm":
         report["derivatives_context"] = {symbol: item.get("derivatives", {}) for symbol, item in report["symbols"].items()}
