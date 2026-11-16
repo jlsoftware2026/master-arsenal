@@ -4,6 +4,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from reportlab.lib.units import mm
 from reportlab.platypus import KeepTogether, Paragraph, Spacer
@@ -57,17 +58,34 @@ def _metric_rows(indicators: dict[str, Any]) -> list[list[str]]:
 def _validate_input(report: dict[str, Any]):
     if not isinstance(report, dict):
         raise ValueError("Report input must be an object")
-    required = {"window_start_utc", "cutoff_utc", "generated_at_utc", "symbols"}
+    required = {
+        "window_start_utc", "cutoff_utc", "generated_at_utc", "symbols",
+        "report_timezone", "report_date_local", "window_start_local", "cutoff_local",
+    }
     missing = required - set(report)
     if missing:
         raise ValueError(f"Missing required report fields: {sorted(missing)}")
     start = _utc(report["window_start_utc"], "window_start_utc")
     cutoff = _utc(report["cutoff_utc"], "cutoff_utc")
     generated = _utc(report["generated_at_utc"], "generated_at_utc")
-    if start.hour or start.minute or start.second or start.microsecond:
-        raise ValueError("Intraday report window must begin at 00:00 UTC")
-    if start.date() != cutoff.date() or cutoff <= start:
-        raise ValueError("cutoff_utc must be later than 00:00 UTC on the same UTC date")
+    if report["report_timezone"] != "America/Santo_Domingo":
+        raise ValueError("Report timezone must be America/Santo_Domingo")
+    try:
+        local_start = datetime.fromisoformat(report["window_start_local"])
+        local_cutoff = datetime.fromisoformat(report["cutoff_local"])
+        report_date = datetime.fromisoformat(report["report_date_local"]).date()
+    except (TypeError, ValueError) as exc:
+        raise ValueError("Local report date and window timestamps must be valid ISO-8601 values") from exc
+    if local_start.tzinfo is None or local_cutoff.tzinfo is None:
+        raise ValueError("Local report window timestamps must include their UTC offsets")
+    if local_start.astimezone(timezone.utc) != start or local_cutoff.astimezone(timezone.utc) != cutoff:
+        raise ValueError("Local and UTC report window boundaries do not match")
+    if local_start.date() != report_date or local_start.time().isoformat() != "00:00:00":
+        raise ValueError("Intraday report must begin at local midnight on report_date_local")
+    if local_cutoff.date() != report_date or local_cutoff <= local_start:
+        raise ValueError("cutoff_local must be later than local midnight on report_date_local")
+    if cutoff <= start:
+        raise ValueError("cutoff_utc must be later than the report window start")
     if generated < cutoff:
         raise ValueError("generated_at_utc cannot precede the report cutoff")
     symbols = report["symbols"]
@@ -124,16 +142,20 @@ def build_intraday_snapshot_pdf(report: dict[str, Any], output_directory: Path |
     macro sections are rendered only when supplied by the upstream report composer.
     """
     start, cutoff, generated = _validate_input(report)
-    date_text = cutoff.strftime("%Y-%m-%d")
-    time_text = cutoff.strftime("%H-%M")
+    date_text = report["report_date_local"]
+    time_text = datetime.fromisoformat(report["cutoff_local"]).strftime("%H-%M")
     destination = Path(output_directory) / f"snapshot-mercado-{date_text}_{time_text}.pdf"
     styles = report_styles()
     story = [
         Paragraph("Intraday Market Snapshot", styles["title"]),
-        Paragraph("UTC-day market review with source and data-quality disclosures",
+        Paragraph("Dominican local-day market review with source and data-quality disclosures",
                   styles["subtitle"]),
         key_value_table([
-            ("Reporting window", f"{_iso_utc(start)} to {_iso_utc(cutoff)} (cutoff exclusive)"),
+            ("Local reporting window", f"{report['window_start_local']} to {report['cutoff_local']} ({report['report_timezone']})"),
+            ("UTC evidence window", f"{_iso_utc(start)} to {_iso_utc(cutoff)} (cutoff exclusive)"),
+            ("Window status", "PARTIAL LOCAL DAY"),
+            ("Binance account analytics", report.get("binance_account_data_status", "unavailable")),
+            ("U.S. equity-market coverage", report.get("us_equity_market_data_status", "not_integrated")),
             ("Generated at UTC", _iso_utc(generated)),
             ("Primary source", report.get("source", "Not specified")),
             ("Market", report.get("market", "Not specified")),
@@ -174,7 +196,7 @@ def build_intraday_snapshot_pdf(report: dict[str, Any], output_directory: Path |
                                         widths=[30 * mm, 25 * mm, 112 * mm]))
         candles = item.get("candles")
         if candles:
-            labels = [str(candle["open_time"])[11:16] for candle in candles]
+            labels = [datetime.fromisoformat(str(candle["open_time"]).replace("Z", "+00:00")).astimezone(ZoneInfo("America/Santo_Domingo")).strftime("%H:%M") for candle in candles]
             closes = [candle["close"] for candle in candles]
             volumes = [candle["volume"] for candle in candles]
             story.extend([
