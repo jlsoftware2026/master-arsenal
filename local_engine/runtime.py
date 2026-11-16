@@ -698,6 +698,13 @@ class JobRunner:
                 if not isinstance(entry, dict):
                     return False
                 if entry.get("status") != "ok":
+                    if (
+                        not isinstance(entry.get("symbol"), str)
+                        or not str(entry.get("source", "")).startswith("Yahoo Finance")
+                        or not str(entry.get("source_url", "")).startswith("https://query1.finance.yahoo.com/v8/finance/chart/")
+                        or not isinstance(entry.get("retrieved_at_utc"), str)
+                    ):
+                        return False
                     unavailable_symbols.append(entry.get("symbol"))
                     continue
                 try:
