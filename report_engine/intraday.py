@@ -182,6 +182,12 @@ def _validate_input(report: dict[str, Any]):
     return start, cutoff, generated
 
 
+def _summary_flowables(value: Any, styles) -> list[Any]:
+    if isinstance(value, list):
+        return [paragraph(f"• {_display(item)}", styles["body"]) for item in value[:7]]
+    return [paragraph(_display(value or "No se suministró un resumen ejecutivo."), styles["body"])]
+
+
 def build_intraday_snapshot_pdf(report: dict[str, Any], output_directory: Path | str) -> Path:
     """Build and validate an intraday PDF from already-acquired, structured evidence.
 
@@ -217,7 +223,7 @@ def build_intraday_snapshot_pdf(report: dict[str, Any], output_directory: Path |
         ], styles),
         Spacer(1, 4 * mm),
         section_heading("Resumen ejecutivo", styles),
-        paragraph(report.get("executive_summary", "No se suministró un resumen ejecutivo."), styles["body"]),
+        *_summary_flowables(report.get("executive_summary"), styles),
     ]
 
     for symbol in REQUIRED_SYMBOLS:
