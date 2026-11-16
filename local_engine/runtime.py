@@ -601,9 +601,38 @@ class JobRunner:
                 "evidence": "No opening, closing, or intraday PDF files were found in the workspace.",
                 "recommendation": "Generate reports before attempting a full cross-report audit.",
             })
+        expected_by_id = {
+            "SKILL-01": "Original ZIP structure and source hashes can be independently revalidated.",
+            "SKILL-02": "All four adaptations preserve stable names, metadata, versioning, and PDF workflow.",
+            "SKILL-03": "The three operational workflows share coherent date, data, and provenance contracts.",
+            "SKILL-04": "Original trigger phrases route to the correct workflow at the required time.",
+            "PDF-01": "Operational PDFs parse, render, and contain the required sections.",
+            "CONTENT-01": "Original market, account, scenario, risk, and source sections are implemented or disclosed.",
+            "TIME-01": "Dominican local boundaries convert to correct UTC half-open intervals.",
+            "OPEN-01": "Opening Binance reference date is the previous local date.",
+            "CLOSE-01": "Closing retains the exact local cutoff and excludes unfinished candles.",
+            "INTRA-01": "Omitted intraday cutoff resolves to execution-time local time.",
+            "US-01": "Weekends and holidays use the last completed U.S. cash session.",
+            "US-02": "ET/DST conversion and U.S. session-state classification are correct.",
+            "ACCT-01": "Missing private account access is explicitly disclosed.",
+            "ACCT-02": "External deposits and withdrawals are excluded from trading return.",
+            "ACCT-03": "Portfolio return is not claimed without historical balances.",
+            "SCORE-01": "Closing compares the same-date opening forecast when one exists.",
+            "PKG-01": "Original archive bytes and hashes are independently verified.",
+            "CI-01": "The final code head passes Ubuntu/Windows Python 3.11/3.12 CI.",
+        }
+        impact_by_severity = {
+            "Crítico": "Can produce an incorrect date, invented data, unsafe access, or materially false conclusion.",
+            "Alto": "Affects calculations, analyzed period, or market interpretation.",
+            "Medio": "Reduces consistency, coverage, or clarity.",
+            "Bajo": "Stylistic or non-essential improvement.",
+        }
+
         def check(check_id, title, status, severity, evidence, recommendation):
             return {
                 "id": check_id, "case": title, "status": status, "severity": severity,
+                "expected": expected_by_id.get(check_id, "Required behavior must be verified."),
+                "observed": evidence, "impact": impact_by_severity.get(severity, "Impact not classified."),
                 "evidence": evidence, "recommendation": recommendation,
             }
 
