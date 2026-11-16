@@ -247,7 +247,7 @@ def build_intraday_snapshot_pdf(report: dict[str, Any], output_directory: Path |
         ])
         issues = item.get("validation") or []
         story.append(Paragraph("Validación de datos: " + (
-            f"{len(issues)} Se reportaron incidencias; consulte los detalles de origen." if issues
+            f"Se reportaron {len(issues)} incidencias; consulte los detalles de origen." if issues
             else "No se suministraron incidencias de validación; su ausencia no demuestra que los datos en vivo estén completos."
         ), styles["small"]))
         if issues:
