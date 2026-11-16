@@ -1014,13 +1014,14 @@ class JobRunner:
             "Las velas sin completar se excluyen y se conserva por separado el límite de la última vela cerrada.",
             "El esquema de evidencia v2 registra ventanas locales/UTC y hashes SHA-256; el QA de PDF y las pruebas de escritorio son independientes.",
             "Los metadatos de las Skills adaptadas están versionados; los hashes de los archivos originales están registrados, pero el contenido ZIP no se verifica dentro del repositorio.",
-            "El calendario XNYS y la clasificación de sesión se recalculan desde la marca temporal de referencia; siguen pendientes los precios del mercado bursátil estadounidense, el libro mayor privado de Binance y la comparación apertura/cierre. El manifiesto de CI no está adjunto a esta auditoría local y queda NO VERIFICADO.",
+            "El calendario XNYS, las cotizaciones best-effort de Yahoo Finance y el scorecard de apertura/cierre se verifican desde sus marcas de tiempo y manifiestos. La importación local de movimientos Binance CSV está integrada; siguen pendientes amplitud/acciones líderes, valoración completa de cartera y el manifiesto de CI externo, que queda NO VERIFICADO.",
         ]
         changes_applied = [
             "Implementación de adquisición por día local dominicano y validación PDF para apertura, cierre e intradía.",
             "Añadido soporte para cierres parciales y hora de corte local predeterminada según el momento de ejecución para intradía.",
             "Añadido esquema de evidencia v2 con metadatos de ventana, hash del PDF y hash de velas originales/período de calentamiento.",
             "Integrado calendario bursátil XNYS con feriados, cierres anticipados, DST y clasificación de sesión; la auditoría recalcula la evidencia de calendario de forma independiente.",
+            "Añadida importación local de CSV de historial de transacciones Binance con hashes SHA-256, deduplicación, agregación por evento/activo y verificación independiente; no calcula equity ni rentabilidad de cartera.",
             "Añadido scorecard de escenarios de apertura/cierre para la misma fecha, vinculado a un manifiesto de apertura con integridad verificada; la ausencia de apertura se marca como no aplicable.",
             "Añadidas pruebas de escritorio, severidades/veredictos en español, fecha local de auditoría e historial de versiones/cambios.",
             "Localizados los tres PDF operativos y la auditoría; añadidos resúmenes ejecutivos de siete puntos y referencias horarias ET/local con reglas DST.",
@@ -1048,11 +1049,11 @@ class JobRunner:
         change_history = [
             {
                 "date": audit_date_local, "version": __version__,
-                "change": "Motor PDF de Fase 3 con días calendario dominicanos, calendario bursátil XNYS, scorecard de escenarios de apertura/cierre, resúmenes de siete puntos y esquema de evidencia v2; los hashes de los ZIP originales están registrados, pero sus bytes no están incluidos en el runtime.",
+                "change": "Motor PDF de Fase 3 con días calendario dominicanos, calendario bursátil XNYS, snapshot bursátil Yahoo best-effort, importación de actividad Binance CSV, scorecard de escenarios de apertura/cierre, resúmenes de siete puntos y esquema de evidencia v2; los hashes de los ZIP originales están registrados, pero sus bytes no están incluidos en el runtime.",
             },
             {
                 "date": audit_date_local, "version": "original-skill-parity",
-                "change": "La cobertura de precios del mercado estadounidense, la valoración completa de cartera, el scorecard y la paridad total de la matriz de auditoría siguen incompletos; el calendario XNYS y la importación CSV de actividad están integrados.",
+                "change": "La cobertura de amplitud/acciones líderes del mercado estadounidense y la valoración completa de cartera siguen incompletas; el calendario XNYS, las cotizaciones best-effort y la importación CSV de actividad están integrados. El scorecard de apertura/cierre está implementado; la paridad total de la matriz de auditoría sigue pendiente.",
             },
         ]
         report = {
