@@ -37,19 +37,19 @@ def _iso_utc(value: datetime) -> str:
 
 def _local_time(value: Any) -> str:
     if not isinstance(value, str):
-        return "Not supplied"
+        return "No suministrado"
     try:
         parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
         if parsed.tzinfo is None:
-            return "Invalid timestamp"
+            return "Marca de tiempo no válida"
         return parsed.astimezone(ZoneInfo("America/Santo_Domingo")).isoformat()
     except ValueError:
-        return "Invalid timestamp"
+        return "Marca de tiempo no válida"
 
 
 def _display(value: Any) -> str:
     if value is None:
-        return "Insufficient data / unavailable"
+        return "Datos insuficientes / no disponibles"
     if isinstance(value, float):
         return f"{value:.6g}"
     if isinstance(value, dict):
@@ -63,20 +63,20 @@ def _metric_rows(indicators: dict[str, Any]) -> list[list[str]]:
     keys = ("ema_20", "ema_50", "ema_200", "rsi_14", "macd", "atr_14",
             "bollinger_20", "volume_sma_20")
     labels = ("EMA 20", "EMA 50", "EMA 200", "RSI 14", "MACD", "ATR 14",
-              "Bollinger 20", "Volume SMA 20")
+              "Bollinger 20", "SMA 20 del volumen")
     return [[label, _display(indicators.get(key))] for key, label in zip(keys, labels)]
 
 
 def _validate_input(report: dict[str, Any]):
     if not isinstance(report, dict):
-        raise ValueError("Report input must be an object")
+        raise ValueError("La entrada del informe debe ser un objeto")
     required = {
         "window_start_utc", "cutoff_utc", "generated_at_utc", "symbols",
         "report_timezone", "report_date_local", "requested_report_date_local", "cutoff_resolution", "window_start_local", "cutoff_local", "window_semantics", "is_partial",
     }
     missing = required - set(report)
     if missing:
-        raise ValueError(f"Missing required report fields: {sorted(missing)}")
+        raise ValueError(f"Faltan campos obligatorios del informe: {sorted(missing)}")
     start = _utc(report["window_start_utc"], "window_start_utc")
     cutoff = _utc(report["cutoff_utc"], "cutoff_utc")
     generated = _utc(report["generated_at_utc"], "generated_at_utc")
@@ -176,32 +176,32 @@ def build_intraday_snapshot_pdf(report: dict[str, Any], output_directory: Path |
     destination = Path(output_directory) / f"snapshot-mercado_{date_text}_{time_text}.pdf"
     styles = report_styles()
     story = [
-        Paragraph("Intraday Market Snapshot", styles["title"]),
-        Paragraph("Dominican local-day market review with source and data-quality disclosures",
+        Paragraph("Snapshot intradía del mercado", styles["title"]),
+        Paragraph("Análisis del día calendario dominicano con fuentes y calidad de datos",
                   styles["subtitle"]),
         key_value_table([
-            ("Local reporting window", f"{report['window_start_local']} to {report['cutoff_local']} ({report['report_timezone']})"),
-            ("UTC evidence window", f"{_iso_utc(start)} to {_iso_utc(cutoff)} (cutoff exclusive)"),
-            ("Last fully closed candle boundary UTC", report.get("data_cutoff_utc", "Not supplied")),
-            ("Unfinished final interval excluded", (report.get("indicator_methodology") or {}).get("partial_final_interval_excluded", False)),
-            ("Window status", "PARTIAL LOCAL DAY"),
-            ("Requested report date local", report.get("requested_report_date_local", report.get("report_date_local"))),
-            ("Cutoff resolution", report.get("cutoff_resolution", "not supplied")),
-            ("Binance account analytics", report.get("binance_account_data_status", "unavailable")),
-            ("U.S. equity-market coverage", report.get("us_equity_market_data_status", "not_integrated")),
-            ("Generated at UTC", _iso_utc(generated)),
-            ("Primary source", report.get("source", "Not specified")),
-            ("Market", report.get("market", "Not specified")),
-            ("Interval", report.get("interval", "Not specified")),
-            ("Data status", report.get("data_status", "Not independently certified")),
-            ("U.S. equity session state", report.get("us_equity_session_state", "not_available")),
-            ("Comparison basis", report.get("comparison_basis", "Local-day window; rolling 24h is distinct")),
-            ("Binance account analytics", report.get("binance_account_data_status", "unavailable")),
-            ("U.S. equity-market coverage", report.get("us_equity_market_data_status", "not_integrated")),
+            ("Ventana de análisis local", f"{report['window_start_local']} to {report['cutoff_local']} ({report['report_timezone']})"),
+            ("Ventana de evidencia UTC", f"{_iso_utc(start)} to {_iso_utc(cutoff)} (cutoff exclusive)"),
+            ("Límite de la última vela cerrada (UTC)", report.get("data_cutoff_utc", "No suministrado")),
+            ("Se excluyó el intervalo final incompleto", (report.get("indicator_methodology") or {}).get("partial_final_interval_excluded", False)),
+            ("Estado de la ventana", "DÍA LOCAL PARCIAL"),
+            ("Fecha de solicitud local", report.get("requested_report_date_local", report.get("report_date_local"))),
+            ("Resolución de la hora de corte", report.get("cutoff_resolution", "not supplied")),
+            ("Análisis de la cuenta Binance", report.get("binance_account_data_status", "unavailable")),
+            ("Cobertura del mercado bursátil estadounidense", report.get("us_equity_market_data_status", "not_integrated")),
+            ("Generado en UTC", _iso_utc(generated)),
+            ("Fuente principal", report.get("source", "Not specified")),
+            ("Mercado", report.get("market", "Not specified")),
+            ("Intervalo", report.get("interval", "Not specified")),
+            ("Estado de los datos", report.get("data_status", "Not independently certified")),
+            ("Estado de la sesión bursátil estadounidense", report.get("us_equity_session_state", "not_available")),
+            ("Base de comparación", report.get("comparison_basis", "Ventana del día local; el período móvil de 24 horas es distinto")),
+            ("Análisis de la cuenta Binance", report.get("binance_account_data_status", "unavailable")),
+            ("Cobertura del mercado bursátil estadounidense", report.get("us_equity_market_data_status", "not_integrated")),
         ], styles),
         Spacer(1, 4 * mm),
-        section_heading("Executive summary", styles),
-        paragraph(report.get("executive_summary", "No executive summary was supplied."), styles["body"]),
+        section_heading("Resumen ejecutivo", styles),
+        paragraph(report.get("executive_summary", "No se suministró un resumen ejecutivo."), styles["body"]),
     ]
 
     for symbol in REQUIRED_SYMBOLS:
@@ -210,29 +210,29 @@ def build_intraday_snapshot_pdf(report: dict[str, Any], output_directory: Path |
         story.extend([
             section_heading(symbol, styles),
             key_value_table([
-                ("Candles", item.get("candle_count", "Not supplied")),
-                ("First candle local", _local_time(item.get("first_open_time_utc"))),
-                ("First candle UTC", item.get("first_open_time_utc", "Not supplied")),
-                ("Last candle close local", _local_time(item.get("last_close_time_utc"))),
-                ("Last candle close UTC", item.get("last_close_time_utc", "Not supplied")),
-                ("24h ticker", _display(item.get("ticker_24h"))),
-                ("Local-day performance", _display(item.get("performance"))),
-                ("Candle data retrieved UTC", ((item.get("response_metadata", {}).get("candles") or item.get("response_metadata") or {}).get("retrieved_at_utc", "Not supplied"))),
+                ("Velas", item.get("candle_count", "No suministrado")),
+                ("Primera vela local", _local_time(item.get("first_open_time_utc"))),
+                ("Primera vela UTC", item.get("first_open_time_utc", "No suministrado")),
+                ("Cierre de la última vela (local)", _local_time(item.get("last_close_time_utc"))),
+                ("Cierre de la última vela (UTC)", item.get("last_close_time_utc", "No suministrado")),
+                ("Ticker de 24 horas", _display(item.get("ticker_24h"))),
+                ("Rendimiento del día local", _display(item.get("performance"))),
+                ("Datos de velas consultados en UTC", ((item.get("response_metadata", {}).get("candles") or item.get("response_metadata") or {}).get("retrieved_at_utc", "No suministrado"))),
             ], styles),
             Spacer(1, 2 * mm),
-            data_table(["Technical indicator", "Value"], _metric_rows(indicators), styles,
+            data_table(["Indicador técnico", "Valor"], _metric_rows(indicators), styles,
                        widths=[45 * mm, 122 * mm]),
         ])
         issues = item.get("validation") or []
-        story.append(Paragraph("Data validation: " + (
+        story.append(Paragraph("Validación de datos: " + (
             f"{len(issues)} issue(s) reported; inspect source details." if issues
-            else "No validation issues supplied; absence of issues is not proof of live completeness."
+            else "No se suministraron incidencias de validación; su ausencia no demuestra que los datos en vivo estén completos."
         ), styles["small"]))
         if issues:
             issue_rows = [[str(x.get("code", "unknown")), str(x.get("severity", "warning")),
                            str(x.get("message", ""))] for x in issues if isinstance(x, dict)]
             if issue_rows:
-                story.append(data_table(["Issue", "Severity", "Details"], issue_rows, styles,
+                story.append(data_table(["Incidencia", "Severidad", "Detalles"], issue_rows, styles,
                                         widths=[30 * mm, 25 * mm, 112 * mm]))
         candles = item.get("candles")
         if candles:
@@ -240,7 +240,7 @@ def build_intraday_snapshot_pdf(report: dict[str, Any], output_directory: Path |
             closes = [candle["close"] for candle in candles]
             volumes = [candle["volume"] for candle in candles]
             story.extend([
-                section_heading("Price and volume charts", styles),
+                section_heading("Gráficos de precio y volumen", styles),
                 MarketChart(f"{symbol} close price ({report.get('interval', 'interval')})",
                             closes, labels, kind="line"),
                 Spacer(1, 2 * mm),
@@ -250,76 +250,76 @@ def build_intraday_snapshot_pdf(report: dict[str, Any], output_directory: Path |
         story.append(Spacer(1, 3 * mm))
 
     for section_key, title in (
-        ("derivatives_context", "Derivatives context"),
-        ("macro_context", "Macroeconomic context"),
-        ("news_context", "Relevant news"),
-        ("bullish_scenario", "Bullish / long scenario"),
-        ("bearish_scenario", "Bearish / short scenario"),
-        ("risk_factors", "Risk factors and invalidation"),
-        ("limitations", "Methodology and limitations"),
-        ("methodology_limitations", "Additional methodology notes"),
+        ("derivatives_context", "Contexto de derivados"),
+        ("macro_context", "Contexto macroeconómico"),
+        ("news_context", "Noticias relevantes"),
+        ("bullish_scenario", "Escenario alcista / largo"),
+        ("bearish_scenario", "Escenario bajista / corto"),
+        ("risk_factors", "Factores de riesgo e invalidación"),
+        ("limitations", "Metodología y limitaciones"),
+        ("methodology_limitations", "Notas metodológicas adicionales"),
     ):
         if section_key in report:
             story.extend([section_heading(title, styles),
                           paragraph(_display(report[section_key]), styles["body"])])
 
-    for source_key, title in (("macro_sources", "Macroeconomic source register"),
-                               ("news_sources", "Digital-asset news source register")):
+    for source_key, title in (("macro_sources", "Registro de fuentes macroeconómicas"),
+                               ("news_sources", "Registro de fuentes de noticias de activos digitales")):
         source_items = report.get(source_key) or []
         rows = []
         for item in source_items:
             if isinstance(item, dict):
                 rows.append([
-                    str(item.get("title", "Untitled")),
-                    str(item.get("publisher", "Not supplied")),
-                    str(item.get("published_at_utc", "Not supplied")),
-                    str(item.get("url", "URL not supplied")),
-                    str(item.get("summary") or item.get("relevance", "No summary supplied")),
+                    str(item.get("title", "Sin título")),
+                    str(item.get("publisher", "No suministrado")),
+                    str(item.get("published_at_utc", "No suministrado")),
+                    str(item.get("url", "URL no suministrada")),
+                    str(item.get("summary") or item.get("relevance", "No se suministró resumen")),
                 ])
         if rows:
             story.extend([
                 section_heading(title, styles),
-                data_table(["Headline / release", "Publisher", "Published UTC", "Source URL", "Summary / relevance"],
+                data_table(["Titular / comunicado", "Editor", "Publicado en UTC", "URL de origen", "Resumen / relevancia"],
                            rows, styles, widths=[38 * mm, 20 * mm, 25 * mm, 42 * mm, 45 * mm]),
             ])
 
     context_sources = report.get("context_sources") or []
     if context_sources:
         context_rows = [[
-            str(item.get("publisher", "Unknown")),
-            str(item.get("kind", "Unknown")),
-            str(item.get("status", "not verified")),
-            str(item.get("retrieved_at_utc", "Not supplied")),
-            str(item.get("matching_items", item.get("error", "Not supplied"))),
-            str(item.get("feed_url", "URL not supplied")),
+            str(item.get("publisher", "Desconocido")),
+            str(item.get("kind", "Desconocido")),
+            str(item.get("status", "no verificado")),
+            str(item.get("retrieved_at_utc", "No suministrado")),
+            str(item.get("matching_items", item.get("error", "No suministrado"))),
+            str(item.get("feed_url", "URL no suministrada")),
         ] for item in context_sources if isinstance(item, dict)]
         if context_rows:
             story.extend([
-                section_heading("Macro/news feed retrieval register", styles),
-                data_table(["Publisher", "Type", "Status", "Retrieved UTC", "Items / error", "Feed URL"],
+                section_heading("Registro de consulta de fuentes macro/noticias", styles),
+                data_table(["Editor", "Type", "Status", "Consultado en UTC", "Elementos / error", "URL del feed"],
                            context_rows, styles, widths=[25*mm, 15*mm, 18*mm, 30*mm, 40*mm, 37*mm]),
             ])
 
     provenance = report.get("provenance") or []
-    story.append(section_heading("Source and provenance notes", styles))
+    story.append(section_heading("Fuentes y notas de procedencia", styles))
     if provenance:
         rows = [[str(x.get("source", "Not specified")),
                  str(x.get("retrieved_at_utc", "Not specified")),
                  str(x.get("note", ""))] for x in provenance if isinstance(x, dict)]
-        story.append(data_table(["Source", "Retrieved at UTC", "Note"], rows, styles,
+        story.append(data_table(["Fuente", "Consultado en UTC", "Nota"], rows, styles,
                                 widths=[42 * mm, 45 * mm, 80 * mm]))
     else:
         story.append(paragraph(
-            "No separate provenance manifest was supplied. Values above retain only the "
-            "metadata present in the report input.", styles["body"]))
+            "No se suministró un manifiesto de procedencia independiente. Los valores anteriores conservan únicamente los "
+            "metadatos presentes en la entrada del informe.", styles["body"]))
 
     story.append(Spacer(1, 4 * mm))
     story.append(paragraph(
-        "Disclaimer: This document is an informational market analysis, not investment advice. "
-        "Scenarios are conditional and uncertain; they are not guaranteed outcomes.",
+        "Aviso: Este documento es un análisis informativo del mercado, no asesoramiento de inversión. "
+        "Los escenarios son condicionales e inciertos; no garantizan resultados.",
         styles["small"]))
     artifact = write_pdf_atomic(
-        destination, story, f"MASTER ARSENAL Intraday Snapshot {date_text}"
+        destination, story, f"MASTER ARSENAL - Snapshot intradía {date_text}"
     )
     try:
         inspect_pdf_artifact(artifact)
