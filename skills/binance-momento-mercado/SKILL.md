@@ -1,7 +1,7 @@
 ---
 name: binance-momento-mercado
 description: 'Informe de mercado a una hora concreta o snapshot intradía. Activar cuando el usuario diga “momento específico del mercado”, “estado del mercado ahora”, “resumen a esta hora”, “snapshot intradía” o solicite el comportamiento del día hasta una hora indicada. El análisis empieza al inicio del día local y termina en la hora de corte solicitada.'
-version: 0.5.0
+version: 0.6.0
 last_reviewed: 2026-11-16
 ---
 
@@ -25,7 +25,7 @@ Generate a detailed intraday PDF snapshot from Dominican local midnight through 
 6. Macro/news catalysts with source timestamps.
 7. Bullish/long and bearish/short conditional scenarios, invalidation levels, risk, limitations, and source register.
 
-Do not predict the rest of the session unless the user explicitly requests a clearly labeled scenario. Private-account analytics and U.S. market price coverage must be disclosed as unavailable. The XNYS session calendar is integrated, but it does not supply market prices.
+Do not predict the rest of the session unless the user explicitly requests a clearly labeled scenario. Use the best-effort Yahoo Finance snapshot for major U.S. indices, VIX, futures, rates, DXY, commodities, and sector ETFs; retain each quote's observation timestamp and source URL. Disclose missing symbols, delayed/incomplete data, and the fact that this is not an execution feed. Breadth, stock-level leaders/laggards, and private-account analytics remain unavailable. The XNYS calendar supplies session state, not prices.
 
 ## Local Engine workflow
 - Job type: `market.intraday_snapshot`
@@ -60,4 +60,5 @@ The opening, closing, and intraday PDF composers and the audit PDF use Spanish l
 - 0.2.0 — 2026-11-16: Reconciled activation phrases, Dominican local-day semantics, PDF-only delivery, explicit limitations, and source-derived report requirements. Outstanding parity gaps remain disclosed.
 
 - 0.3.0 — 2026-11-16: Localized report headings, tables, scenario narratives, disclaimers, and audit output into Spanish; added independent language-marker QA.
-- 0.5.0 — 2026-11-16: Integrated XNYS holiday, early-close, DST, and exact-cutoff session-state classification; U.S. price data and private-account analytics remain unavailable.
+- 0.5.0 — 2026-11-16: Integrated XNYS holiday, early-close, DST, and exact-cutoff session-state classification.
+- 0.6.0 — 2026-11-16: Added source-attributed best-effort Yahoo Finance quote snapshots for U.S. indices, volatility, futures, rates, dollar, commodities, and sectors.
