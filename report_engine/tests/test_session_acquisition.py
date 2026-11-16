@@ -77,9 +77,9 @@ class SessionAcquisitionTests(unittest.TestCase):
             acquire_completed_market_day(FakeClient(), START.date(), interval="1s")
 
     def test_future_or_incomplete_session_is_rejected(self):
-        with self.assertRaisesRegex(ValueError, "not yet complete"):
+        with self.assertRaisesRegex(ValueError, "later than Binance server time"):
             acquire_session_report_evidence(FakeClient(future_server=True), START.date())
-        with self.assertRaisesRegex(ValueError, "indicator-history pagination did not complete"):
+        with self.assertRaisesRegex(ValueError, "indicator-history pagination is incomplete or inconsistent"):
             acquire_session_report_evidence(FakeClient(incomplete=True), START.date())
 
     def test_closing_supports_partial_dominican_calendar_day(self):
