@@ -113,7 +113,7 @@ def verify_original_skill_packages(repository_root: Path | str) -> dict[str, Any
         findings.append(f"{type(exc).__name__}: {exc}")
     return {
         "status": "not_verified" if len(packages) == len(expected_names) and len(findings) == 1
-                  and findings[0].startswith("Original archive and extracted") else "failed",
+                  and findings[0].startswith("Los hashes del archivo original y del SKILL.md extraído") else "failed",
         "adaptation_status": "passed" if len(packages) == len(expected_names) and all(
             item.get("status") == "not_verified" for item in packages
         ) else "failed",
