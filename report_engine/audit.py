@@ -363,7 +363,7 @@ def audit_market_report_artifact(path: str | Path, report_type: str) -> dict[str
             "Registro de consulta de fuentes macro/noticias", "URL del feed", "UTC", "Aviso importante",
             "America/Santo_Domingo", "Ventana de análisis local", "DÍA LOCAL COMPLETO",
             "Análisis de la cuenta Binance", "Cobertura del mercado bursátil estadounidense", "Horario de la sesión bursátil estadounidense", "Horario de activación",
-            "Apertura regular de EE. UU. (ET / hora local)", "Generado en hora local", "Generado en ET",
+            "Hora programada de apertura regular de EE. UU. (ET / hora local)", "Generado en hora local", "Generado en ET",
         ),
         "closing": (
             "BTCUSDT", "ETHUSDT", "Indicador técnico", "Validación de datos",
@@ -373,7 +373,7 @@ def audit_market_report_artifact(path: str | Path, report_type: str) -> dict[str
             "America/Santo_Domingo", "Ventana de análisis local", "Análisis de la cuenta Binance",
             "Cobertura del mercado bursátil estadounidense", "Horario de la sesión bursátil estadounidense",
             "Horario de activación", "Comparación del pronóstico de apertura",
-            "Cierre regular de EE. UU. (ET / hora local)", "Generado en hora local", "Generado en ET",
+            "Hora programada de cierre regular de EE. UU. (ET / hora local)", "Generado en hora local", "Generado en ET",
         ),
         "intraday": (
             "BTCUSDT", "ETHUSDT", "Indicador técnico", "Validación de datos", "Contexto macroeconómico", "Noticias relevantes",
