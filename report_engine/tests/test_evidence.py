@@ -81,6 +81,20 @@ class EvidenceManifestTests(unittest.TestCase):
             self.assertEqual(result["status"], "passed", result["findings"])
             self.assertEqual(result["symbols_checked"], ["BTCUSDT", "ETHUSDT"])
             self.assertEqual(result["indicator_recalculation"], "passed")
+            payload = json.loads(manifest.read_text(encoding="utf-8"))
+            self.assertEqual(payload["report_window"]["report_timezone"], "America/Santo_Domingo")
+            self.assertEqual(len(payload["raw_candle_evidence_sha256"]), 64)
+
+    def test_raw_candle_evidence_hash_tampering_is_detected(self):
+        with TemporaryDirectory() as temp:
+            root = Path(temp)
+            _, manifest = self._write(root, "snapshot-mercado-2026-11-16_03-00", _report())
+            payload = json.loads(manifest.read_text(encoding="utf-8"))
+            payload["report"]["symbols"]["BTCUSDT"]["candles"][0]["close"] = "999"
+            manifest.write_text(json.dumps(payload), encoding="utf-8")
+            result = audit_evidence_manifest(manifest, root)
+            self.assertEqual(result["status"], "failed")
+            self.assertTrue(any("Raw candle evidence SHA-256" in item for item in result["findings"]))
 
     def test_indicator_tampering_is_detected(self):
         with TemporaryDirectory() as temp:
