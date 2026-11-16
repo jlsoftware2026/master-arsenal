@@ -10,6 +10,19 @@ Generate a detailed PDF report for the current Dominican local calendar day, inc
 - On U.S. weekends/holidays, disclose the absence of a regular session and use the last completed cash session for equity context. Binance still uses the requested Dominican local calendar date, partial until local midnight if necessary.
 - The current Local Engine does not schedule or enforce this activation time; disclose that limitation.
 
+## Required PDF sections
+1. Executive summary, Dominican local report date, exact cutoff, and partial/completed-day status.
+2. U.S. session result: S&P 500, Nasdaq, Dow, Russell 2000, VIX, index futures, Treasury 10Y, DXY, WTI, and gold.
+3. Sector performance, breadth, leaders/laggards, and major stock moves.
+4. BTCUSDT and ETHUSDT local-day performance through the exact cutoff.
+5. Technical indicators, support/resistance, and observed volatility.
+6. Macroeconomic/Fed/earnings/geopolitical catalysts and timestamped news.
+7. Binance account/portfolio results, fees/funding, open positions, and flows only with authorized account data or user exports.
+8. Same-date opening forecast scorecard when an opening report exists.
+9. Bullish/long and bearish/short scenarios, risks, source register, limitations, and conclusion.
+
+If account, U.S. market, or opening-scorecard evidence is unavailable, disclose it. Never call a partial Binance local day complete. The current build does not yet integrate full U.S. market/calendar data, private-account exports, or opening-scorecard linkage.
+
 ## Local Engine workflow
 - Job type: `market.closing_report`
 - Fixed output directory: `reports/closing`
