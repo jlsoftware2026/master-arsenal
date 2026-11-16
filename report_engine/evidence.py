@@ -317,8 +317,8 @@ def audit_evidence_manifest(path: str | Path, workspace_root: str | Path) -> dic
                     findings.append(f"{symbol}: data_cutoff_utc is missing or invalid.")
                 if report_candles and report_candles[0].open_time != start:
                     findings.append(f"{symbol}: first report candle does not start at the declared window start.")
-                if report_candles and report_candles[-1].close_time != end - timedelta(milliseconds=1):
-                    findings.append(f"{symbol}: final report candle does not close at the exclusive window boundary.")
+                if report_candles and report_candles[-1].close_time != expected_data_cutoff - timedelta(milliseconds=1):
+                    findings.append(f"{symbol}: final report candle does not close at the last fully closed interval boundary.")
             expected_history = history_data.get("expected_candle_count",
                                                 (report.get("indicator_methodology") or {}).get("lookback_candles"))
             pagination = item.get("pagination") or {}
