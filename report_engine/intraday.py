@@ -197,8 +197,8 @@ def build_intraday_snapshot_pdf(report: dict[str, Any], output_directory: Path |
         Paragraph("Análisis del día calendario dominicano con fuentes y calidad de datos",
                   styles["subtitle"]),
         key_value_table([
-            ("Ventana de análisis local", f"{report['window_start_local']} to {report['cutoff_local']} ({report['report_timezone']})"),
-            ("Ventana de evidencia UTC", f"{_iso_utc(start)} to {_iso_utc(cutoff)} (cutoff exclusive)"),
+            ("Ventana de análisis local", f"{report['window_start_local']} hasta {report['cutoff_local']} ({report['report_timezone']})"),
+            ("Ventana de evidencia UTC", f"{_iso_utc(start)} hasta {_iso_utc(cutoff)} (hora de corte exclusiva)"),
             ("Límite de la última vela cerrada (UTC)", report.get("data_cutoff_utc", "No suministrado")),
             ("Se excluyó el intervalo final incompleto", _label((report.get("indicator_methodology") or {}).get("partial_final_interval_excluded", False))),
             ("Estado de la ventana", "DÍA LOCAL PARCIAL"),
@@ -209,7 +209,7 @@ def build_intraday_snapshot_pdf(report: dict[str, Any], output_directory: Path |
             ("Generado en UTC", _iso_utc(generated)),
             ("Fuente principal", _label(report.get("source", "No especificado"))),
             ("Mercado", _label(report.get("market", "No especificado"))),
-            ("Intervalo", report.get("interval", "Not specified")),
+            ("Intervalo", report.get("interval", "No especificado")),
             ("Estado de los datos", _label(report.get("data_status", "No certificado de forma independiente"))),
             ("Estado de la sesión bursátil estadounidense", _label(report.get("us_equity_session_state", "not_available"))),
             ("Base de comparación", report.get("comparison_basis", "Ventana del día local; el período móvil de 24 horas es distinto")),
@@ -240,11 +240,11 @@ def build_intraday_snapshot_pdf(report: dict[str, Any], output_directory: Path |
         ])
         issues = item.get("validation") or []
         story.append(Paragraph("Validación de datos: " + (
-            f"{len(issues)} issue(s) reported; inspect source details." if issues
+            f"{len(issues)} Se reportaron incidencias; consulte los detalles de origen." if issues
             else "No se suministraron incidencias de validación; su ausencia no demuestra que los datos en vivo estén completos."
         ), styles["small"]))
         if issues:
-            issue_rows = [[str(x.get("code", "unknown")), str(x.get("severity", "warning")),
+            issue_rows = [[str(x.get("code", "desconocido")), str(x.get("severity", "advertencia")),
                            str(x.get("message", ""))] for x in issues if isinstance(x, dict)]
             if issue_rows:
                 story.append(data_table(["Incidencia", "Severidad", "Detalles"], issue_rows, styles,
@@ -311,15 +311,15 @@ def build_intraday_snapshot_pdf(report: dict[str, Any], output_directory: Path |
         if context_rows:
             story.extend([
                 section_heading("Registro de consulta de fuentes macro/noticias", styles),
-                data_table(["Editor", "Type", "Status", "Consultado en UTC", "Elementos / error", "URL del feed"],
+                data_table(["Editor", "Tipo", "Estado", "Consultado en UTC", "Elementos / error", "URL del feed"],
                            context_rows, styles, widths=[25*mm, 15*mm, 18*mm, 30*mm, 40*mm, 37*mm]),
             ])
 
     provenance = report.get("provenance") or []
     story.append(section_heading("Fuentes y notas de procedencia", styles))
     if provenance:
-        rows = [[str(x.get("source", "Not specified")),
-                 str(x.get("retrieved_at_utc", "Not specified")),
+        rows = [[str(x.get("source", "No especificado")),
+                 str(x.get("retrieved_at_utc", "No especificado")),
                  str(x.get("note", ""))] for x in provenance if isinstance(x, dict)]
         story.append(data_table(["Fuente", "Consultado en UTC", "Nota"], rows, styles,
                                 widths=[42 * mm, 45 * mm, 80 * mm]))
