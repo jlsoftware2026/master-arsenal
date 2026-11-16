@@ -100,7 +100,7 @@ def acquire_session_report_evidence(
         else "día calendario local completado"
     )
     report["executive_summary"] = (
-        "Referencia de Binance: {period_label} ({target_date.isoformat()} {REPORT_TIMEZONE}). "
+        f"Referencia de Binance: {period_label} ({target_date.isoformat()} {REPORT_TIMEZONE}). "
         "Rendimiento observado (desde la apertura de la primera vela hasta el cierre de la última vela completa): "
         + "; ".join(changes)
         + ". Mediciones descriptivas únicamente; no se infieren causas ni pronósticos."
