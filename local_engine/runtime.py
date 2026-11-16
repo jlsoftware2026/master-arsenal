@@ -22,7 +22,7 @@ from binance_data_engine.client import BinancePublicClient
 from report_engine import (
     build_skills_audit_pdf, generate_closing_report_pdf,
     generate_intraday_snapshot_pdf, generate_opening_report_pdf,
-    inspect_pdf_artifact,
+    audit_market_report_artifact,
 )
 
 DIRECTORIES = (
@@ -352,11 +352,19 @@ class JobRunner:
                     "sha256": hashlib.sha256(payload).hexdigest(),
                 }
                 try:
-                    qa = inspect_pdf_artifact(resolved)
+                    qa = audit_market_report_artifact(resolved, report_type)
                     item.update({
-                        "qa_status": "passed", "page_count": qa["page_count"],
-                        "issues": "No structural or rendered-page QA issue detected.",
+                        "qa_status": qa["status"],
+                        "page_count": qa["structural_qa"]["page_count"],
+                        "issues": "; ".join(qa["missing_markers"]) if qa["missing_markers"]
+                                  else "Structural and required-content checks passed.",
                     })
+                    if qa["status"] != "passed":
+                        findings.append({
+                            "severity": "high", "title": f"Required report content missing: {resolved.name}",
+                            "evidence": item["issues"],
+                            "recommendation": "Regenerate the report with all required sections and source registers.",
+                        })
                 except Exception as exc:
                     item.update({
                         "qa_status": "failed", "page_count": "Unknown",
