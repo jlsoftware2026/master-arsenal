@@ -247,7 +247,7 @@ def _build_session_pdf(report: dict[str, Any], output_directory: Path | str, kin
             ))
         candles = item.get("candles") or []
         if candles:
-            labels = [str(c.get("open_time", ""))[11:16] for c in candles]
+            labels = [datetime.fromisoformat(str(c.get("open_time", "")).replace("Z", "+00:00")).astimezone(ZoneInfo("America/Santo_Domingo")).strftime("%H:%M") for c in candles]
             closes = [c["close"] for c in candles]
             volumes = [c["volume"] for c in candles]
             story.extend([
