@@ -153,10 +153,33 @@ def audit_evidence_manifest(path: str | Path, workspace_root: str | Path) -> dic
             raise ValueError("Invalid report time window.")
         if start.utcoffset() != timedelta(0) or end.utcoffset() != timedelta(0):
             raise ValueError("Report window is not UTC.")
-        if report_type != "intraday" and end != start + timedelta(days=1):
-            findings.append("Completed session is not exactly 24 hours.")
-        if report_type == "intraday" and start.date() != end.date():
-            findings.append("Intraday window crosses a UTC date boundary.")
+        if report.get("report_timezone") != "America/Santo_Domingo":
+            findings.append("Report timezone is missing or is not America/Santo_Domingo.")
+        try:
+            local_start = datetime.fromisoformat(report["window_start_local"])
+            local_cutoff = datetime.fromisoformat(report["cutoff_local"])
+            report_date = datetime.fromisoformat(report["report_date_local"]).date()
+            if local_start.tzinfo is None or local_cutoff.tzinfo is None:
+                raise ValueError("Local window timestamps must include UTC offsets.")
+            if local_start.astimezone(timezone.utc) != start or local_cutoff.astimezone(timezone.utc) != end:
+                findings.append("Local and UTC report window boundaries do not match.")
+            if local_start.date() != report_date or local_start.time().isoformat() != "00:00:00":
+                findings.append("Local report start is not midnight on report_date_local.")
+            partial = report.get("is_partial") is True
+            if partial:
+                if local_cutoff.date() != report_date:
+                    findings.append("Partial report cutoff is not on report_date_local.")
+                if end >= start + timedelta(days=1):
+                    findings.append("Partial local-day report extends beyond one calendar day.")
+            else:
+                if local_cutoff.date() != report_date + timedelta(days=1) or local_cutoff.time().isoformat() != "00:00:00":
+                    findings.append("Completed local-day report does not end at the next local midnight.")
+                if end - start != timedelta(days=1):
+                    findings.append("Completed local-day report does not cover exactly one day.")
+            if report_type == "opening" and partial:
+                findings.append("Opening reference day must be a completed local calendar day.")
+        except Exception as local_exc:
+            findings.append(f"Invalid Dominican local-window metadata: {type(local_exc).__name__}: {local_exc}")
         generated_at = _strict_utc(report.get("generated_at_utc"))
         if generated_at < end:
             findings.append("Report generation timestamp precedes the exclusive window end.")
