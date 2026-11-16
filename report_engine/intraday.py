@@ -212,12 +212,13 @@ def build_intraday_snapshot_pdf(report: dict[str, Any], output_directory: Path |
                     str(item.get("publisher", "Not supplied")),
                     str(item.get("published_at_utc", "Not supplied")),
                     str(item.get("url", "URL not supplied")),
+                    str(item.get("summary") or item.get("relevance", "No summary supplied")),
                 ])
         if rows:
             story.extend([
                 section_heading(title, styles),
-                data_table(["Headline / release", "Publisher", "Published UTC", "Source URL"],
-                           rows, styles, widths=[55 * mm, 27 * mm, 34 * mm, 54 * mm]),
+                data_table(["Headline / release", "Publisher", "Published UTC", "Source URL", "Summary / relevance"],
+                           rows, styles, widths=[38 * mm, 20 * mm, 25 * mm, 42 * mm, 45 * mm]),
             ])
 
     context_sources = report.get("context_sources") or []
