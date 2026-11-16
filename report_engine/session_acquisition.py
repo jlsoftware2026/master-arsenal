@@ -162,6 +162,16 @@ def acquire_session_report_evidence(
         + (f" ({item['change_percent']:+.2f}%)" if item.get("change_percent") is not None else "")
         for item in market_items[:5]
     ]
+    sector_leaders = market_evidence.get("sector_leaders") or []
+    sector_laggards = market_evidence.get("sector_laggards") or []
+    sector_summary = (
+        " Sectores líderes: " + ", ".join(
+            f"{item['name']} {item['change_percent']:+.2f}%" for item in sector_leaders
+        ) + "; rezagados: " + ", ".join(
+            f"{item['name']} {item['change_percent']:+.2f}%" for item in sector_laggards
+        ) + "."
+        if sector_leaders or sector_laggards else " Rendimiento sectorial no disponible."
+    )
     summary_points.append(
         f"Mercado estadounidense: {market_evidence['available_instruments']}/"
         f"{market_evidence['expected_instruments']} cotizaciones disponibles al corte; "
@@ -171,6 +181,7 @@ def acquire_session_report_evidence(
            f"última sesión {calendar_evidence['last_completed_session_date']}; "
            f"próxima sesión {calendar_evidence['next_session_date']}."
            if calendar_evidence["status"] == "ok" else "calendario no disponible.")
+        + sector_summary
         + " Amplitud y líderes/rezagados por acción no disponibles; cuenta privada Binance no integrada."
     )
     report["executive_summary"] = summary_points
