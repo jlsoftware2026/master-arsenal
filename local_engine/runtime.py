@@ -291,6 +291,7 @@ class JobRunner:
         artifact = generator(
             BinancePublicClient(), output_directory, session_date=session_date,
             interval=interval, market=market,
+            manifest_directory=self.manager.workspace.directory("data/manifests"),
         )
         resolved = artifact.resolve(strict=True)
         if not resolved.is_relative_to(output_directory):
@@ -448,6 +449,7 @@ class JobRunner:
         artifact = generate_intraday_snapshot_pdf(
             BinancePublicClient(), cutoff, output_directory,
             interval=interval, market=market,
+            manifest_directory=self.manager.workspace.directory("data/manifests"),
         )
         resolved_artifact = artifact.resolve(strict=True)
         if not resolved_artifact.is_relative_to(output_directory):
