@@ -11,7 +11,7 @@ from .context import collect_market_context
 from .evidence import write_evidence_manifest
 from .session import build_closing_report_pdf, build_opening_report_pdf
 from .timezone import (
-    REPORT_TIMEZONE, completed_local_day, current_local_report_date,
+    LOCAL_TZ, REPORT_TIMEZONE, completed_local_day, current_local_report_date,
     local_day_window, opening_reference_date,
 )
 
@@ -36,7 +36,8 @@ def acquire_session_report_evidence(
         raise ValueError("report_kind must be opening, closing, or completed")
     if cutoff_local is not None and report_kind != "closing":
         raise ValueError("cutoff_local is supported only for closing reports")
-    request_date = session_date or current_local_report_date(now)
+    execution_now = now or datetime.now(LOCAL_TZ)
+    request_date = session_date or current_local_report_date(execution_now)
     if not isinstance(request_date, date) or isinstance(request_date, datetime):
         raise ValueError("session_date must be datetime.date")
     if report_kind == "opening":
@@ -44,11 +45,11 @@ def acquire_session_report_evidence(
         window = completed_local_day(target_date)
     elif report_kind == "closing":
         target_date = request_date
-        execution_date = current_local_report_date(now)
+        execution_date = current_local_report_date(execution_now)
         if cutoff_local is None and target_date < execution_date:
             window = completed_local_day(target_date)
         else:
-            window = local_day_window(target_date, cutoff_local, now=now)
+            window = local_day_window(target_date, cutoff_local, now=execution_now)
     else:
         target_date = request_date
         window = completed_local_day(target_date)
