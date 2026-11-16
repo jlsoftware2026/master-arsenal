@@ -46,7 +46,7 @@ class FakeBinanceClient:
 
     def get_historical_klines(self, symbol, interval, start, end, market="spot"):
         rows = []
-        expected = 250 if end < self.cutoff.replace(hour=0, minute=0, second=0, microsecond=0) else (24 if end.date() == self.cutoff.date() else 3)
+        window_hours = int((end - start).total_seconds() // 3600)\n        expected = 250 if window_hours >= 200 else window_hours
         for index in range(expected):
             opened = start + timedelta(hours=index)
             price = Decimal("100") + index
