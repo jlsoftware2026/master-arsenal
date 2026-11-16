@@ -71,6 +71,9 @@ class IntradayAcquisitionTests(unittest.TestCase):
     def test_acquires_local_day_candles_for_core_symbols(self):
         report = acquire_intraday_evidence(FakeClient(), CUTOFF, "1h")
         self.assertEqual(report["data_status"], "partial")
+        self.assertEqual(report["us_equity_calendar"]["status"], "ok")
+        self.assertEqual(report["us_equity_session_state"], "postmarket")
+        self.assertEqual(report["us_equity_calendar_reference"], "exact_intraday_cutoff")
         for symbol in ("BTCUSDT", "ETHUSDT"):
             item = report["symbols"][symbol]
             self.assertEqual(item["candle_count"], 23)
