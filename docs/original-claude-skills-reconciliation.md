@@ -6,7 +6,7 @@
 
 ## Executive finding
 
-The current implementation is a strong PDF/data-engine foundation, and the three report windows now use `America/Santo_Domingo` local calendar semantics. It is not yet behaviorally equivalent to the original skills: broader U.S. equity-market breadth/stock coverage, full private Binance portfolio accounting, activation timing, and complete original-package/audit verification remain outstanding. A local transaction-statement CSV activity importer is now implemented. Same-date range-scenario scorecard linkage is now implemented. The XNYS holiday/session calendar and session-state classifier are now integrated.
+The current implementation is a strong PDF/data-engine foundation, and the three report windows now use `America/Santo_Domingo` local calendar semantics. It is not yet behaviorally equivalent to the original skills: broader U.S. equity-market breadth/stock coverage, full private Binance portfolio accounting, activation timing, and complete original-package/audit verification remain outstanding. A local transaction-history CSV activity importer is now implemented. Same-date range-scenario scorecard linkage is now implemented. The XNYS holiday/session calendar and session-state classifier are now integrated.
 
 ## Requirement comparison
 
