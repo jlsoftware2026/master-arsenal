@@ -54,7 +54,7 @@ def _validate(report: dict[str, Any]):
     if not isinstance(report, dict):
         raise ValueError("Report input must be an object")
     required = {"session_start_utc", "session_end_utc", "generated_at_utc", "symbols",
-                "report_timezone", "report_date_local", "window_start_local", "cutoff_local"}
+                "report_timezone", "report_date_local", "window_start_local", "cutoff_local", "window_semantics", "is_partial"}
     missing = required - set(report)
     if missing:
         raise ValueError(f"Missing required report fields: {sorted(missing)}")
@@ -63,6 +63,8 @@ def _validate(report: dict[str, Any]):
     generated = _utc(report["generated_at_utc"], "generated_at_utc")
     if report["report_timezone"] != "America/Santo_Domingo":
         raise ValueError("Report timezone must be America/Santo_Domingo")
+    if report["window_semantics"] != "[start, cutoff)" or not isinstance(report["is_partial"], bool):
+        raise ValueError("Report must declare half-open window semantics and a boolean partial-day status")
     try:
         local_start = datetime.fromisoformat(report["window_start_local"])
         local_end = datetime.fromisoformat(report["cutoff_local"])
