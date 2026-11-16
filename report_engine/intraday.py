@@ -84,6 +84,8 @@ def _validate_input(report: dict[str, Any]):
         raise ValueError("Intraday report must begin at local midnight on report_date_local")
     if local_cutoff.date() != report_date or local_cutoff <= local_start:
         raise ValueError("cutoff_local must be later than local midnight on report_date_local")
+    if report.get("is_partial") is not True:
+        raise ValueError("Intraday snapshots must be marked as partial local-day windows")
     if cutoff <= start:
         raise ValueError("cutoff_utc must be later than the report window start")
     if generated < cutoff:
