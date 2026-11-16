@@ -74,6 +74,10 @@ class SessionAcquisitionTests(unittest.TestCase):
         self.assertEqual(len(opening["executive_summary"]), 7)
         self.assertIn("2026-11-13", opening_summary)
         self.assertIn("día calendario local anterior", opening_summary)
+        self.assertEqual(report["us_equity_calendar"]["status"], "ok")
+        self.assertEqual(report["us_equity_session_state"], "closed")
+        self.assertEqual(opening["us_equity_calendar"]["status"], "ok")
+        self.assertEqual(opening["us_equity_calendar"]["session_state"], "closed")
         for symbol in ("BTCUSDT", "ETHUSDT"):
             item = report["symbols"][symbol]
             self.assertEqual(item["candle_count"], 24)
@@ -81,6 +85,16 @@ class SessionAcquisitionTests(unittest.TestCase):
             self.assertIsNotNone(item["indicators"]["ema_200"])
             self.assertEqual(item["performance"]["open"], "100")
             self.assertEqual(item["performance"]["close"], "123")
+
+    def test_opening_calendar_reference_classifies_premarket_and_dst(self):
+        report = acquire_session_report_evidence(
+            FakeClient(), date(2026, 3, 9), report_kind="opening"
+        )
+        calendar = report["us_equity_calendar"]
+        self.assertEqual(calendar["status"], "ok")
+        self.assertEqual(calendar["session_state"], "premarket")
+        self.assertEqual(calendar["session_open_et"], "2026-03-09T09:30:00-04:00")
+        self.assertEqual(report["us_equity_calendar_reference"], "opening_pre_market_reference_09:10_ET")
 
     def test_subminute_session_interval_is_rejected(self):
         from binance_data_engine.session import acquire_completed_market_day
