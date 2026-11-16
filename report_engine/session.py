@@ -170,6 +170,22 @@ def _build_session_pdf(report: dict[str, Any], output_directory: Path | str, kin
                 data_table(["Title", "Publisher", "Published UTC", "Source URL", "Relevance"],
                            rows, styles, widths=[32*mm, 22*mm, 24*mm, 42*mm, 45*mm]),
             ])
+    context_sources = report.get("context_sources") or []
+    if context_sources:
+        context_rows = [[
+            str(item.get("publisher", "Unknown")),
+            str(item.get("kind", "Unknown")),
+            str(item.get("status", "not verified")),
+            str(item.get("retrieved_at_utc", "Not supplied")),
+            str(item.get("matching_items", item.get("error", "Not supplied"))),
+            str(item.get("feed_url", "URL not supplied")),
+        ] for item in context_sources if isinstance(item, dict)]
+        if context_rows:
+            story.extend([
+                section_heading("Macro/news feed retrieval register", styles),
+                data_table(["Publisher", "Type", "Status", "Retrieved UTC", "Items / error", "Feed URL"],
+                           context_rows, styles, widths=[25*mm, 15*mm, 18*mm, 30*mm, 40*mm, 37*mm]),
+            ])
     provenance = report.get("provenance")
     if provenance:
         story.extend([section_heading("Data provenance", styles), paragraph(_text(provenance), styles["body"])])
