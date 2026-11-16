@@ -13,6 +13,18 @@ from .pdf import data_table, paragraph, report_styles, section_heading, write_pd
 from .qa import inspect_pdf_artifact
 
 
+def _status_es(value: Any) -> str:
+    return {
+        "passed": "Aprobado",
+        "failed": "Fallido",
+        "not_verified": "No verificado",
+        "not_implemented": "No implementado",
+        "not_applicable": "No aplica",
+        "not_exercised": "No probado",
+        "disclosed": "Declarado",
+    }.get(str(value), str(value))
+
+
 def _text_audit(value: Any) -> str:
     if not value:
         return "None reported"
@@ -114,10 +126,10 @@ def build_skills_audit_pdf(report: dict[str, Any], output_directory: Path | str)
     if skill_results:
         skill_rows = [[
             str(item.get("name", "Unknown")),
-            str(item.get("package_integrity", "not verified")),
-            str(item.get("temporal_coherence", "not verified")),
-            str(item.get("data_security", "not verified")),
-            str(item.get("methodology", "not verified")),
+            _status_es(item.get("package_integrity", "not_verified")),
+            _status_es(item.get("temporal_coherence", "not_verified")),
+            _status_es(item.get("data_security", "not_verified")),
+            _status_es(item.get("methodology", "not_verified")),
             str(item.get("status", "No aprobado")),
         ] for item in skill_results if isinstance(item, dict)]
         if skill_rows:
@@ -181,7 +193,7 @@ def build_skills_audit_pdf(report: dict[str, Any], output_directory: Path | str)
     if source_packages:
         source_rows = [[
             str(item.get("name", "N/A")),
-            str(item.get("status", "not verified")),
+            _status_es(item.get("status", "not_verified")),
             str(item.get("adapted_version", "Not supplied")),
             str(item.get("last_reviewed", "Not supplied")),
             str(item.get("archive_sha256", "Not supplied")),
