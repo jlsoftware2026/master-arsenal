@@ -24,19 +24,29 @@ class FakeClient:
 
     def get_historical_klines(self, symbol, interval, start, end, market="spot"):
         rows = []
-        for hour in range(3):
-            if self.missing and hour == 1:
-                continue
-            opened = START + timedelta(hours=hour)
-            rows.append(Candle(
-                symbol=symbol, interval=interval, open_time=opened,
-                close_time=opened + timedelta(hours=1) - timedelta(milliseconds=1),
-                open=100, high=102, low=99, close=101, volume=10,
-            ))
+        if end <= START:
+            for index in range(250):
+                opened = start + timedelta(hours=index)
+                rows.append(Candle(
+                    symbol=symbol, interval=interval, open_time=opened,
+                    close_time=opened + timedelta(hours=1) - timedelta(milliseconds=1),
+                    open=100 + index, high=102 + index, low=99 + index,
+                    close=101 + index, volume=10,
+                ))
+        else:
+            for hour in range(3):
+                if self.missing and hour == 1:
+                    continue
+                opened = START + timedelta(hours=hour)
+                rows.append(Candle(
+                    symbol=symbol, interval=interval, open_time=opened,
+                    close_time=opened + timedelta(hours=1) - timedelta(milliseconds=1),
+                    open=100, high=102, low=99, close=101, volume=10,
+                ))
         return rows, PaginationMetadata(
             pages=1, returned=len(rows),
-            requested_start=START.isoformat().replace("+00:00", "Z"),
-            requested_end=CUTOFF.isoformat().replace("+00:00", "Z"),
+            requested_start=start.isoformat().replace("+00:00", "Z"),
+            requested_end=end.isoformat().replace("+00:00", "Z"),
             complete=not self.incomplete,
         )
 
@@ -53,6 +63,8 @@ class IntradayAcquisitionTests(unittest.TestCase):
             self.assertEqual(item["candle_count"], 3)
             self.assertEqual(item["expected_candle_count"], 3)
             self.assertEqual(item["last_close_time_utc"], "2026-11-13T02:59:59.999000Z")
+            self.assertEqual(item["indicator_history"]["candle_count"], 250)
+            self.assertIsNotNone(item["indicators"]["ema_200"])
 
     def test_missing_candle_is_rejected(self):
         with self.assertRaisesRegex(ValueError, "expected 3 candles, received 2"):
