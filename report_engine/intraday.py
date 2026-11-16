@@ -35,6 +35,18 @@ def _iso_utc(value: datetime) -> str:
     return value.isoformat(timespec="seconds").replace("+00:00", "Z")
 
 
+def _local_time(value: Any) -> str:
+    if not isinstance(value, str):
+        return "Not supplied"
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        if parsed.tzinfo is None:
+            return "Invalid timestamp"
+        return parsed.astimezone(ZoneInfo("America/Santo_Domingo")).isoformat()
+    except ValueError:
+        return "Invalid timestamp"
+
+
 def _display(value: Any) -> str:
     if value is None:
         return "Insufficient data / unavailable"
@@ -180,7 +192,9 @@ def build_intraday_snapshot_pdf(report: dict[str, Any], output_directory: Path |
             section_heading(symbol, styles),
             key_value_table([
                 ("Candles", item.get("candle_count", "Not supplied")),
+                ("First candle local", _local_time(item.get("first_open_time_utc"))),
                 ("First candle UTC", item.get("first_open_time_utc", "Not supplied")),
+                ("Last candle close local", _local_time(item.get("last_close_time_utc"))),
                 ("Last candle close UTC", item.get("last_close_time_utc", "Not supplied")),
                 ("24h ticker", _display(item.get("ticker_24h"))),
                 ("Local-day performance", _display(item.get("performance"))),
