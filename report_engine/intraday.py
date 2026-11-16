@@ -257,10 +257,10 @@ def build_intraday_snapshot_pdf(report: dict[str, Any], output_directory: Path |
             volumes = [candle["volume"] for candle in candles]
             story.extend([
                 section_heading("Gráficos de precio y volumen", styles),
-                MarketChart(f"{symbol} precio de cierre ({report.get('interval', 'interval')})",
+                MarketChart(f"{symbol} precio de cierre ({report.get('intervalo', 'intervalo')})",
                             closes, labels, kind="line"),
                 Spacer(1, 2 * mm),
-                MarketChart(f"{symbol} volumen del activo base ({report.get('interval', 'interval')})",
+                MarketChart(f"{symbol} volumen del activo base ({report.get('intervalo', 'intervalo')})",
                             volumes, labels, kind="bar"),
             ])
         story.append(Spacer(1, 3 * mm))
