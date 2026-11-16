@@ -10,11 +10,11 @@ from report_engine.acquisition import acquire_intraday_evidence
 
 UTC = timezone.utc
 CUTOFF = datetime(2024, 5, 7, 3, 0, tzinfo=UTC)
-START = CUTOFF.replace(hour=0)
+START = datetime(2024, 5, 6, 4, 0, tzinfo=UTC)
 
 def candles_for(symbol, omit=(), misalign=()):
     result = []
-    for index in range(3):
+    for index in range(23):
         if index in omit:
             continue
         opened = START + timedelta(hours=index)
@@ -77,13 +77,13 @@ class IntradayAcquisitionTests(unittest.TestCase):
 
     def test_complete_window_and_provenance(self):
         report = self.acquire()
-        self.assertEqual(report["data_status"], "complete")
-        self.assertEqual(report["window_start_utc"], "2024-05-07T00:00:00Z")
+        self.assertEqual(report["data_status"], "partial")
+        self.assertEqual(report["window_start_utc"], "2024-05-06T04:00:00Z")
         self.assertEqual(report["cutoff_utc"], "2024-05-07T03:00:00Z")
         self.assertEqual(set(report["symbols"]), {"BTCUSDT", "ETHUSDT"})
         btc = report["symbols"]["BTCUSDT"]
-        self.assertEqual(btc["candle_count"], 3)
-        self.assertEqual(btc["expected_candle_count"], 3)
+        self.assertEqual(btc["candle_count"], 23)
+        self.assertEqual(btc["expected_candle_count"], 23)
         self.assertEqual(btc["ticker_24h"]["status"], "ok")
         self.assertEqual(btc["response_metadata"]["candles"]["http_status"], 200)
         self.assertEqual(btc["indicator_history"]["candle_count"], 250)
@@ -91,7 +91,7 @@ class IntradayAcquisitionTests(unittest.TestCase):
         self.assertEqual(len(report["provenance"]), 2)
 
     def test_missing_candle_fails_closed(self):
-        with self.assertRaisesRegex(ValueError, "expected 3 candles, received 2"):
+        with self.assertRaisesRegex(ValueError, "expected 23 candles, received 22"):
             self.acquire(FakeClient(omit={"BTCUSDT": (1,)}))
 
     def test_misaligned_candle_fails_closed(self):
@@ -99,16 +99,19 @@ class IntradayAcquisitionTests(unittest.TestCase):
             self.acquire(FakeClient(misalign={"ETHUSDT": (1,)}))
 
     def test_incomplete_pagination_fails_closed(self):
-        with self.assertRaisesRegex(ValueError, "pagination did not complete"):
+        with self.assertRaisesRegex(ValueError, "pagination is incomplete or inconsistent"):
             self.acquire(FakeClient(complete=False))
 
     def test_pagination_count_mismatch_fails_closed(self):
-        with self.assertRaisesRegex(ValueError, "metadata count"):
+        with self.assertRaisesRegex(ValueError, "pagination is incomplete or inconsistent"):
             self.acquire(FakeClient(metadata_mismatch=True))
 
-    def test_cutoff_must_align_to_interval(self):
-        with self.assertRaisesRegex(ValueError, "align exactly"):
-            self.acquire(cutoff=CUTOFF + timedelta(minutes=30))
+    def test_unaligned_cutoff_is_preserved_and_final_interval_excluded(self):
+        requested = CUTOFF + timedelta(minutes=30)
+        report = self.acquire(cutoff=requested)
+        self.assertEqual(report["cutoff_utc"], requested.isoformat().replace("+00:00", "Z"))
+        self.assertEqual(report["data_cutoff_utc"], CUTOFF.isoformat().replace("+00:00", "Z"))
+        self.assertEqual(report["symbols"]["BTCUSDT"]["candle_count"], 23)
 
     def test_future_cutoff_rejected(self):
         client = FakeClient(server_time=datetime(2024, 5, 7, 2, 59, tzinfo=UTC))
