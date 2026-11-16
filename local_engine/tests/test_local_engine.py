@@ -273,7 +273,7 @@ class LocalEngineTests(unittest.TestCase):
         self.assertEqual(audit["us_session_status"], "passed")
         self.assertEqual(audit["us_holiday_status"], "passed")
         self.assertEqual(audit["us_market_data_provenance_status"], "passed")
-        self.assertEqual(audit["account_export_status"], "passed")
+        self.assertEqual(audit["account_export_status"], "passed", audit["account_export_findings"])
         self.assertEqual(audit["scorecard_status"], "passed")
         self.assertGreater(audit["overlapping_candles_checked"], 0)
 
