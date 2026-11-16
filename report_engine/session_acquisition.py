@@ -1,7 +1,8 @@
 """Acquisition-to-PDF adapters using Dominican local calendar-day windows."""
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
+from datetime import date, datetime, time, timezone
+from zoneinfo import ZoneInfo
 from pathlib import Path
 from typing import Any
 
@@ -10,6 +11,7 @@ from binance_data_engine.session import acquire_market_window
 from .context import collect_market_context
 from .evidence import write_evidence_manifest
 from .session import build_closing_report_pdf, build_opening_report_pdf
+from .us_market_calendar import classify_us_equity_session
 from .timezone import (
     LOCAL_TZ, REPORT_TIMEZONE, completed_local_day, current_local_report_date,
     local_day_window, opening_reference_date,
@@ -76,14 +78,29 @@ def acquire_session_report_evidence(
     report["report_timezone"] = REPORT_TIMEZONE
     report["binance_account_data_status"] = "unavailable"
     report["us_equity_market_data_status"] = "not_integrated"
-    report["us_equity_session_state"] = "not_available"
+    eastern = ZoneInfo("America/New_York")
+    if report_kind == "opening":
+        calendar_reference = datetime.combine(request_date, time(9, 10), tzinfo=eastern)
+        report["us_equity_calendar_reference"] = "opening_pre_market_reference_09:10_ET"
+    elif window.is_partial:
+        calendar_reference = window.end_local
+        report["us_equity_calendar_reference"] = "exact_local_report_cutoff"
+    else:
+        calendar_reference = datetime.combine(target_date, time(16, 20), tzinfo=eastern)
+        report["us_equity_calendar_reference"] = "post_close_reference_16:20_ET"
+    calendar_evidence = classify_us_equity_session(calendar_reference)
+    report["us_equity_calendar"] = calendar_evidence
+    report["us_equity_session_state"] = (
+        calendar_evidence["session_state"] if calendar_evidence["status"] == "ok"
+        else "not_available"
+    )
     report["opening_forecast_scorecard_status"] = (
         "not_implemented" if report_kind == "closing" else "not_applicable"
     )
     report["activation_timing_status"] = "not_automated"
     report["source_skill_limitations"] = [
         "Los saldos, posiciones, comisiones, financiación y PnL ajustado por flujos de la cuenta privada de Binance no están disponibles; las velas públicas del mercado no son datos de cuenta.",
-        "Los índices bursátiles estadounidenses, VIX, tasas, DXY, materias primas, amplitud sectorial y calendario bursátil completo no están integrados ni verificados.",
+        "Los índices bursátiles estadounidenses, VIX, tasas, DXY, materias primas y amplitud sectorial no están integrados; el calendario XNYS se consulta por separado y puede quedar no disponible si falla su proveedor.",
         "El horario de activación de apertura/cierre no está automatizado; la comparación del pronóstico de apertura con el cierre de esa misma fecha no está implementada.",
     ]
 
@@ -131,8 +148,14 @@ def acquire_session_report_evidence(
         "los titulares son contexto y no prueban causalidad."
     )
     summary_points.append(
-        "Limitaciones: los datos privados de cuenta Binance y la cobertura completa del mercado bursátil estadounidense "
-        "no están integrados; la activación automática tampoco está implementada."
+        "Calendario bursátil XNYS: "
+        + (f"{calendar_evidence['session_state']} a {calendar_evidence['as_of_et']}; "
+           f"última sesión completada {calendar_evidence['last_completed_session_date']}; "
+           f"próxima sesión {calendar_evidence['next_session_date']}."
+           if calendar_evidence["status"] == "ok"
+           else "no disponible; no se infiere el estado bursátil.")
+        + " La cobertura de índices/indicadores estadounidenses y los datos privados de cuenta Binance "
+          "siguen sin integrarse; la activación automática tampoco está implementada."
     )
     report["executive_summary"] = summary_points
     report["technical_analysis"] = (
@@ -165,8 +188,9 @@ def acquire_session_report_evidence(
     report.update(context)
     report["generated_at_utc"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     report["limitations"] = (
-        "El contexto RSS está limitado por fecha, pero no es exhaustivo. La cobertura completa del mercado bursátil estadounidense, "
-        "el análisis de la cuenta privada de Binance y la activación automática de apertura/cierre "
+        "El contexto RSS está limitado por fecha, pero no es exhaustivo. El calendario XNYS se integra solo para horario/feriados "
+        "y no aporta precios; la cobertura completa del mercado bursátil estadounidense, el análisis de la cuenta privada de Binance "
+        "y la activación automática de apertura/cierre "
         "no están disponibles en esta versión. La comparación del pronóstico de apertura con el cierre de esa misma fecha no está implementada. "
         + context.get("context_limitations", "No se suministraron limitaciones de los feeds.")
     )
