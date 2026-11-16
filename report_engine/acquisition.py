@@ -37,6 +37,7 @@ def acquire_intraday_evidence(
     """
     if cutoff_utc is not None and cutoff_local is not None:
         raise ValueError("Specify cutoff_utc or cutoff_local, not both")
+    cutoff_resolution = "explicit_utc_cutoff"
     if cutoff_utc is not None:
         if not isinstance(cutoff_utc, datetime) or cutoff_utc.tzinfo is None or cutoff_utc.utcoffset() != timezone.utc.utcoffset(cutoff_utc):
             raise ValueError("cutoff_utc must be a timezone-aware UTC datetime")
@@ -44,12 +45,14 @@ def acquire_intraday_evidence(
         target_date = report_date_local or resolved_local.date()
         cutoff = resolved_local
     elif cutoff_local is not None:
+        cutoff_resolution = "explicit_local_cutoff"
         if not isinstance(cutoff_local, datetime):
             raise ValueError("cutoff_local must be a datetime")
         resolved_local = cutoff_local.replace(tzinfo=LOCAL_TZ) if cutoff_local.tzinfo is None else cutoff_local.astimezone(LOCAL_TZ)
         target_date = report_date_local or resolved_local.date()
         cutoff = resolved_local
     else:
+        cutoff_resolution = "execution_time_local_default"
         resolved_now = now or datetime.now(LOCAL_TZ)
         resolved_local = resolved_now.astimezone(LOCAL_TZ) if resolved_now.tzinfo else resolved_now.replace(tzinfo=LOCAL_TZ)
         target_date = report_date_local or resolved_local.date()
@@ -65,6 +68,7 @@ def acquire_intraday_evidence(
         symbols=symbols,
         window_metadata=window.as_dict(),
     )
+    report["cutoff_resolution"] = cutoff_resolution
     report["window_start_utc"] = window.start_utc.isoformat().replace("+00:00", "Z")
     report["cutoff_utc"] = window.end_utc.isoformat().replace("+00:00", "Z")
     if datetime.now(timezone.utc) < window.end_utc:
