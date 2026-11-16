@@ -382,9 +382,9 @@ def audit_market_report_artifact(path: str | Path, report_type: str) -> dict[str
     import pymupdf as fitz
     with fitz.open(source) as document:
         extracted = "\\n".join(page.get_text("text") for page in document)
-    normalized = extracted.casefold()
+    normalized = " ".join(extracted.casefold().split())
     missing = [marker for marker in requirements[report_type]
-               if marker.casefold() not in normalized]
+               if " ".join(marker.casefold().split()) not in normalized]
     filename_prefix = {
         "opening": "apertura-mercado_",
         "closing": "cierre-mercado_",
