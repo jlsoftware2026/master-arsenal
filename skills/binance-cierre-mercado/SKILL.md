@@ -1,7 +1,7 @@
 ---
 name: binance-cierre-mercado
 description: 'Informe de cierre y recapitulación diaria. Activar cuando el usuario diga “cierre de mercado”, “resumen de cierre” o solicite cómo terminó la sesión. Analiza el día de la fecha local de solicitud, tanto la sesión bursátil estadounidense como la actividad de la cuenta Binance.'
-version: 0.1.0
+version: 0.2.0
 last_reviewed: 2026-11-16
 ---
 
@@ -59,3 +59,5 @@ Adapted against the user-supplied original Claude skill package. U.S. market dat
 
 ## Language parity status
 The original Claude skill specifies Spanish-language report content. The current PDF composer still renders English headings and labels; this remains a high-severity parity gap and must be localized before the workflow can be certified as equivalent to the original.
+
+- 0.2.0 — 2026-11-16: Reconciled activation phrases, Dominican local-day semantics, PDF-only delivery, explicit limitations, and source-derived report requirements. Outstanding parity gaps remain disclosed.
