@@ -195,6 +195,7 @@ class SessionAcquisitionTests(unittest.TestCase):
             closing = generate_closing_report_pdf(
                 FakeClient(), root / "reports" / "closing", START.date(),
                 manifest_directory=manifests,
+                cutoff_local=datetime(2026, 11, 14, 12, 0, tzinfo=timezone(timedelta(hours=-4))),
             )
             self.assertTrue(opening.is_file())
             self.assertTrue(closing.is_file())
@@ -203,12 +204,15 @@ class SessionAcquisitionTests(unittest.TestCase):
             self.assertEqual(report["opening_forecast_scorecard_status"], "passed")
             scorecard = report["opening_forecast_scorecard"]
             self.assertEqual(scorecard["report_date_local"], "2026-11-14")
+            self.assertEqual(scorecard["closing_window_status"], "partial")
+            self.assertEqual(scorecard["closing_cutoff_local"], "2026-11-14T12:00:00-04:00")
             self.assertEqual(set(scorecard["symbols"]), {"BTCUSDT", "ETHUSDT"})
             self.assertEqual(scorecard["symbols"]["BTCUSDT"]["outcome"],
                              "Rango de referencia conservado; no hubo ruptura observada.")
             with fitz.open(closing) as document:
                 text = " ".join(page.get_text("text") for page in document)
             self.assertIn("Evaluación de escenarios de apertura", text)
+            self.assertIn("Parcial y provisional al corte", text)
             self.assertIn("Rango de referencia conservado", text)
             from report_engine.scorecard import build_opening_forecast_scorecard
             reversed_chronology = dict(report)
