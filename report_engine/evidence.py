@@ -198,6 +198,8 @@ def audit_evidence_manifest(path: str | Path, workspace_root: str | Path) -> dic
             raise ValueError("Report window is not UTC.")
         if report.get("report_timezone") != "America/Santo_Domingo":
             findings.append("Report timezone is missing or is not America/Santo_Domingo.")
+        if report.get("window_semantics") != "[start, cutoff)":
+            findings.append("Report window semantics are not the required half-open [start, cutoff) interval.")
         try:
             local_start = datetime.fromisoformat(report["window_start_local"])
             local_cutoff = datetime.fromisoformat(report["cutoff_local"])
