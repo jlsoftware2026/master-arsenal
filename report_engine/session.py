@@ -290,7 +290,7 @@ def _build_session_pdf(report: dict[str, Any], output_directory: Path | str, kin
                 ])
         else:
             story.append(paragraph(
-                f"{symbol}: no se suministraron incidencias de validación; esto no demuestra que los datos en vivo estén completos.",
+                f"{symbol}: Validación de datos: no se suministraron incidencias; esto no demuestra que los datos en vivo estén completos.",
                 styles["small"],
             ))
         candles = item.get("candles") or []
