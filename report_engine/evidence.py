@@ -175,7 +175,10 @@ def audit_evidence_manifest(path: str | Path, workspace_root: str | Path) -> dic
             if interval_ms is None:
                 findings.append(f"{symbol}: unsupported interval in evidence.")
             else:
-                expected_window = int((end - start).total_seconds() * 1000) // interval_ms
+                elapsed_ms = int((end - start).total_seconds() * 1000)
+                if elapsed_ms % interval_ms:
+                    findings.append(f"{symbol}: report window is not aligned to the candle interval.")
+                expected_window = elapsed_ms // interval_ms
                 if len(report_candles) != expected_window:
                     findings.append(f"{symbol}: report window is missing expected candles.")
                 if report_candles and report_candles[0].open_time != start:
@@ -225,4 +228,48 @@ def audit_evidence_manifest(path: str | Path, workspace_root: str | Path) -> dic
         "indicator_recalculation": "passed" if not any("indicators do not match" in item for item in findings) else "failed",
         "status": "passed" if not findings else "failed",
         "findings": findings,
+    }
+
+
+def audit_cross_report_consistency(
+    manifest_paths: list[str | Path], workspace_root: str | Path
+) -> dict[str, Any]:
+    """Compare exact OHLCV evidence for matching symbol/interval/open-time keys."""
+    root = Path(workspace_root).resolve()
+    observed: dict[tuple[str, str, str], tuple[dict[str, Any], str]] = {}
+    overlaps = 0
+    mismatches = []
+    for candidate in manifest_paths:
+        manifest_path = Path(candidate).resolve(strict=True)
+        if not manifest_path.is_relative_to(root):
+            mismatches.append(f"{manifest_path.name}: manifest escaped workspace.")
+            continue
+        try:
+            payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+            report = payload["report"]
+            interval = report["interval"]
+            symbols = report["symbols"]
+            for symbol in CORE_SYMBOLS:
+                for candle in symbols[symbol]["candles"]:
+                    key = (symbol, interval, candle["open_time"])
+                    values = {field: candle.get(field) for field in
+                              ("open", "high", "low", "close", "volume", "close_time")}
+                    if key in observed:
+                        overlaps += 1
+                        previous, previous_file = observed[key]
+                        if previous != values:
+                            mismatches.append(
+                                f"{symbol} {interval} {key[2]} differs between "
+                                f"{previous_file} and {manifest_path.name}."
+                            )
+                    else:
+                        observed[key] = (values, manifest_path.name)
+        except Exception as exc:
+            mismatches.append(f"{manifest_path.name}: could not compare evidence: {type(exc).__name__}: {exc}")
+    status = "failed" if mismatches else ("passed" if overlaps else "not_verified")
+    return {
+        "status": status,
+        "overlapping_candles_checked": overlaps,
+        "mismatches": mismatches,
+        "manifests_compared": len(manifest_paths),
     }
