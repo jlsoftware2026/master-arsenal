@@ -172,6 +172,46 @@ class SessionAcquisitionTests(unittest.TestCase):
             self.assertIn("09:30 EDT", summer_text)
             self.assertIn("09:30 AST", summer_text)
 
+    def test_closing_scorecard_links_integrity_checked_same_date_opening_manifest(self):
+        import pymupdf as fitz
+        with TemporaryDirectory() as temp:
+            root = Path(temp)
+            manifests = root / "data" / "manifests"
+            opening = generate_opening_report_pdf(
+                FakeClient(), root / "reports" / "opening", START.date(),
+                manifest_directory=manifests,
+            )
+            closing = generate_closing_report_pdf(
+                FakeClient(), root / "reports" / "closing", START.date(),
+                manifest_directory=manifests,
+            )
+            self.assertTrue(opening.is_file())
+            self.assertTrue(closing.is_file())
+            payload = json.loads(next(manifests.glob("cierre-mercado_*.evidence.json")).read_text(encoding="utf-8"))
+            report = payload["report"]
+            self.assertEqual(report["opening_forecast_scorecard_status"], "passed")
+            scorecard = report["opening_forecast_scorecard"]
+            self.assertEqual(scorecard["report_date_local"], "2026-11-14")
+            self.assertEqual(set(scorecard["symbols"]), {"BTCUSDT", "ETHUSDT"})
+            self.assertEqual(scorecard["symbols"]["BTCUSDT"]["outcome"],
+                             "Rango de referencia conservado; no hubo ruptura observada.")
+            with fitz.open(closing) as document:
+                text = " ".join(page.get_text("text") for page in document)
+            self.assertIn("Evaluación de escenarios de apertura", text)
+            self.assertIn("Rango de referencia conservado", text)
+
+    def test_closing_scorecard_is_not_applicable_without_same_date_opening_manifest(self):
+        with TemporaryDirectory() as temp:
+            manifest_directory = Path(temp) / "data" / "manifests"
+            manifest_directory.mkdir(parents=True)
+            artifact = generate_closing_report_pdf(
+                FakeClient(), Path(temp) / "reports" / "closing", START.date(),
+                manifest_directory=manifest_directory,
+            )
+            payload = json.loads(next(manifest_directory.glob("cierre-mercado_*.evidence.json")).read_text(encoding="utf-8"))
+            self.assertEqual(payload["report"]["opening_forecast_scorecard_status"], "not_applicable")
+            self.assertTrue(artifact.is_file())
+
     def test_opening_and_closing_workflows_create_pdf(self):
         with TemporaryDirectory() as temp:
             opening = generate_opening_report_pdf(FakeClient(), temp, START.date())
