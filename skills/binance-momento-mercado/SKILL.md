@@ -1,3 +1,10 @@
+---
+name: binance-momento-mercado
+description: 'Informe de mercado a una hora concreta o snapshot intradía. Activar cuando el usuario diga “momento específico del mercado”, “estado del mercado ahora”, “resumen a esta hora”, “snapshot intradía” o solicite el comportamiento del día hasta una hora indicada. El análisis empieza al inicio del día local y termina en la hora de corte solicitada.'
+version: 0.1.0
+last_reviewed: 2026-11-16
+---
+
 # binance-momento-mercado
 
 ## Purpose
@@ -42,3 +49,6 @@ Do not treat an incomplete day as a closed session. Headlines are candidate cont
 
 ## Status
 Adapted against the user-supplied original Claude skill package. U.S. equity premarket/regular/postmarket classification and full market coverage remain unavailable/not verified.
+
+## Version history
+- 0.1.0 — 2026-11-16: Initial ChatGPT/MASTER ARSENAL adaptation; preserves the original skill identity and documents the Local Engine/PDF workflow and current implementation gaps.
