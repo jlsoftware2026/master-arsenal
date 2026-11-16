@@ -20,6 +20,7 @@ from . import __version__
 from .protocol import JobValidationError, load_job, utc_now, validate_job
 
 from binance_data_engine.client import BinancePublicClient
+from report_engine.account_exports import collect_binance_account_exports
 from report_engine.timezone import REPORT_TIMEZONE, current_local_report_date
 from report_engine.us_market_calendar import classify_us_equity_session
 
@@ -817,6 +818,20 @@ class JobRunner:
                     continue
                 if len(raw) != item["bytes"] or hashlib.sha256(raw).hexdigest() != digest:
                     findings.append("CSV SHA-256 changed after report generation")
+            try:
+                recomputed = collect_binance_account_exports(
+                    account_directory, report_start, report_end
+                )
+            except Exception:
+                return findings + ["independent CSV re-parse failed"]
+            for field in (
+                "status", "files", "file_count", "supported_file_count", "rows_scanned",
+                "events_in_window", "duplicate_rows", "parse_errors", "unsupported_files",
+                "aggregates_by_event_and_asset", "event_counts", "unknown_operation_count",
+                "assumptions",
+            ):
+                if snapshot.get(field) != recomputed.get(field):
+                    findings.append("independent CSV re-parse differs for " + field)
             return findings
 
         account_export_findings = []
