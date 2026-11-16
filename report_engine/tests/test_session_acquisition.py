@@ -199,6 +199,12 @@ class SessionAcquisitionTests(unittest.TestCase):
                 text = " ".join(page.get_text("text") for page in document)
             self.assertIn("Evaluación de escenarios de apertura", text)
             self.assertIn("Rango de referencia conservado", text)
+            from report_engine.scorecard import build_opening_forecast_scorecard
+            reversed_chronology = dict(report)
+            reversed_chronology["generated_at_utc"] = "2020-01-01T00:00:00Z"
+            rejected = build_opening_forecast_scorecard(reversed_chronology, manifests)
+            self.assertEqual(rejected["status"], "failed")
+            self.assertIn("same-date opening report", rejected["reason"])
 
     def test_closing_scorecard_is_not_applicable_without_same_date_opening_manifest(self):
         with TemporaryDirectory() as temp:
