@@ -105,7 +105,7 @@ def acquire_session_report_evidence(
     report["activation_timing_status"] = "not_automated"
     report["source_skill_limitations"] = [
         "Los saldos, posiciones, comisiones, financiación y PnL ajustado por flujos de la cuenta privada de Binance no están disponibles; las velas públicas del mercado no son datos de cuenta.",
-        "Los índices bursátiles estadounidenses, VIX, tasas, DXY, materias primas y amplitud sectorial no están integrados; el calendario XNYS se consulta por separado y puede quedar no disponible si falla su proveedor.",
+        "Las cotizaciones de índices, VIX, futuros, tasas, DXY, materias primas y ETF sectoriales se consultan best-effort mediante Yahoo Finance; la amplitud bursátil y líderes/rezagados por acción no están incluidos. El calendario XNYS se consulta por separado y puede quedar no disponible si falla su proveedor.",
         "El horario de activación de apertura/cierre no está automatizado; el scorecard compara escenarios solo cuando existe un manifiesto de apertura íntegro de la misma fecha.",
     ]
 
