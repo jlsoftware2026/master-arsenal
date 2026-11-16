@@ -40,6 +40,24 @@ def _local_time(value: Any) -> str:
         return "Marca de tiempo no válida"
 
 
+def _label(value: Any) -> str:
+    if isinstance(value, bool):
+        return "Sí" if value else "No"
+    labels = {
+        "unavailable": "No disponible", "not_integrated": "No integrado",
+        "not_available": "No disponible", "not_implemented": "No implementado",
+        "not_applicable": "No aplica", "not_automated": "No automatizado",
+        "complete": "Completo", "partial": "Parcial", "ok": "Correcto",
+        "not_verified": "No verificado", "previous_local_calendar_day": "Día calendario local anterior",
+        "explicit_local_cutoff": "Hora de corte local explícita",
+        "execution_time_local_default": "Hora local de ejecución",
+        "completed_historical_local_day": "Día local histórico completado",
+        "Binance public REST API": "API REST pública de Binance",
+        "spot": "Spot", "usdm": "Futuros USDⓈ-M",
+    }
+    return labels.get(str(value), str(value) if value is not None else "No suministrado")
+
+
 def _text(value: Any) -> str:
     if value is None:
         return "No suministrado"
@@ -216,20 +234,20 @@ def _build_session_pdf(report: dict[str, Any], output_directory: Path | str, kin
             ("Ventana de análisis local", f"{report['window_start_local']} to {report['cutoff_local']} ({report['report_timezone']})"),
             ("Ventana de evidencia UTC", f"{start.isoformat().replace('+00:00', 'Z')} to {end.isoformat().replace('+00:00', 'Z')} (cutoff exclusive)"),
             ("Límite de la última vela cerrada (UTC)", report.get("data_cutoff_utc", "No suministrado")),
-            ("Se excluyó el intervalo final incompleto", (report.get("indicator_methodology") or {}).get("partial_final_interval_excluded", False)),
+            ("Se excluyó el intervalo final incompleto", _label((report.get("indicator_methodology") or {}).get("partial_final_interval_excluded", False))),
             ("Estado de la ventana", "DÍA LOCAL PARCIAL" if report.get("is_partial") else "DÍA LOCAL COMPLETO"),
             ("Fecha de solicitud local", report.get("requested_report_date_local", report.get("report_date_local"))),
-            ("Resolución de la hora de corte", report.get("cutoff_resolution", "not supplied")),
+            ("Resolución de la hora de corte", _label(report.get("cutoff_resolution"))),
             ("Generado en UTC", generated.isoformat().replace("+00:00", "Z")),
-            ("Fuente principal", report.get("source", "Not specified")),
-            ("Mercado", report.get("market", "Not specified")),
+            ("Fuente principal", _label(report.get("source", "No especificado"))),
+            ("Mercado", _label(report.get("market", "No especificado"))),
             ("Intervalo", report.get("interval", "Not specified")),
-            ("Estado de los datos", report.get("data_status", "Not independently certified")),
-            ("Análisis de la cuenta Binance", report.get("binance_account_data_status", "unavailable")),
-            ("Cobertura del mercado bursátil estadounidense", report.get("us_equity_market_data_status", "not_integrated")),
-            ("Horario de la sesión bursátil estadounidense", report.get("us_equity_session_state", "not_available")),
-            ("Comparación del pronóstico de apertura", report.get("opening_forecast_scorecard_status", "not_available")),
-            ("Horario de activación", report.get("activation_timing_status", "not_automated")),
+            ("Estado de los datos", _label(report.get("data_status", "No certificado de forma independiente"))),
+            ("Análisis de la cuenta Binance", _label(report.get("binance_account_data_status", "unavailable"))),
+            ("Cobertura del mercado bursátil estadounidense", _label(report.get("us_equity_market_data_status", "not_integrated"))),
+            ("Horario de la sesión bursátil estadounidense", _label(report.get("us_equity_session_state", "not_available"))),
+            ("Comparación del pronóstico de apertura", _label(report.get("opening_forecast_scorecard_status", "not_available"))),
+            ("Horario de activación", _label(report.get("activation_timing_status", "not_automated"))),
             ("Perspectiva del informe", "Día calendario dominicano anterior a la próxima sesión estadounidense" if kind == "opening"
              else ("Acumulado del día calendario dominicano hasta la hora de corte indicada" if report.get("is_partial")
                    else "Día calendario dominicano completado")),
