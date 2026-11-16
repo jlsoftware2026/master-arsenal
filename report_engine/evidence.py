@@ -28,6 +28,40 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _raw_candle_digest(report: dict[str, Any]) -> str:
+    symbols = report.get("symbols") if isinstance(report.get("symbols"), dict) else {}
+    evidence = {
+        symbol: {
+            "candles": item.get("candles", []),
+            "indicator_history": (item.get("indicator_history") or {}).get("candles", []),
+        }
+        for symbol, item in sorted(symbols.items())
+        if isinstance(item, dict)
+    }
+    canonical = json.dumps(
+        evidence, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False
+    ).encode("utf-8")
+    return hashlib.sha256(canonical).hexdigest()
+
+
+def _window_manifest(report: dict[str, Any], report_type: str) -> dict[str, Any]:
+    start_key, cutoff_key = (
+        ("window_start_utc", "cutoff_utc") if report_type == "intraday"
+        else ("session_start_utc", "session_end_utc")
+    )
+    return {
+        "report_timezone": report.get("report_timezone"),
+        "report_date_local": report.get("report_date_local"),
+        "window_start_local": report.get("window_start_local"),
+        "cutoff_local": report.get("cutoff_local"),
+        "window_start_utc": report.get(start_key),
+        "cutoff_utc": report.get(cutoff_key),
+        "window_semantics": report.get("window_semantics"),
+        "is_partial": report.get("is_partial"),
+        "interval": report.get("interval"),
+    }
+
+
 def write_evidence_manifest(
     report: dict[str, Any],
     report_type: str,
@@ -46,6 +80,8 @@ def write_evidence_manifest(
         "pdf_filename": pdf.name,
         "pdf_sha256": _sha256(pdf),
         "manifest_generated_at_utc": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "report_window": _window_manifest(report, report_type),
+        "raw_candle_evidence_sha256": _raw_candle_digest(report),
         "report": report,
     }
     destination_directory = Path(manifest_directory)
@@ -131,6 +167,13 @@ def audit_evidence_manifest(path: str | Path, workspace_root: str | Path) -> dic
     if not isinstance(report, dict):
         return {"manifest": manifest_path.name, "status": "failed",
                 "findings": findings + ["Missing report evidence object."]}
+    if payload.get("report_window") != _window_manifest(report, report_type):
+        findings.append("Top-level report-window manifest does not match the report evidence.")
+    try:
+        if payload.get("raw_candle_evidence_sha256") != _raw_candle_digest(report):
+            findings.append("Raw candle evidence SHA-256 does not match the manifest.")
+    except (TypeError, ValueError) as exc:
+        findings.append(f"Raw candle evidence cannot be hashed: {type(exc).__name__}: {exc}")
     report_directory = (root / "reports" / {
         "opening": "opening", "closing": "closing", "intraday": "intraday"
     }.get(report_type, "invalid")).resolve()
