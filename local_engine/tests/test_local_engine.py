@@ -46,7 +46,7 @@ class FakeBinanceClient:
 
     def get_historical_klines(self, symbol, interval, start, end, market="spot"):
         rows = []
-        expected = 250 if end <= self.cutoff.replace(hour=0, minute=0, second=0, microsecond=0) else 3
+        expected = 250 if end < self.cutoff.replace(hour=0, minute=0, second=0, microsecond=0) else (24 if end.date() == self.cutoff.date() else 3)
         for index in range(expected):
             opened = start + timedelta(hours=index)
             price = Decimal("100") + index
@@ -129,11 +129,15 @@ class LocalEngineTests(unittest.TestCase):
         self.assertEqual(result["status"], "completed")
         self.assertTrue(self.manager.get(job["job_id"])["result"]["read_only"])
 
-    def test_intraday_job_defaults_to_pdf_output(self):
-        job = new_job("market.intraday_snapshot")
-        self.assertEqual(job["output"], {
-            "format": "pdf", "directory": "reports/intraday"
-        })
+    def test_report_jobs_default_to_fixed_pdf_outputs(self):
+        self.assertEqual(new_job("market.opening_report")["output"],
+                         {"format": "pdf", "directory": "reports/opening"})
+        self.assertEqual(new_job("market.closing_report")["output"],
+                         {"format": "pdf", "directory": "reports/closing"})
+        self.assertEqual(new_job("market.intraday_snapshot")["output"],
+                         {"format": "pdf", "directory": "reports/intraday"})
+        self.assertEqual(new_job("skills.audit")["output"],
+                         {"format": "pdf", "directory": "reports/audit"})
 
     def test_intraday_snapshot_job_generates_pdf(self):
         job = self._approved_job(
@@ -158,6 +162,22 @@ class LocalEngineTests(unittest.TestCase):
         record = self.manager.get(job["job_id"])
         self.assertEqual(record["status"], "completed")
         self.assertEqual(record["result"]["format"], "pdf")
+
+
+    def test_opening_and_closing_jobs_generate_pdf_after_approval(self):
+        for job_type, expected_dir, expected_name in (
+            ("market.opening_report", "reports/opening", "apertura-mercado_2026-11-12.pdf"),
+            ("market.closing_report", "reports/closing", "cierre-mercado_2026-11-12.pdf"),
+        ):
+            job = self._approved_job(job_type, {
+                "session_date_utc": "2026-11-12", "interval": "1h", "market": "spot"
+            })
+            with patch("local_engine.runtime.BinancePublicClient", return_value=FakeBinanceClient()):
+                result = JobRunner(self.manager).run(job["job_id"])
+            self.assertEqual(result["status"], "completed", result)
+            self.assertTrue(result["result"]["artifact_path"].startswith(expected_dir + "/"))
+            self.assertEqual(result["result"]["filename"], expected_name)
+            self.assertTrue(self.manager.workspace.directory(result["result"]["artifact_path"]).is_file())
 
     def test_intraday_snapshot_cannot_run_before_explicit_approval(self):
         job = new_job("market.intraday_snapshot", {
@@ -207,7 +227,7 @@ class LocalEngineTests(unittest.TestCase):
         self.assertIn("output is fixed to PDF in reports/intraday", result["error"])
 
     def test_unsupported_handler_fails_explicitly(self):
-        job = self._approved_job("market.opening_report")
+        job = self._approved_job("skills.audit")
         result = JobRunner(self.manager).run(job["job_id"])
         self.assertEqual(result["status"], "failed")
         self.assertIn("not implemented by this runtime", result["error"])
