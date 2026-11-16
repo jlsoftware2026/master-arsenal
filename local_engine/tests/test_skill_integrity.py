@@ -17,6 +17,7 @@ class OriginalSkillIntegrityTests(unittest.TestCase):
         self.assertEqual(len(result["packages"]), 4)
         self.assertTrue(all(item["status"] == "not_verified" for item in result["packages"]))
         self.assertEqual(len(result["manifest_sha256"]), 64)
+        self.assertEqual(result["adaptation_status"], "passed")
         self.assertTrue(any("ZIP payloads are not embedded" in item for item in result["findings"]))
 
     def test_adaptation_identity_mismatch_is_rejected(self):
