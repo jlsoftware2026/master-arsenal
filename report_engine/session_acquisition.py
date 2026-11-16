@@ -1,12 +1,12 @@
 """Acquisition-to-PDF adapters for completed UTC market-day reports."""
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
 from binance_data_engine.client import BinancePublicClient
-from binance_data_engine.session import acquire_completed_market_day
+from binance_data_engine.session import acquire_completed_market_day\nfrom .context import collect_market_context
 
 from .session import build_closing_report_pdf, build_opening_report_pdf
 
@@ -42,9 +42,15 @@ def acquire_session_report_evidence(
         "No forward scenario levels were inferred automatically. Add a separately reviewed "
         "technical scenario before using this report for a trading decision."
     )
+    start = datetime.fromisoformat(report["session_start_utc"].replace("Z", "+00:00"))
+    end = datetime.fromisoformat(report["session_end_utc"].replace("Z", "+00:00"))
+    context = collect_market_context(start, end)
+    report.update(context)
     report["limitations"] = (
-        "This implementation currently acquires Binance market data only. Macroeconomic and "
-        "news evidence is not yet connected; no news, event, or causal attribution is asserted."
+        "RSS context is date-bounded but not exhaustive. Feed outages and missing publication "
+        "timestamps are disclosed. Headlines are candidate context only; no causal attribution "
+        "to price movements is asserted. "
+        + context["context_limitations"]
     )
     return report
 
