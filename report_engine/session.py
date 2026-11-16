@@ -73,6 +73,13 @@ def _validate(report: dict[str, Any]):
         raise ValueError("Local report window timestamps must include their UTC offsets")
     if local_start.astimezone(timezone.utc) != start or local_end.astimezone(timezone.utc) != end:
         raise ValueError("Local and UTC report window boundaries do not match")
+    expected_local_start = start.astimezone(ZoneInfo("America/Santo_Domingo"))
+    expected_local_end = end.astimezone(ZoneInfo("America/Santo_Domingo"))
+    if (local_start.replace(tzinfo=None) != expected_local_start.replace(tzinfo=None)
+            or local_start.utcoffset() != expected_local_start.utcoffset()
+            or local_end.replace(tzinfo=None) != expected_local_end.replace(tzinfo=None)
+            or local_end.utcoffset() != expected_local_end.utcoffset()):
+        raise ValueError("Local timestamps do not match the IANA America/Santo_Domingo rules")
     if local_start.date() != report_date:
         raise ValueError("Local report start must match report_date_local")
     if report.get("is_partial") is True:
