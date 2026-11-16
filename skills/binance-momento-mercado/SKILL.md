@@ -55,7 +55,7 @@ Adapted against the user-supplied original Claude skill package. U.S. equity pre
 
 
 ## Language parity status
-The report composers have been localized to Spanish. Language parity is not certified until opening, closing, and intraday PDFs all pass independent Spanish-marker QA on the same code head.
+The opening, closing, and intraday PDF composers and the audit PDF use Spanish labels and narrative text. Independent marker and artifact tests for all three operational report types passed in GitHub Actions run 43924297424 (Ubuntu/Windows, Python 3.11/3.12). This verifies required content markers and PDF structure, not full semantic equivalence to every original source requirement.
 
 - 0.2.0 — 2026-11-16: Reconciled activation phrases, Dominican local-day semantics, PDF-only delivery, explicit limitations, and source-derived report requirements. Outstanding parity gaps remain disclosed.
 
