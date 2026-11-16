@@ -6,7 +6,7 @@
 
 ## Executive finding
 
-The current implementation is a strong PDF/data-engine foundation, and the three report windows now use `America/Santo_Domingo` local calendar semantics. It is not yet behaviorally equivalent to the original skills: broader U.S. equity-market price coverage, private Binance account analysis, activation timing, forecast scorecard linkage, and complete original-package/audit verification remain outstanding. The XNYS holiday/session calendar and session-state classifier are now integrated.
+The current implementation is a strong PDF/data-engine foundation, and the three report windows now use `America/Santo_Domingo` local calendar semantics. It is not yet behaviorally equivalent to the original skills: broader U.S. equity-market price coverage, private Binance account analysis, activation timing, and complete original-package/audit verification remain outstanding. Same-date range-scenario scorecard linkage is now implemented. The XNYS holiday/session calendar and session-state classifier are now integrated.
 
 ## Requirement comparison
 
@@ -22,7 +22,7 @@ The current implementation is a strong PDF/data-engine foundation, and the three
 | Portfolio accounting | Equity/balance, realized/unrealized PnL, fees/funding, positions, flows; deposits/withdrawals excluded from return | No private account ledger or flow-adjusted return calculation | Add an export ingestion and reconciliation workflow before claiming account performance |
 | Opening timing | 15–20 minutes before U.S. regular open; premarket context for the session opening today | Completed crypto day summary | Add scheduling/activation semantics and distinguish the Binance reference day from the U.S. session date |
 | Closing timing | Normally 15–20 minutes after 4:00 p.m. ET; if not closed, offer an intraday cut | Completed crypto day report | Validate session state; provide partial Binance day and provisional/official equity close state |
-| Closing scorecard | Compare the latest same-date opening forecast with actual results, if present | No persisted forecast linkage | Add same-date opening-report lookup and scorecard; omit if no forecast exists |
+| Closing scorecard | Compare the latest same-date opening forecast with actual results, if present | Integrated: integrity-checks the same-date opening evidence manifest and compares prior-day range references with closing-day OHLC; no opening report is explicitly not applicable | Verify scorecard behavior on final CI head; expand only if the original source requires additional forecast fields |
 | Intraday market narrative | Chronological session evolution, premarket/regular/postmarket state, daily move vs rolling 24h | Crypto candle charts and conditional scenarios | Add U.S. session-state context and distinguish local-day performance from rolling 24h |
 | News/macro | Current, reliable sources, timestamps, catalysts and market relevance | Date-bounded RSS feed context; limited publisher coverage | Expand source coverage and preserve unavailable-source disclosures; headlines remain context, not causation |
 | Audit | Original checklist, severity levels, ten desk-check cases, acceptance criteria, version/change log | PDF/evidence QA and raw candle recalculation; original parity not yet checked | Audit timezone, sessions, portfolio accounting, original edge-case matrix, source parity and package/version integrity |
