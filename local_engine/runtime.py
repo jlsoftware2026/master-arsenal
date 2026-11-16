@@ -602,30 +602,30 @@ class JobRunner:
                 "recommendation": "Generate reports before attempting a full cross-report audit.",
             })
         expected_by_id = {
-            "SKILL-01": "Original ZIP structure and source hashes can be independently revalidated.",
-            "SKILL-02": "All four adaptations preserve stable names, metadata, versioning, and PDF workflow.",
-            "SKILL-03": "The three operational workflows share coherent date, data, and provenance contracts.",
-            "SKILL-04": "Original trigger phrases route to the correct workflow at the required time.",
-            "PDF-01": "Operational PDFs parse, render, and contain the required sections.",
-            "CONTENT-01": "Original market, account, scenario, risk, and source sections are implemented or disclosed.",
-            "TIME-01": "Dominican local boundaries convert to correct UTC half-open intervals.",
-            "OPEN-01": "Opening Binance reference date is the previous local date.",
-            "CLOSE-01": "Closing retains the exact local cutoff and excludes unfinished candles.",
-            "INTRA-01": "Omitted intraday cutoff resolves to execution-time local time.",
-            "US-01": "Weekends and holidays use the last completed U.S. cash session.",
-            "US-02": "ET/DST conversion and U.S. session-state classification are correct.",
-            "ACCT-01": "Missing private account access is explicitly disclosed.",
-            "ACCT-02": "External deposits and withdrawals are excluded from trading return.",
-            "ACCT-03": "Portfolio return is not claimed without historical balances.",
-            "SCORE-01": "Closing compares the same-date opening forecast when one exists.",
-            "PKG-01": "Original archive bytes and hashes are independently verified.",
-            "CI-01": "The final code head passes Ubuntu/Windows Python 3.11/3.12 CI.",
+            "SKILL-01": "La estructura del ZIP original y los hashes de origen pueden verificarse de forma independiente.",
+            "SKILL-02": "Las cuatro adaptaciones conservan nombres, metadatos, versionado y flujo de trabajo PDF.",
+            "SKILL-03": "Los tres flujos operativos comparten contratos coherentes de fechas, datos y procedencia.",
+            "SKILL-04": "Las frases originales activan el flujo correcto en el momento requerido.",
+            "PDF-01": "Los PDF operativos se pueden analizar y renderizar, y contienen las secciones requeridas.",
+            "CONTENT-01": "Las secciones originales de mercado, cuenta, escenarios, riesgos y fuentes están implementadas o declaradas como no disponibles.",
+            "TIME-01": "Los límites horarios dominicanos se convierten correctamente a intervalos UTC semiabiertos.",
+            "OPEN-01": "La fecha de referencia de Binance para apertura es el día calendario local anterior.",
+            "CLOSE-01": "El cierre conserva la hora local exacta y excluye velas sin completar.",
+            "INTRA-01": "Si no se indica hora de corte intradía, se utiliza la hora local de ejecución.",
+            "US-01": "En fines de semana y festivos se utiliza la última sesión bursátil estadounidense completada.",
+            "US-02": "La conversión ET/DST y la clasificación de la sesión estadounidense son correctas.",
+            "ACCT-01": "La falta de acceso a la cuenta privada se declara expresamente.",
+            "ACCT-02": "Los depósitos y retiros externos se excluyen del rendimiento de trading.",
+            "ACCT-03": "No se afirma rendimiento de cartera sin saldos históricos.",
+            "SCORE-01": "El cierre compara el pronóstico de apertura de esa misma fecha cuando existe.",
+            "PKG-01": "Los bytes y hashes del archivo original se verifican de forma independiente.",
+            "CI-01": "El commit final supera CI en Ubuntu/Windows con Python 3.11/3.12.",
         }
         impact_by_severity = {
-            "Crítico": "Can produce an incorrect date, invented data, unsafe access, or materially false conclusion.",
-            "Alto": "Affects calculations, analyzed period, or market interpretation.",
-            "Medio": "Reduces consistency, coverage, or clarity.",
-            "Bajo": "Stylistic or non-essential improvement.",
+            "Crítico": "Puede producir fechas incorrectas, datos inventados, acceso inseguro o conclusiones materialmente falsas.",
+            "Alto": "Afecta los cálculos, el período analizado o la interpretación del mercado.",
+            "Medio": "Reduce la coherencia, cobertura o claridad.",
+            "Bajo": "Mejora de estilo o no esencial.",
         }
 
         def check(check_id, title, status, severity, evidence, recommendation):
@@ -680,72 +680,72 @@ class JobRunner:
                   "not_verified" if source_skill_integrity["status"] == "not_verified" else "failed", "Alto",
                   "Original archive and SKILL.md hashes are recorded, but the original ZIP payloads are not stored in the repository.",
                   "Retain the exact source archives in a controlled artifact store and revalidate package members and hashes."),
-            check("SKILL-02", "ChatGPT adaptation identity and Local Engine/PDF compatibility",
+            check("SKILL-02", "Identidad de adaptaciones y compatibilidad Local Engine/PDF",
                   source_skill_integrity.get("adaptation_status", "failed"), "Alto",
-                  "All four adaptation files have the expected identity and Local Engine/PDF contract."
+                  "Los cuatro archivos adaptados conservan la identidad esperada y el contrato Local Engine/PDF."
                   if source_skill_integrity.get("adaptation_status") == "passed"
                   else "; ".join(source_skill_integrity["findings"]),
                   "Keep adaptation names, Local Engine job types, and PDF-only output contracts synchronized."),
-            check("SKILL-03", "Cross-skill functional and semantic consistency", "not_verified", "Alto",
-                  "No automated semantic comparison across all four adapted skill workflows is attached.",
-                  "Add contract tests for shared report sections, date semantics, evidence fields, and hand-offs."),
-            check("SKILL-04", "Activation phrase and timing dispatch", "not_implemented", "Alto",
-                  "Activation phrases are documented, but runtime phrase dispatch and ET activation scheduling are not implemented.",
-                  "Implement a deterministic trigger router and exchange-calendar-aware activation timing."),
-            check("PDF-01", "PDF structure, readability, and layout QA",
+            check("SKILL-03", "Coherencia funcional y semántica entre Skills", "not_verified", "Alto",
+                  "No se adjunta una comparación semántica automatizada de los cuatro flujos adaptados.",
+                  "Añadir pruebas de contrato para secciones compartidas, semántica de fechas, campos de evidencia y transferencias entre flujos."),
+            check("SKILL-04", "Activación por frases y horario", "not_implemented", "Alto",
+                  "Las frases de activación están documentadas, pero no están implementados el enrutamiento por frases ni la programación según ET.",
+                  "Implementar un enrutador determinista de activación y horarios basados en el calendario bursátil."),
+            check("PDF-01", "Estructura, legibilidad y diseño de PDF",
                   "passed" if artifact_qa_ok else "not_verified", "Alto",
-                  "All discovered operational PDFs passed independent parser/render QA."
-                  if artifact_qa_ok else "No complete set of operational PDFs passed independent QA.",
-                  "Generate opening, closing, and intraday PDFs and attach independent PyMuPDF QA results."),
-            check("CONTENT-01", "Original report section and market-data parity", "not_verified", "Alto",
-                  "U.S. market breadth, catalysts, private account analytics, and full original report semantics are not implemented.",
-                  "Implement or explicitly mark each original section unavailable; do not certify source-skill parity."),
-            check("TIME-01", "Dominican local-day boundaries", "passed" if local_windows_ok else "not_verified",
-                  "Crítico", "All retained manifests declare the IANA timezone and half-open window." if local_windows_ok
+                  "Todos los PDF operativos encontrados superaron el análisis y renderizado independiente."
+                  if artifact_qa_ok else "No existe un conjunto completo de PDF operativos que haya superado QA independiente.",
+                  "Generar PDF de apertura, cierre e intradía y adjuntar los resultados independientes de QA con PyMuPDF."),
+            check("CONTENT-01", "Paridad de secciones y datos de mercado", "not_verified", "Alto",
+                  "No están implementados la amplitud del mercado estadounidense, sus catalizadores, el análisis de la cuenta privada ni toda la semántica de los informes originales.",
+                  "Implementar o marcar expresamente como no disponible cada sección original; no certificar paridad con las Skills fuente."),
+            check("TIME-01", "Límites del día calendario dominicano", "passed" if local_windows_ok else "not_verified",
+                  "Crítico", "Todos los manifiestos conservados declaran la zona horaria IANA y la ventana semiabierta." if local_windows_ok
                   else "No complete set of valid local-window manifests is available.",
                   "Regenerate and independently audit every operational report."),
-            check("OPEN-01", "Opening uses previous local calendar day", "passed" if opening_dates_ok else "not_verified",
-                  "Alto", "Opening request dates and reference dates were reconciled from evidence manifests." if opening_dates_ok
-                  else "No opening evidence proves the previous-local-day rule.",
-                  "Generate an opening report and retain its request-date evidence."),
-            check("CLOSE-01", "Closing partial-day cutoff", "passed" if closing_windows_ok else "not_verified",
-                  "Alto", "Closing manifests declare explicit, execution-time, or historical-complete cutoff resolution." if closing_windows_ok
-                  else "No closing evidence proves partial-day cutoff handling.",
-                  "Generate a current-day closing report before local midnight and inspect the exact cutoff."),
-            check("INTRA-01", "Intraday omitted-cutoff default", "passed" if any(
+            check("OPEN-01", "Apertura: día calendario local anterior", "passed" if opening_dates_ok else "not_verified",
+                  "Alto", "Las fechas de solicitud y referencia de apertura se reconciliaron mediante los manifiestos de evidencia." if opening_dates_ok
+                  else "No hay evidencia de apertura que demuestre la regla del día local anterior.",
+                  "Generar un informe de apertura y conservar la evidencia de la fecha de solicitud."),
+            check("CLOSE-01", "Cierre parcial hasta la hora de corte", "passed" if closing_windows_ok else "not_verified",
+                  "Alto", "Los manifiestos de cierre declaran hora de corte explícita, de ejecución o día histórico completado." if closing_windows_ok
+                  else "No hay evidencia de cierre que demuestre el tratamiento del día parcial.",
+                  "Generar un informe de cierre del día actual antes de medianoche local e inspeccionar la hora de corte exacta."),
+            check("INTRA-01", "Hora de corte predeterminada del snapshot", "passed" if any(
                       x.get("cutoff_resolution") == "execution_time_local_default" for x in intraday_reports
                   ) else "not_exercised" if intraday_reports else "not_verified",
-                  "Medio", "An intraday report records execution-time local cutoff." if any(
+                  "Medio", "Un informe intradía registra la hora local de ejecución como corte." if any(
                       x.get("cutoff_resolution") == "execution_time_local_default" for x in intraday_reports
-                  ) else "No retained intraday report proves the omitted-cutoff path.",
-                  "Run an intraday job with no cutoff parameter."),
-            check("US-01", "U.S. exchange weekends and holidays", "not_implemented", "Alto",
+                  ) else "No hay un informe intradía conservado que demuestre la ruta sin hora de corte explícita.",
+                  "Ejecutar un trabajo intradía sin parámetro de hora de corte."),
+            check("US-01", "Fines de semana y festivos bursátiles de EE. UU.", "not_implemented", "Alto",
                   "No exchange-calendar adapter is integrated.",
-                  "Implement and independently test weekend/holiday last-session selection."),
-            check("US-02", "U.S. cash-session DST and state", "not_implemented", "Alto",
-                  "Premarket/regular/postmarket classification and DST-aware session calendar are not integrated.",
-                  "Add an authoritative exchange calendar and test both U.S. DST transitions."),
-            check("ACCT-01", "Missing private Binance account access", "disclosed" if account_disclosed else "not_verified",
-                  "Medio", "Reports explicitly label private account analytics unavailable." if account_disclosed
-                  else "No retained report proves account-data unavailability is disclosed.",
-                  "Keep the unavailable disclosure until an authorized read-only source or export parser exists."),
-            check("ACCT-02", "External deposits/withdrawals excluded from PnL", "not_applicable", "Alto",
-                  "No private account ledger or portfolio return calculation is implemented.",
-                  "Implement ledger reconciliation before reporting portfolio returns; exclude deposits/withdrawals from PnL."),
-            check("ACCT-03", "Missing historical account balances", "not_applicable", "Medio",
-                  "No private account history or balance snapshots are ingested.",
-                  "Require complete historical balances before making account-performance claims."),
-            check("SCORE-01", "Same-date opening forecast scorecard", "not_implemented" if scorecard_missing else "not_verified",
-                  "Alto", "Closing reports disclose that scorecard linkage is not implemented." if scorecard_missing
+                  "Implementar y probar de forma independiente la selección de la última sesión en fines de semana y festivos."),
+            check("US-02", "Horario bursátil y cambio horario de EE. UU.", "not_implemented", "Alto",
+                  "No están integrados la clasificación premercado/regular/posmercado ni el calendario con ajuste DST.",
+                  "Añadir un calendario bursátil autorizado y probar ambos cambios DST de EE. UU."),
+            check("ACCT-01", "Ausencia de acceso a cuenta privada de Binance", "disclosed" if account_disclosed else "not_verified",
+                  "Medio", "Los informes indican expresamente que el análisis de la cuenta privada no está disponible." if account_disclosed
+                  else "Ningún informe conservado demuestra que se declare la falta de datos de cuenta.",
+                  "Mantener la declaración de no disponibilidad hasta contar con una fuente de solo lectura autorizada o un parser de exportaciones."),
+            check("ACCT-02", "Exclusión de depósitos y retiros del PnL", "not_applicable", "Alto",
+                  "No está implementado el libro mayor de la cuenta privada ni el cálculo del rendimiento de cartera.",
+                  "Implementar conciliación del libro mayor antes de informar rendimientos; excluir depósitos/retiros del PnL."),
+            check("ACCT-03", "Saldos históricos de cuenta incompletos", "not_applicable", "Medio",
+                  "No se ingieren historiales de cuenta privada ni capturas de saldos.",
+                  "Exigir saldos históricos completos antes de afirmar rendimiento de cuenta."),
+            check("SCORE-01", "Comparación del pronóstico de apertura y el cierre", "not_implemented" if scorecard_missing else "not_verified",
+                  "Alto", "Los informes de cierre declaran que la vinculación con el pronóstico de apertura no está implementada." if scorecard_missing
                   else "No closing report proves scorecard linkage or explicit unavailability.",
-                  "Persist opening scenarios and compare them with same-date observed outcomes."),
-            check("PKG-01", "Original skill package integrity and version history",
+                  "Persistir los escenarios de apertura y compararlos con los resultados observados de esa misma fecha."),
+            check("PKG-01", "Integridad de paquetes originales e historial de versiones",
                   source_skill_integrity["status"], "Alto",
                   "All four adapted skill identities are present; original archive and source hashes are recorded but the ZIP payloads are not embedded."
                   if source_skill_integrity["status"] == "not_verified" else "; ".join(source_skill_integrity["findings"]),
-                  "Embed the exact original .skill archives or provide a trusted source artifact so the audit can recompute the recorded hashes."),
-            check("CI-01", "Cross-platform CI evidence on audited code head", "not_verified", "Alto",
-                  "No trusted CI run manifest is attached to this local workspace audit.",
+                  "Incorporar los archivos .skill originales exactos o aportar un artefacto de origen verificable para recalcular sus hashes."),
+            check("CI-01", "Evidencia CI multiplataforma del commit auditado", "not_verified", "Alto",
+                  "No se adjunta un manifiesto CI verificable a esta auditoría local.",
                   "Attach the final-head Ubuntu/Windows Python 3.11/3.12 Actions run and inspect all jobs."),
         ]
         unresolved = [
@@ -825,7 +825,7 @@ class JobRunner:
         change_history = [
             {
                 "date": audit_date_local, "version": __version__,
-                "change": "Phase 3 PDF reporting with Dominican local-day windows and evidence schema v2; original source archive hashes are recorded but payload verification remains pending.",
+                "change": "Motor PDF de Fase 3 con días calendario dominicanos y esquema de evidencia v2; los hashes de los archivos originales están registrados, pero falta verificar sus contenidos.",
             },
             {
                 "date": audit_date_local, "version": "original-skill-parity",
