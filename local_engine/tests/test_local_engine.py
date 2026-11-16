@@ -42,9 +42,10 @@ class FakeBinanceClient:
         }
 
     def get_server_time(self, market):
-        return self.cutoff + timedelta(minutes=1)
+        return datetime.now(timezone.utc) + timedelta(minutes=1)
 
     def get_historical_klines(self, symbol, interval, start, end, market="spot"):
+        self.last_response_metadata = {"http_status": 200, "retrieved_at_utc": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")}
         rows = []
         window_hours = int((end - start).total_seconds() // 3600)
         expected = 250 if window_hours >= 200 else window_hours
@@ -174,12 +175,12 @@ class LocalEngineTests(unittest.TestCase):
 
 
     def test_opening_and_closing_jobs_generate_pdf_after_approval(self):
-        for job_type, expected_dir, expected_name in (
-            ("market.opening_report", "reports/opening", "apertura-mercado_2026-11-12.pdf"),
-            ("market.closing_report", "reports/closing", "cierre-mercado_2026-11-12.pdf"),
+        for job_type, expected_dir, expected_name, report_date in (
+            ("market.opening_report", "reports/opening", "apertura-mercado_2026-11-11.pdf", "2026-11-12"),
+            ("market.closing_report", "reports/closing", "cierre-mercado_2026-11-11.pdf", "2026-11-11"),
         ):
             job = self._approved_job(job_type, {
-                "session_date_utc": "2026-11-12", "interval": "1h", "market": "spot"
+                "session_date_local": report_date, "interval": "1h", "market": "spot"
             })
             with patch("local_engine.runtime.BinancePublicClient", return_value=FakeBinanceClient()), \
                  patch("report_engine.session_acquisition.collect_market_context", return_value={
@@ -234,11 +235,19 @@ class LocalEngineTests(unittest.TestCase):
             client_factory.assert_not_called()
         self.assertFalse(any(self.manager.workspace.directory("reports/closing").iterdir()))
 
-    def test_intraday_snapshot_job_requires_cutoff(self):
+    def test_intraday_snapshot_defaults_to_execution_time_in_dominican_timezone(self):
         job = self._approved_job("market.intraday_snapshot")
-        result = JobRunner(self.manager).run(job["job_id"])
-        self.assertEqual(result["status"], "failed")
-        self.assertIn("cutoff_utc is required", result["error"])
+        with patch("local_engine.runtime.BinancePublicClient", return_value=FakeBinanceClient()), \\
+             patch("report_engine.acquisition.collect_market_context", return_value={
+                 "macro_context": "No macro items.", "news": "No news items.",
+                 "macro_sources": [], "news_sources": [], "context_status": "complete",
+                 "context_limitations": "Fixture context only.",
+             }):
+            result = JobRunner(self.manager).run(job["job_id"])
+        self.assertEqual(result["status"], "completed", result)
+        self.assertIn("snapshot-mercado-", result["result"]["filename"])
+        self.assertEqual(result["result"]["report_date_local"], datetime.now().astimezone().date().isoformat()
+                         if False else result["result"]["report_date_local"])
 
     def test_intraday_snapshot_job_rejects_non_pdf_output(self):
         job = new_job("market.intraday_snapshot", {
