@@ -85,6 +85,8 @@ def _make_candles(rows: Any, symbol: str, interval: str) -> list[Candle]:
     for index, row in enumerate(rows):
         if not isinstance(row, dict):
             raise ValueError(f"{symbol}: candle {index} must be an object")
+        if row.get("symbol") != symbol or row.get("interval") != interval:
+            raise ValueError(f"{symbol}: candle {index} symbol or interval does not match manifest.")
         candles.append(Candle(
             symbol=symbol, interval=interval,
             open_time=_strict_utc(row["open_time"]),
