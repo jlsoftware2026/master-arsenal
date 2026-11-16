@@ -91,5 +91,9 @@ def generate_intraday_snapshot_pdf(
     )
     artifact = build_intraday_snapshot_pdf(evidence, output_directory)
     if manifest_directory is not None:
-        write_evidence_manifest(evidence, "intraday", artifact, manifest_directory)
+        try:
+            write_evidence_manifest(evidence, "intraday", artifact, manifest_directory)
+        except Exception:
+            artifact.unlink(missing_ok=True)
+            raise
     return artifact
