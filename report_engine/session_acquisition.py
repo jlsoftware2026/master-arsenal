@@ -226,8 +226,7 @@ def acquire_session_report_evidence(
     report["limitations"] = (
         "El contexto RSS está limitado por fecha, pero no es exhaustivo. Los datos bursátiles son cotizaciones best-effort de Yahoo Finance "
         "y pueden estar retrasados o incompletos; no son un feed de ejecución. La amplitud bursátil y líderes/rezagados por acción no están incluidos. "
-        "El calendario XNYS aporta feriados y horarios, no precios. El análisis de la cuenta privada de Binance y la activación automática "
-        "no están disponibles en esta versión. El scorecard de apertura/cierre depende de un manifiesto íntegro de apertura de la misma fecha. "
+        "El calendario XNYS aporta feriados y horarios, no precios. El CSV de cuenta resume solo movimientos; patrimonio, PnL no realizado y rentabilidad ajustada por flujos no están disponibles. La activación automática no está implementada. El scorecard de apertura/cierre depende de un manifiesto íntegro de apertura de la misma fecha. "
         + market_evidence.get("limitations", "No se suministraron limitaciones del proveedor bursátil.") + " "
         + account_evidence.get("limitations", "No se suministraron limitaciones de la exportación de cuenta.") + " "
         + context.get("context_limitations", "No se suministraron limitaciones de los feeds.")
