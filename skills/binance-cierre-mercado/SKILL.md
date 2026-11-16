@@ -28,7 +28,7 @@ Generate a detailed PDF report for the current Dominican local calendar day, inc
 8. Same-date opening forecast scorecard when an opening report exists.
 9. Bullish/long and bearish/short scenarios, risks, source register, limitations, and conclusion.
 
-If account, U.S. market, or opening-scorecard evidence is unavailable, disclose it. Never call a partial Binance local day complete. The XNYS calendar now supplies session holidays, early closes, and DST-aware session-state classification. U.S. market prices, private-account exports, and opening-scorecard linkage remain unavailable.
+If account, U.S. market, or opening-scorecard evidence is unavailable, disclose it. Never call a partial Binance local day complete. The XNYS calendar now supplies session holidays, early closes, and DST-aware session-state classification. U.S. market prices and private-account exports remain unavailable. Same-date opening-to-closing scenario reconciliation is implemented when an integrity-checked opening manifest exists; otherwise the report states that no opening forecast was available.
 
 ## Local Engine workflow
 - Job type: `market.closing_report`
@@ -51,7 +51,7 @@ The Local Engine may retain a source-linked raw-evidence manifest under `data/ma
 Disclose incomplete data and unavailable feeds. Headlines are candidate context only, not proof of market causation. Scenario levels are conditional references, not forecasts, targets, or probabilities. Never fabricate values, events, citations, or forecasts. Generate and independently inspect the PDF; if PDF generation or QA fails, fail the job and do not substitute another format.
 
 ## Status
-Adapted against the user-supplied original Claude skill package. U.S. market prices, private-account analytics, automated activation timing, and same-date opening forecast scorecard remain unavailable/not implemented and are disclosed. XNYS calendar/session classification is integrated.
+Adapted against the user-supplied original Claude skill package. U.S. market prices, private-account analytics, automated activation timing, and same-date opening-to-closing range scorecard is integrated when a valid same-date opening manifest exists; absence is marked not applicable. XNYS calendar/session classification is integrated.
 
 ## Version history
 - 0.1.0 — 2026-11-16: Initial ChatGPT/MASTER ARSENAL adaptation; preserves the original skill identity and documents the Local Engine/PDF workflow and current implementation gaps.
