@@ -74,7 +74,7 @@ def build_skills_audit_pdf(report: dict[str, Any], output_directory: Path | str)
     styles = report_styles()
     verified = sum(1 for item in artifacts if isinstance(item, dict) and item.get("qa_status") == "passed")
     unverified = len(artifacts) - verified
-    status = "INSUFFICIENT EVIDENCE" if not artifacts or unverified or findings else "STRUCTURAL CHECKS PASSED"
+    status = "INSUFFICIENT EVIDENCE" if not artifacts or unverified else "STRUCTURAL CHECKS PASSED"
     story = [
         Paragraph("Binance Skills Independent Audit", styles["title"]),
         Paragraph("Evidence-led review of generated report artifacts and verification coverage", styles["subtitle"]),
@@ -101,6 +101,33 @@ def build_skills_audit_pdf(report: dict[str, Any], output_directory: Path | str)
             styles["body"],
         ),
     ]
+    executive_summary = report.get("executive_summary") or []
+    story.append(section_heading("Resumen ejecutivo", styles))
+    if executive_summary:
+        for item in executive_summary[:7]:
+            story.append(paragraph(f"• {item}", styles["body"]))
+    else:
+        story.append(paragraph("No executive summary was supplied.", styles["body"]))
+
+    skill_results = report.get("skill_results") or []
+    story.append(section_heading("Resultado por Skill", styles))
+    if skill_results:
+        skill_rows = [[
+            str(item.get("name", "Unknown")),
+            str(item.get("package_integrity", "not verified")),
+            str(item.get("temporal_coherence", "not verified")),
+            str(item.get("data_security", "not verified")),
+            str(item.get("methodology", "not verified")),
+            str(item.get("status", "No aprobado")),
+        ] for item in skill_results if isinstance(item, dict)]
+        if skill_rows:
+            story.append(data_table(
+                ["Skill", "Integridad", "Coherencia temporal", "Seguridad", "Metodología", "Estado"],
+                skill_rows, styles, widths=[38*mm, 24*mm, 28*mm, 22*mm, 25*mm, 24*mm],
+            ))
+    else:
+        story.append(paragraph("No per-skill result table was supplied. NOT VERIFIED.", styles["body"]))
+
     if artifacts:
         rows = []
         for item in artifacts:
@@ -136,11 +163,12 @@ def build_skills_audit_pdf(report: dict[str, Any], output_directory: Path | str)
             rows.append([
                 str(item.get("severity", "unclassified")),
                 str(item.get("title", "Untitled finding")),
+                str(item.get("impact", "Impact not supplied")),
                 str(item.get("evidence", "No evidence supplied")),
                 str(item.get("recommendation", "No recommendation supplied")),
             ])
         if rows:
-            story.append(data_table(["Severity", "Finding", "Evidence", "Recommendation"], rows, styles))
+            story.append(data_table(["Severity", "Finding", "Impact", "Observed evidence", "Correction"], rows, styles))
     else:
         story.extend([
             section_heading("Findings", styles),
@@ -171,7 +199,8 @@ def build_skills_audit_pdf(report: dict[str, Any], output_directory: Path | str)
             styles["body"],
         ))
     if source_integrity.get("findings"):
-        story.append(bullet_list([str(item) for item in source_integrity["findings"]], styles))
+        for finding in source_integrity["findings"]:
+            story.append(paragraph(f"• {finding}", styles["body"]))
 
     desk_checks = report.get("desk_checks") or []
     story.append(section_heading("Original-skill desk-check matrix", styles))
@@ -181,20 +210,45 @@ def build_skills_audit_pdf(report: dict[str, Any], output_directory: Path | str)
             str(item.get("case", "Unspecified")),
             str(item.get("status", "not verified")),
             str(item.get("severity", "unclassified")),
-            str(item.get("evidence", "Not supplied")),
+            "Expected: " + str(item.get("expected", "Not supplied")) + " Observed: " + str(item.get("observed", item.get("evidence", "Not supplied"))),
+            str(item.get("impact", "Impact not supplied")),
             str(item.get("recommendation", "Not supplied")),
         ] for item in desk_checks if isinstance(item, dict)]
         if desk_rows:
             story.append(data_table(
-                ["ID", "Desk check", "Status", "Severity", "Evidence", "Recommendation"],
+                ["ID", "Desk check", "Status", "Severity", "Expected / observed", "Impact", "Correction"],
                 desk_rows, styles,
-                widths=[12*mm, 30*mm, 20*mm, 16*mm, 44*mm, 31*mm],
+                widths=[10*mm, 25*mm, 17*mm, 14*mm, 48*mm, 25*mm, 24*mm],
             ))
     else:
         story.append(paragraph(
             "The original-skill desk-check matrix was not supplied. Full audit parity is NOT VERIFIED.",
             styles["body"],
         ))
+
+    story.append(section_heading("Cambios aplicados", styles))
+    changes_applied = report.get("changes_applied") or []
+    if changes_applied:
+        for item in changes_applied:
+            story.append(paragraph(f"• {item}", styles["body"]))
+    else:
+        story.append(paragraph("No applied changes were recorded.", styles["body"]))
+
+    story.append(section_heading("Pendientes", styles))
+    pending_items = report.get("pending_items") or []
+    if pending_items:
+        for item in pending_items:
+            story.append(paragraph(f"• {item}", styles["body"]))
+    else:
+        story.append(paragraph("No pending items were supplied.", styles["body"]))
+
+    story.append(section_heading("Archivos revisados", styles))
+    files_reviewed = report.get("files_reviewed") or []
+    if files_reviewed:
+        for item in files_reviewed:
+            story.append(paragraph(f"• {item}", styles["body"]))
+    else:
+        story.append(paragraph("No file list was supplied.", styles["body"]))
 
     change_history = report.get("change_history") or []
     story.append(section_heading("Version and change history", styles))
