@@ -782,6 +782,8 @@ class JobRunner:
                 try:
                     file_index = int(file_id.rsplit("_", 1)[1]) - 1
                     source_path = csv_paths[file_index]
+                    if source_path.stat().st_size != item["bytes"] or item["bytes"] > 20_000_000:
+                        return False
                     raw = source_path.read_bytes()
                 except (ValueError, IndexError, OSError):
                     return False
