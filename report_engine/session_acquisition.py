@@ -13,6 +13,7 @@ from .evidence import write_evidence_manifest
 from .session import build_closing_report_pdf, build_opening_report_pdf
 from .scorecard import build_opening_forecast_scorecard
 from .us_market_calendar import classify_us_equity_session
+from .us_market_data import collect_us_market_snapshot
 from .timezone import (
     LOCAL_TZ, REPORT_TIMEZONE, completed_local_day, current_local_report_date,
     local_day_window, opening_reference_date,
@@ -90,7 +91,10 @@ def acquire_session_report_evidence(
         calendar_reference = datetime.combine(target_date, time(16, 20), tzinfo=eastern)
         report["us_equity_calendar_reference"] = "post_close_reference_16:20_ET"
     calendar_evidence = classify_us_equity_session(calendar_reference)
+    market_evidence = collect_us_market_snapshot(calendar_reference)
     report["us_equity_calendar"] = calendar_evidence
+    report["us_equity_market_data"] = market_evidence
+    report["us_equity_market_data_status"] = market_evidence["status"]
     report["us_equity_session_state"] = (
         calendar_evidence["session_state"] if calendar_evidence["status"] == "ok"
         else "not_available"
@@ -148,15 +152,26 @@ def acquire_session_report_evidence(
         f"Contexto macroeconómico/noticias: {available_feeds} de {len(feeds)} feeds consultados con estado correcto; "
         "los titulares son contexto y no prueban causalidad."
     )
+    market_items = [
+        item for category in ("indices", "volatility", "rates", "dollar", "commodities")
+        for item in market_evidence.get("groups", {}).get(category, [])
+        if item.get("status") == "ok"
+    ]
+    market_highlights = [
+        f"{item['name']} {item['last_price']:.4g}"
+        + (f" ({item['change_percent']:+.2f}%)" if item.get("change_percent") is not None else "")
+        for item in market_items[:5]
+    ]
     summary_points.append(
-        "Calendario bursátil XNYS: "
+        f"Mercado estadounidense: {market_evidence['available_instruments']}/"
+        f"{market_evidence['expected_instruments']} cotizaciones disponibles al corte; "
+        + ("; ".join(market_highlights) if market_highlights else "sin cotizaciones verificables")
+        + ". Calendario XNYS: "
         + (f"{calendar_evidence['session_state']} a {calendar_evidence['as_of_et']}; "
-           f"última sesión completada {calendar_evidence['last_completed_session_date']}; "
+           f"última sesión {calendar_evidence['last_completed_session_date']}; "
            f"próxima sesión {calendar_evidence['next_session_date']}."
-           if calendar_evidence["status"] == "ok"
-           else "no disponible; no se infiere el estado bursátil.")
-        + " La cobertura de índices/indicadores estadounidenses y los datos privados de cuenta Binance "
-          "siguen sin integrarse; la activación automática tampoco está implementada."
+           if calendar_evidence["status"] == "ok" else "calendario no disponible.")
+        + " Amplitud y líderes/rezagados por acción no disponibles; cuenta privada Binance no integrada."
     )
     report["executive_summary"] = summary_points
     report["technical_analysis"] = (
@@ -189,10 +204,11 @@ def acquire_session_report_evidence(
     report.update(context)
     report["generated_at_utc"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     report["limitations"] = (
-        "El contexto RSS está limitado por fecha, pero no es exhaustivo. El calendario XNYS se integra solo para horario/feriados "
-        "y no aporta precios; la cobertura completa del mercado bursátil estadounidense, el análisis de la cuenta privada de Binance "
-        "y la activación automática de apertura/cierre "
+        "El contexto RSS está limitado por fecha, pero no es exhaustivo. Los datos bursátiles son cotizaciones best-effort de Yahoo Finance "
+        "y pueden estar retrasados o incompletos; no son un feed de ejecución. La amplitud bursátil y líderes/rezagados por acción no están incluidos. "
+        "El calendario XNYS aporta feriados y horarios, no precios. El análisis de la cuenta privada de Binance y la activación automática "
         "no están disponibles en esta versión. El scorecard de apertura/cierre depende de un manifiesto íntegro de apertura de la misma fecha. "
+        + market_evidence.get("limitations", "No se suministraron limitaciones del proveedor bursátil.") + " "
         + context.get("context_limitations", "No se suministraron limitaciones de los feeds.")
     )
     return report
