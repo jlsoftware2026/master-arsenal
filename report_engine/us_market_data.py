@@ -256,10 +256,9 @@ def collect_us_market_snapshot(
     ]
     leaders = sorted(sectors, key=lambda item: item["change_percent"], reverse=True)
     return {
-        "status": (
-            "unavailable" if not available else
-            "complete" if not unavailable else "partial"
-        ),
+        "status": "unavailable" if not available else "partial",
+        "instrument_snapshot_status": "unavailable" if not available else
+            "complete" if not unavailable else "partial",
         "provider": SOURCE,
         "as_of_utc": cutoff.isoformat().replace("+00:00", "Z"),
         "retrieved_at_utc": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
