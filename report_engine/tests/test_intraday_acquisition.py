@@ -55,6 +55,16 @@ class FakeClient:
 
 
 class IntradayAcquisitionTests(unittest.TestCase):
+    def setUp(self):
+        self.context = patch("report_engine.acquisition.collect_market_context", return_value={
+            "macro_context": "No macro items.", "news": "No news items.",
+            "macro_sources": [], "news_sources": [], "context_status": "complete",
+        })
+        self.context.start()
+
+    def tearDown(self):
+        self.context.stop()
+
     def test_acquires_completed_utc_day_candles_for_core_symbols(self):
         report = acquire_intraday_evidence(FakeClient(), CUTOFF, "1h")
         self.assertEqual(report["data_status"], "complete")
