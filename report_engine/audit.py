@@ -23,8 +23,12 @@ def _status_es(value: Any) -> str:
         "not_exercised": "No probado",
         "disclosed": "Declarado",
         "opening": "Apertura", "closing": "Cierre", "intraday": "Intradía",
-        "not verified": "No verificado", "not available": "No disponible",
-        "not integrated": "No integrado", "not implemented": "No implementado",
+        "not verified": "No verificado", "not_verified": "No verificado",
+        "not available": "No disponible", "not_available": "No disponible",
+        "not integrated": "No integrado", "not_integrated": "No integrado",
+        "not implemented": "No implementado", "not_implemented": "No implementado",
+        "not_automated": "No automatizado", "not_applicable": "No aplica",
+        "not_exercised": "No probado", "not_automated": "No automatizado",
     }.get(str(value), str(value))
 
 
