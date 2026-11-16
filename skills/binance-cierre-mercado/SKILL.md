@@ -55,3 +55,7 @@ Adapted against the user-supplied original Claude skill package. U.S. market dat
 
 ## Version history
 - 0.1.0 — 2026-11-16: Initial ChatGPT/MASTER ARSENAL adaptation; preserves the original skill identity and documents the Local Engine/PDF workflow and current implementation gaps.
+
+
+## Language parity status
+The original Claude skill specifies Spanish-language report content. The current PDF composer still renders English headings and labels; this remains a high-severity parity gap and must be localized before the workflow can be certified as equivalent to the original.
