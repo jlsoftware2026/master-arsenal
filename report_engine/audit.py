@@ -74,30 +74,30 @@ def build_skills_audit_pdf(report: dict[str, Any], output_directory: Path | str)
     styles = report_styles()
     verified = sum(1 for item in artifacts if isinstance(item, dict) and item.get("qa_status") == "passed")
     unverified = len(artifacts) - verified
-    status = "INSUFFICIENT EVIDENCE" if not artifacts or unverified else "STRUCTURAL CHECKS PASSED"
+    status = "EVIDENCIA INSUFICIENTE" if not artifacts or unverified else "VERIFICACIÓN ESTRUCTURAL APROBADA"
     story = [
-        Paragraph("Binance Skills Independent Audit", styles["title"]),
-        Paragraph("Evidence-led review of generated report artifacts and verification coverage", styles["subtitle"]),
-        data_table(["Audit metadata", "Value"], [
-            ["Audit date local", audit_date_local],
-            ["Reporting timezone", report_timezone],
-            ["Audit date UTC", audit_date],
-            ["Generated at UTC", generated_at],
-            ["Report engine version", str(report.get("report_engine_version", "Not supplied"))],
-            ["Adapted skill identity", str((report.get("source_skill_integrity") or {}).get("adaptation_status", "not verified"))],
-            ["Original archive payload", str((report.get("source_skill_integrity") or {}).get("status", "not verified"))],
-            ["Artifacts discovered", str(len(artifacts))],
-            ["Artifacts passing structural QA", str(verified)],
-            ["Artifacts not verified / failing", str(unverified)],
-            ["Structural status", status],
-            ["Overall audit verdict", str(report.get("audit_verdict", "No aprobado"))],
+        Paragraph("Auditoría independiente de las Skills de Binance", styles["title"]),
+        Paragraph("Revisión basada en evidencia de los informes generados y de su cobertura de verificación", styles["subtitle"]),
+        data_table(["Metadatos de auditoría", "Valor"], [
+            ["Fecha de auditoría local", audit_date_local],
+            ["Zona horaria", report_timezone],
+            ["Fecha de auditoría UTC", audit_date],
+            ["Generado en UTC", generated_at],
+            ["Versión del motor de informes", str(report.get("report_engine_version", "No indicada"))],
+            ["Identidad de las Skills adaptadas", str((report.get("source_skill_integrity") or {}).get("adaptation_status", "no verificada"))],
+            ["Contenido de archivos originales", str((report.get("source_skill_integrity") or {}).get("status", "no verificado"))],
+            ["Informes encontrados", str(len(artifacts))],
+            ["Informes que superan QA estructural", str(verified)],
+            ["Informes no verificados o fallidos", str(unverified)],
+            ["Estado estructural", status],
+            ["Veredicto general", str(report.get("audit_verdict", "No aprobado"))],
         ], styles),
         Spacer(1, 4),
-        section_heading("Scope and independence", styles),
+        section_heading("Alcance e independencia", styles),
         paragraph(
-            "This audit inspects available report files independently of their generating skill. "
-            "Structural PDF parsing, text extraction, page-bound checks, and raster rendering do not "
-            "prove market-data correctness, analytical validity, source authenticity, or investment merit.",
+            "Esta auditoría inspecciona los archivos de informe disponibles de forma independiente de la Skill que los generó. "
+            "El análisis estructural del PDF, la extracción de texto, la comprobación de límites de página y la renderización no "
+            "demuestran la exactitud de los datos de mercado, la validez analítica, la autenticidad de las fuentes ni el mérito de una inversión.",
             styles["body"],
         ),
     ]
@@ -144,18 +144,18 @@ def build_skills_audit_pdf(report: dict[str, Any], output_directory: Path | str)
             ])
         if rows:
             story.extend([
-                section_heading("Artifact inspection register", styles),
-                data_table(["File", "Type", "QA", "Pages", "Bytes", "SHA-256", "Issues"],
+                section_heading("Registro de inspección de informes", styles),
+                data_table(["Archivo", "Tipo", "QA", "Páginas", "Bytes", "SHA-256", "Hallazgos"],
                            rows, styles, widths=[30*mm, 18*mm, 16*mm, 12*mm, 15*mm, 30*mm, 42*mm]),
             ])
     else:
         story.extend([
             section_heading("Artifact inspection register", styles),
-            paragraph("No opening, closing, or intraday PDF artifacts were available. "
-                      "Their correctness is NOT VERIFIED.", styles["body"]),
+            paragraph("No había informes PDF de apertura, cierre o intradía disponibles. "
+                      "Su exactitud NO ESTÁ VERIFICADA.", styles["body"]),
         ])
     if findings:
-        story.append(section_heading("Findings", styles))
+        story.append(section_heading("Hallazgos", styles))
         rows = []
         for item in findings:
             if not isinstance(item, dict):
@@ -168,15 +168,15 @@ def build_skills_audit_pdf(report: dict[str, Any], output_directory: Path | str)
                 str(item.get("recommendation", "No recommendation supplied")),
             ])
         if rows:
-            story.append(data_table(["Severity", "Finding", "Impact", "Observed evidence", "Correction"], rows, styles))
+            story.append(data_table(["Severidad", "Hallazgo", "Impacto", "Evidencia observada", "Corrección"], rows, styles))
     else:
         story.extend([
             section_heading("Findings", styles),
-            paragraph("No additional findings were supplied. Absence of findings is not proof that "
-                      "the underlying market analysis is correct.", styles["body"]),
+            paragraph("No se suministraron hallazgos adicionales. La ausencia de hallazgos no demuestra que "
+                      "el análisis de mercado subyacente sea correcto.", styles["body"]),
         ])
     source_integrity = report.get("source_skill_integrity") or {}
-    story.append(section_heading("Original skill package integrity", styles))
+    story.append(section_heading("Integridad de los paquetes originales de Skills", styles))
     source_packages = source_integrity.get("packages") or []
     if source_packages:
         source_rows = [[
@@ -190,12 +190,12 @@ def build_skills_audit_pdf(report: dict[str, Any], output_directory: Path | str)
         ] for item in source_packages if isinstance(item, dict)]
         if source_rows:
             story.append(data_table(
-                ["Package", "Source", "Version", "Reviewed", "Original ZIP SHA-256", "Original SKILL SHA-256", "Adapted SKILL SHA-256"],
+                ["Skill", "Estado", "Versión", "Revisión", "SHA-256 ZIP original", "SHA-256 SKILL original", "SHA-256 SKILL adaptada"],
                 source_rows, styles, widths=[26*mm, 17*mm, 14*mm, 20*mm, 27*mm, 27*mm, 27*mm],
             ))
     else:
         story.append(paragraph(
-            "Original skill package hashes and internal ZIP structure were not verified.",
+            "Los hashes de los paquetes originales y su estructura ZIP interna no fueron verificados.",
             styles["body"],
         ))
     if source_integrity.get("findings"):
@@ -203,7 +203,7 @@ def build_skills_audit_pdf(report: dict[str, Any], output_directory: Path | str)
             story.append(paragraph(f"• {finding}", styles["body"]))
 
     desk_checks = report.get("desk_checks") or []
-    story.append(section_heading("Original-skill desk-check matrix", styles))
+    story.append(section_heading("Matriz de pruebas de escritorio de las Skills originales", styles))
     if desk_checks:
         desk_rows = [[
             str(item.get("id", "N/A")),
@@ -216,13 +216,13 @@ def build_skills_audit_pdf(report: dict[str, Any], output_directory: Path | str)
         ] for item in desk_checks if isinstance(item, dict)]
         if desk_rows:
             story.append(data_table(
-                ["ID", "Desk check", "Status", "Severity", "Expected / observed", "Impact", "Correction"],
+                ["ID", "Caso", "Estado", "Severidad", "Esperado / observado", "Impacto", "Corrección"],
                 desk_rows, styles,
                 widths=[10*mm, 25*mm, 17*mm, 14*mm, 48*mm, 25*mm, 24*mm],
             ))
     else:
         story.append(paragraph(
-            "The original-skill desk-check matrix was not supplied. Full audit parity is NOT VERIFIED.",
+            "No se suministró la matriz de pruebas de escritorio original. La paridad completa de auditoría NO ESTÁ VERIFICADA.",
             styles["body"],
         ))
 
@@ -232,7 +232,7 @@ def build_skills_audit_pdf(report: dict[str, Any], output_directory: Path | str)
         for item in changes_applied:
             story.append(paragraph(f"• {item}", styles["body"]))
     else:
-        story.append(paragraph("No applied changes were recorded.", styles["body"]))
+        story.append(paragraph("No se registraron cambios aplicados.", styles["body"]))
 
     story.append(section_heading("Pendientes", styles))
     pending_items = report.get("pending_items") or []
@@ -240,7 +240,7 @@ def build_skills_audit_pdf(report: dict[str, Any], output_directory: Path | str)
         for item in pending_items:
             story.append(paragraph(f"• {item}", styles["body"]))
     else:
-        story.append(paragraph("No pending items were supplied.", styles["body"]))
+        story.append(paragraph("No se suministraron elementos pendientes.", styles["body"]))
 
     story.append(section_heading("Archivos revisados", styles))
     files_reviewed = report.get("files_reviewed") or []
@@ -248,10 +248,10 @@ def build_skills_audit_pdf(report: dict[str, Any], output_directory: Path | str)
         for item in files_reviewed:
             story.append(paragraph(f"• {item}", styles["body"]))
     else:
-        story.append(paragraph("No file list was supplied.", styles["body"]))
+        story.append(paragraph("No se suministró una lista de archivos.", styles["body"]))
 
     change_history = report.get("change_history") or []
-    story.append(section_heading("Version and change history", styles))
+    story.append(section_heading("Versionado e historial de cambios", styles))
     if change_history:
         change_rows = [[
             str(item.get("date", "Not supplied")),
@@ -259,14 +259,14 @@ def build_skills_audit_pdf(report: dict[str, Any], output_directory: Path | str)
             str(item.get("change", "Not supplied")),
         ] for item in change_history if isinstance(item, dict)]
         if change_rows:
-            story.append(data_table(["Date", "Version", "Change"], change_rows, styles,
+            story.append(data_table(["Fecha", "Versión", "Cambio"], change_rows, styles,
                                     widths=[28*mm, 25*mm, 100*mm]))
     else:
-        story.append(paragraph("No inspectable version/change history was supplied. NOT VERIFIED.",
+        story.append(paragraph("No se suministró un historial de versiones/cambios inspeccionable. NO VERIFICADO.",
                                styles["body"]))
 
     evidence_manifests = report.get("evidence_manifests") or []
-    story.append(section_heading("Raw evidence and indicator recalculation", styles))
+    story.append(section_heading("Evidencia original y recálculo de indicadores", styles))
     if evidence_manifests:
         manifest_rows = [[
             str(item.get("manifest", "Unknown")),
@@ -278,27 +278,27 @@ def build_skills_audit_pdf(report: dict[str, Any], output_directory: Path | str)
         ] for item in evidence_manifests if isinstance(item, dict)]
         if manifest_rows:
             story.append(data_table(
-                ["Manifest", "Type", "Status", "Symbols", "Indicators", "Findings"],
+                ["Manifiesto", "Tipo", "Estado", "Símbolos", "Indicadores", "Hallazgos"],
                 manifest_rows, styles,
                 widths=[34*mm, 18*mm, 17*mm, 23*mm, 23*mm, 38*mm],
             ))
     else:
         story.append(paragraph(
-            "No internal raw-evidence manifests were available. Indicator recalculation and "
-            "source-linked raw-candle validation are NOT VERIFIED.",
+            "No había manifiestos internos de evidencia original. El recálculo de indicadores y la "
+            "validación de velas vinculadas a sus fuentes NO ESTÁN VERIFICADOS.",
             styles["body"],
         ))
     cross_report = report.get("cross_report_consistency") or {}
-    story.append(section_heading("Cross-report consistency", styles))
+    story.append(section_heading("Consistencia entre informes", styles))
     story.append(paragraph(
-        f"Status: {cross_report.get('status', 'not verified')}; "
-        f"overlapping candles checked: {cross_report.get('overlapping_candles_checked', 0)}; "
-        f"manifests compared: {cross_report.get('manifests_compared', 0)}; "
-        f"mismatches: {_text_audit(cross_report.get('mismatches', []))}",
+        f"Estado: {cross_report.get('status', 'no verificado')}; "
+        f"velas coincidentes comprobadas: {cross_report.get('overlapping_candles_checked', 0)}; "
+        f"manifiestos comparados: {cross_report.get('manifests_compared', 0)}; "
+        f"discrepancias: {_text_audit(cross_report.get('mismatches', []))}",
         styles["body"],
     ))
     test_evidence = report.get("test_evidence") or []
-    story.append(section_heading("Testing evidence", styles))
+    story.append(section_heading("Evidencia de pruebas", styles))
     if test_evidence:
         test_rows = [[
             str(item.get("suite", "Unknown")),
@@ -307,26 +307,26 @@ def build_skills_audit_pdf(report: dict[str, Any], output_directory: Path | str)
             str(item.get("details", "Not supplied")),
         ] for item in test_evidence if isinstance(item, dict)]
         if test_rows:
-            story.append(data_table(["Suite", "Status", "Run ID", "Details"], test_rows, styles))
+            story.append(data_table(["Suite", "Estado", "ID de ejecución", "Detalles"], test_rows, styles))
         else:
             story.append(paragraph("Test evidence was supplied but contained no usable records.", styles["body"]))
     else:
         story.append(paragraph(
-            "No CI test-run manifest was supplied to this local audit. Offline unit-test status, "
-            "live Binance status, and RSS-provider live status are NOT VERIFIED here.",
+            "No se suministró un manifiesto de ejecución de CI a esta auditoría local. El estado de las pruebas unitarias offline, "
+            "el estado de Binance en vivo y el estado en vivo de los proveedores RSS NO ESTÁN VERIFICADOS aquí.",
             styles["body"],
         ))
     story.extend([
-        section_heading("Verification boundaries", styles),
+        section_heading("Límites de verificación", styles),
         paragraph(
-            "This audit does not certify live Binance availability, source-news completeness, "
-            "macro-event interpretation, strategy profitability, or the original Claude skill parity. "
-            "Those areas remain NOT VERIFIED unless separately supported by inspectable evidence.",
+            "Esta auditoría no certifica la disponibilidad de Binance en vivo, la integridad de las noticias, "
+            "la interpretación de eventos macroeconómicos, la rentabilidad de estrategias ni la paridad con las Skills originales de Claude. "
+            "Esas áreas permanecen NO VERIFICADAS salvo que exista evidencia inspeccionable independiente.",
             styles["body"],
         ),
     ])
     destination = Path(output_directory) / f"auditoria-skills-binance_{audit_date_local}.pdf"
-    written = write_pdf_atomic(destination, story, "Binance Skills Independent Audit")
+    written = write_pdf_atomic(destination, story, "Auditoría independiente de las Skills de Binance")
     try:
         inspect_pdf_artifact(written)
     except Exception:
