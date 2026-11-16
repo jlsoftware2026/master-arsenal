@@ -583,8 +583,7 @@ class JobRunner:
             "size_bytes": size_bytes,
             "sha256": digest,
             **manifest_metadata,
-            "report_date_local": resolved_artifact.stem.split("-")[-1].split("_")[0]
-                                 if "_" in resolved_artifact.stem else "see evidence manifest",
+            "report_date_local": resolved_artifact.stem.removeprefix("snapshot-mercado-").split("_", 1)[0],
             "market": market,
             "interval": interval,
             "source": "Binance public REST API",
