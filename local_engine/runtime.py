@@ -763,6 +763,55 @@ class JobRunner:
             "Aprobado con reservas" if medium_unresolved else
             "Aprobado"
         )
+        temporal_by_skill = {
+            "binance-apertura-mercado": "passed" if opening_dates_ok else "not_verified",
+            "binance-cierre-mercado": "passed" if closing_windows_ok else "not_verified",
+            "binance-momento-mercado": "passed" if any(
+                item.get("report_type") == "intraday" and item.get("status") == "passed"
+                for item in evidence_manifests
+            ) else "not_verified",
+            "binance-revision-skills": "passed" if local_windows_ok else "not_verified",
+        }
+        security_ok = bool(all_reports) and all(
+            item.get("read_only") is True and item.get("source") == "Binance public REST API"
+            for item in all_reports
+        )
+        skill_results = []
+        for skill_name in (
+            "binance-apertura-mercado", "binance-cierre-mercado",
+            "binance-momento-mercado", "binance-revision-skills",
+        ):
+            skill_results.append({
+                "name": skill_name,
+                "package_integrity": source_skill_integrity["status"],
+                "temporal_coherence": temporal_by_skill[skill_name],
+                "data_security": "passed" if security_ok else "not_verified",
+                "methodology": "not_verified",
+                "status": "No aprobado",
+            })
+        executive_summary = [
+            "The three operational workflows now use America/Santo_Domingo local-calendar windows.",
+            "Opening uses the previous local day; closing supports partial local days; intraday supports explicit or execution-time cutoffs.",
+            "Unfinished candles are excluded and the last fully closed candle boundary is retained separately.",
+            "Evidence schema v2 records local/UTC windows and SHA-256 digests; PDF QA and audit desk checks are independent.",
+            "Original skill adaptation metadata is versioned; original archive hashes are recorded, but ZIP payload integrity is not verified in-repository.",
+            "U.S. exchange calendar/DST, private-account ledger, opening/closing scorecard, and final-head CI remain unresolved.",
+        ]
+        changes_applied = [
+            "Implemented Dominican local-day acquisition and PDF validation for opening, closing, and intraday reports.",
+            "Added partial closing-day support and execution-time local cutoff default for intraday.",
+            "Added evidence schema v2 with report-window metadata, PDF digest, and raw-candle/warm-up digest.",
+            "Added audit desk checks, Spanish severity/verdict rules, local audit date, and version/change history.",
+            "Added frontmatter versioning and original activation/report-section requirements to the four adapted skill instructions.",
+        ]
+        pending_items = [
+            item["case"] + ": " + item["recommendation"]
+            for item in unresolved + medium_unresolved
+        ]
+        reviewed_files = (
+            [item.get("filename", "Unknown artifact") for item in artifacts]
+            + [item.get("manifest", "Unknown evidence manifest") for item in evidence_manifests]
+        )
         for item in unresolved:
             findings.append({
                 "severity": item["severity"], "title": f"Desk check {item['id']}: {item['case']}",
