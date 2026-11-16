@@ -285,7 +285,7 @@ def audit_market_report_artifact(path: str | Path, report_type: str) -> dict[str
     filename_prefix = {
         "opening": "apertura-mercado_",
         "closing": "cierre-mercado_",
-        "intraday": "snapshot-mercado-",
+        "intraday": "snapshot-mercado_",
     }[report_type]
     filename_ok = source.name.startswith(filename_prefix) and source.suffix.lower() == ".pdf"
     if not filename_ok:
