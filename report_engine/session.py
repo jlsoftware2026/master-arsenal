@@ -4,6 +4,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from reportlab.lib.units import mm
 from reportlab.platypus import Paragraph, Spacer
@@ -25,6 +26,18 @@ def _utc(value: Any, field: str) -> datetime:
     if parsed.tzinfo is None or parsed.utcoffset() != timedelta(0):
         raise ValueError(f"{field} must include a UTC timezone")
     return parsed.astimezone(timezone.utc)
+
+
+def _local_time(value: Any) -> str:
+    if not isinstance(value, str):
+        return "Not supplied"
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        if parsed.tzinfo is None:
+            return "Invalid timestamp"
+        return parsed.astimezone(ZoneInfo("America/Santo_Domingo")).isoformat()
+    except ValueError:
+        return "Invalid timestamp"
 
 
 def _text(value: Any) -> str:
@@ -201,7 +214,9 @@ def _build_session_pdf(report: dict[str, Any], output_directory: Path | str, kin
             section_heading(symbol, styles),
             key_value_table([
                 ("Candles in session", item.get("candle_count", len(item.get("candles", [])))),
+                ("First open local", _local_time(item.get("first_open_time_utc"))),
                 ("First open UTC", item.get("first_open_time_utc", "Not supplied")),
+                ("Last close local", _local_time(item.get("last_close_time_utc"))),
                 ("Last close UTC", item.get("last_close_time_utc", "Not supplied")),
                 ("Price performance", _text(item.get("performance"))),
                 ("24h ticker", _ticker_summary(item.get("ticker_24h"))),
