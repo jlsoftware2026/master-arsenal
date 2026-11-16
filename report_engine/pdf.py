@@ -112,7 +112,7 @@ class ArsenalDocTemplate(BaseDocTemplate):
         canvas.drawString(18 * mm, height - 10 * mm, "MASTER ARSENAL")
         canvas.setFont("Helvetica", 7)
         canvas.setFillColor(MUTED)
-        canvas.drawRightString(width - 18 * mm, 10 * mm, f"Page {doc.page}")
+        canvas.drawRightString(width - 18 * mm, 10 * mm, f"Página {doc.page}")
         canvas.restoreState()
 
 
