@@ -252,6 +252,11 @@ def _build_session_pdf(report: dict[str, Any], output_directory: Path | str, kin
                    else "Día calendario dominicano completado")),
         ], styles),
         Spacer(1, 4 * mm),
+        section_heading("Cobertura del mercado bursátil estadounidense", styles),
+        paragraph(_label(report.get("us_equity_market_data_status", "not_integrated")), styles["body"]),
+        section_heading("Horario de la sesión bursátil estadounidense", styles),
+        paragraph(_label(report.get("us_equity_session_state", "not_available")), styles["body"]),
+        Spacer(1, 3 * mm),
         section_heading("Resumen ejecutivo", styles),
         paragraph(report.get("executive_summary", "No se suministró un resumen ejecutivo."), styles["body"]),
     ]
