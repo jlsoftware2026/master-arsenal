@@ -79,8 +79,8 @@ def acquire_intraday_day(
     if cutoff <= start:
         raise ValueError("cutoff_utc must be later than 00:00 UTC")
     interval_ms = interval_milliseconds(interval)
-    if interval_ms is None or interval in {"1d", "3d", "1w"}:
-        raise ValueError(f"Unsupported fixed intraday interval: {interval!r}")
+    if interval_ms is None or interval_ms < 60_000 or interval in {"1d", "3d", "1w"}:
+        raise ValueError(f"Unsupported report interval (minimum 1m): {interval!r}")
     if isinstance(indicator_lookback, bool) or not isinstance(indicator_lookback, int) or indicator_lookback < 200:
         raise ValueError("indicator_lookback must be an integer of at least 200 candles")
     elapsed_ms = int((cutoff - start).total_seconds() * 1000)
