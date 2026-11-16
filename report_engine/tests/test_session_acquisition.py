@@ -96,6 +96,24 @@ class SessionAcquisitionTests(unittest.TestCase):
         self.assertEqual(report["data_cutoff_utc"], "2026-11-14T22:00:00Z")
         self.assertEqual(report["symbols"]["BTCUSDT"]["candle_count"], 18)
 
+    def test_partial_closing_workflow_writes_local_date_pdf_and_evidence_manifest(self):
+        cutoff = datetime(2026, 11, 14, 18, 30)
+        with TemporaryDirectory() as temp:
+            artifact = generate_closing_report_pdf(
+                FakeClient(), temp, START.date(), manifest_directory=f"{temp}/manifests",
+                cutoff_local=cutoff,
+            )
+            self.assertEqual(artifact.name, "cierre-mercado_2026-11-14.pdf")
+            manifests = list((__import__("pathlib").Path(temp) / "manifests").glob("*.evidence.json"))
+            self.assertEqual(len(manifests), 1)
+            import json
+            payload = json.loads(manifests[0].read_text(encoding="utf-8"))
+            report = payload["report"]
+            self.assertTrue(report["is_partial"])
+            self.assertEqual(report["cutoff_local"], "2026-11-14T18:30:00-04:00")
+            self.assertEqual(payload["report_window"]["report_timezone"], "America/Santo_Domingo")
+            self.assertEqual(len(payload["raw_candle_evidence_sha256"]), 64)
+
     def test_opening_and_closing_workflows_create_pdf(self):
         with TemporaryDirectory() as temp:
             opening = generate_opening_report_pdf(FakeClient(), temp, START.date())
