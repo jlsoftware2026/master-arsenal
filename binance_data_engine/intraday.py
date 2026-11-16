@@ -38,7 +38,7 @@ def _validate_series(candles, symbol: str, interval: str, start: datetime,
                          "; ".join(issue.message for issue in errors))
     if len(candles) != expected_count:
         raise ValueError(
-            f"{symbol}: expected {expected_count} {label} candles, received {len(candles)}"
+            f"{symbol}: expected {expected_count} candles, received {len(candles)} ({label})"
         )
     interval_ms = interval_milliseconds(interval)
     for index, candle in enumerate(candles):
