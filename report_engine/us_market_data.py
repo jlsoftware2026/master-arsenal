@@ -37,7 +37,7 @@ INSTRUMENTS = {
         ("E-mini Dow", "YM=F", "index_points"),
     ),
     "rates": (
-        ("U.S. Treasury 10Y yield", "^TNX", "yield_percent"),
+        ("U.S. Treasury 10Y yield", "^TNX", "yield_percent_x10"),
     ),
     "dollar": (
         ("U.S. Dollar Index", "DX-Y.NYB", "index_points"),
@@ -122,6 +122,10 @@ def _parse_chart_payload(
     previous_close = _number(meta.get("chartPreviousClose"))
     if previous_close is None:
         previous_close = _number(meta.get("previousClose"))
+    if unit == "yield_percent_x10":
+        last_price /= 10
+        previous_close = previous_close / 10 if previous_close is not None else None
+        unit = "yield_percent"
     change = last_price - previous_close if previous_close is not None else None
     change_percent = (
         change / previous_close * 100
