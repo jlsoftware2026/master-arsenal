@@ -493,6 +493,9 @@ class JobRunner:
             "filename": resolved.name, "size_bytes": len(payload),
             "sha256": hashlib.sha256(payload).hexdigest(),
             "artifacts_inspected": len(artifacts),
+            "evidence_manifests_checked": len(evidence_manifests),
+            "cross_report_consistency_status": cross_report["status"],
+            "overlapping_candles_checked": cross_report["overlapping_candles_checked"],
             "findings_count": len(findings),
             "read_only": True,
         }
