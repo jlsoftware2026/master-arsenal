@@ -701,10 +701,14 @@ class JobRunner:
         account_disclosed = bool(all_reports) and all(
             item.get("binance_account_data_status") == "unavailable" for item in all_reports
         )
-        scorecard_missing = bool(closing_reports) and all(
-            item.get("opening_forecast_scorecard_status") == "not_implemented"
+        scorecard_statuses = [
+            item.get("opening_forecast_scorecard_status", "not_verified")
             for item in closing_reports
+        ]
+        scorecard_ok = bool(scorecard_statuses) and all(
+            status in {"passed", "not_applicable"} for status in scorecard_statuses
         )
+        scorecard_failed = any(status == "failed" for status in scorecard_statuses)
         artifact_qa_ok = bool(artifacts) and all(item.get("qa_status") == "passed" for item in artifacts)
         passed_report_types = {item.get("report_type") for item in artifacts if item.get("qa_status") == "passed"}
         all_operational_artifacts_ok = artifact_qa_ok and {"opening", "closing", "intraday"}.issubset(passed_report_types)
@@ -778,10 +782,12 @@ class JobRunner:
             check("ACCT-03", "Saldos históricos de cuenta incompletos", "not_applicable", "Medio",
                   "No se ingieren historiales de cuenta privada ni capturas de saldos.",
                   "Exigir saldos históricos completos antes de afirmar rendimiento de cuenta."),
-            check("SCORE-01", "Comparación del pronóstico de apertura y el cierre", "not_implemented" if scorecard_missing else "not_verified",
-                  "Alto", "Los informes de cierre declaran que la vinculación con el pronóstico de apertura no está implementada." if scorecard_missing
-                  else "Ningún informe de cierre demuestra la vinculación con el pronóstico ni declara expresamente su indisponibilidad.",
-                  "Persistir los escenarios de apertura y compararlos con los resultados observados de esa misma fecha."),
+            check("SCORE-01", "Comparación del pronóstico de apertura y el cierre",
+                  "passed" if scorecard_ok else "failed" if scorecard_failed else "not_verified",
+                  "Alto",
+                  "Los informes de cierre concilian escenarios con el manifiesto íntegro de apertura de la misma fecha, o declaran que no existe un informe de apertura."
+                  if scorecard_ok else "La evidencia de apertura/cierre falta, no pudo verificarse o contiene una discrepancia.",
+                  "Conservar el manifiesto de apertura de la misma fecha y regenerar el cierre para conciliar los rangos observados."),
             check("PKG-01", "Integridad de paquetes originales e historial de versiones",
                   source_skill_integrity["status"], "Alto",
                   "Las cuatro Skills adaptadas tienen la identidad esperada; los hashes de los archivos originales están registrados, pero los ZIP no están incluidos."
@@ -931,6 +937,7 @@ class JobRunner:
             "language_parity_status": next((x["status"] for x in desk_checks if x["id"] == "LANG-01"), "not_verified"),
             "us_session_status": next((x["status"] for x in desk_checks if x["id"] == "US-02"), "not_verified"),
             "us_holiday_status": next((x["status"] for x in desk_checks if x["id"] == "US-01"), "not_verified"),
+            "scorecard_status": next((x["status"] for x in desk_checks if x["id"] == "SCORE-01"), "not_verified"),
             "audit_date_local": audit_date_local,
             "read_only": True,
         }
