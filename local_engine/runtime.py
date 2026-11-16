@@ -90,6 +90,9 @@ def verify_original_skill_packages(repository_root: Path | str) -> dict[str, Any
     return {
         "status": "not_verified" if len(packages) == len(expected_names) and len(findings) == 1
                   and findings[0].startswith("Original archive and extracted") else "failed",
+        "adaptation_status": "passed" if len(packages) == len(expected_names) and all(
+            item.get("status") == "not_verified" for item in packages
+        ) else "failed",
         "manifest_sha256": hashlib.sha256(manifest_path.read_bytes()).hexdigest()
             if manifest_path.is_file() else None,
         "packages": packages,
@@ -618,7 +621,32 @@ class JobRunner:
             item.get("opening_forecast_scorecard_status") == "not_implemented"
             for item in closing_reports
         )
+        artifact_qa_ok = bool(artifacts) and all(item.get("status") == "passed" for item in artifacts)
         desk_checks = [
+            check("SKILL-01", "Original source package metadata and ZIP structure",
+                  "not_verified" if source_skill_integrity["status"] == "not_verified" else "failed", "high",
+                  "Original archive and SKILL.md hashes are recorded, but the original ZIP payloads are not stored in the repository.",
+                  "Retain the exact source archives in a controlled artifact store and revalidate package members and hashes."),
+            check("SKILL-02", "ChatGPT adaptation identity and Local Engine/PDF compatibility",
+                  source_skill_integrity.get("adaptation_status", "failed"), "high",
+                  "All four adaptation files have the expected identity and Local Engine/PDF contract."
+                  if source_skill_integrity.get("adaptation_status") == "passed"
+                  else "; ".join(source_skill_integrity["findings"]),
+                  "Keep adaptation names, Local Engine job types, and PDF-only output contracts synchronized."),
+            check("SKILL-03", "Cross-skill functional and semantic consistency", "not_verified", "high",
+                  "No automated semantic comparison across all four adapted skill workflows is attached.",
+                  "Add contract tests for shared report sections, date semantics, evidence fields, and hand-offs."),
+            check("SKILL-04", "Activation phrase and timing dispatch", "not_implemented", "high",
+                  "Activation phrases are documented, but runtime phrase dispatch and ET activation scheduling are not implemented.",
+                  "Implement a deterministic trigger router and exchange-calendar-aware activation timing."),
+            check("PDF-01", "PDF structure, readability, and layout QA",
+                  "passed" if artifact_qa_ok else "not_verified", "high",
+                  "All discovered operational PDFs passed independent parser/render QA."
+                  if artifact_qa_ok else "No complete set of operational PDFs passed independent QA.",
+                  "Generate opening, closing, and intraday PDFs and attach independent PyMuPDF QA results."),
+            check("CONTENT-01", "Original report section and market-data parity", "not_verified", "high",
+                  "U.S. market breadth, catalysts, private account analytics, and full original report semantics are not implemented.",
+                  "Implement or explicitly mark each original section unavailable; do not certify source-skill parity."),
             check("TIME-01", "Dominican local-day boundaries", "passed" if local_windows_ok else "not_verified",
                   "critical", "All retained manifests declare the IANA timezone and half-open window." if local_windows_ok
                   else "No complete set of valid local-window manifests is available.",
