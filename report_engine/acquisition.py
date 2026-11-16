@@ -14,6 +14,7 @@ from .intraday import build_intraday_snapshot_pdf
 from .context import collect_market_context
 from .evidence import write_evidence_manifest
 from .us_market_calendar import classify_us_equity_session
+from .us_market_data import collect_us_market_snapshot
 from .timezone import (
     REPORT_TIMEZONE, LOCAL_TZ, current_local_report_date, local_day_window,
 )
@@ -86,7 +87,10 @@ def acquire_intraday_evidence(
     report["binance_account_data_status"] = "unavailable"
     report["us_equity_market_data_status"] = "not_integrated"
     calendar_evidence = classify_us_equity_session(window.end_utc)
+    market_evidence = collect_us_market_snapshot(window.end_utc)
     report["us_equity_calendar"] = calendar_evidence
+    report["us_equity_market_data"] = market_evidence
+    report["us_equity_market_data_status"] = market_evidence["status"]
     report["us_equity_session_state"] = (
         calendar_evidence["session_state"] if calendar_evidence["status"] == "ok"
         else "not_available"
@@ -95,7 +99,7 @@ def acquire_intraday_evidence(
     report["comparison_basis"] = "Día calendario dominicano; el cambio del ticker móvil de 24 horas se muestra por separado."
     report["limitations"] = (
         "Los saldos, posiciones, comisiones, financiación y PnL ajustado por flujos de la cuenta privada de Binance no están disponibles. "
-         "La cobertura de precios del mercado bursátil estadounidense no está integrada; el calendario XNYS clasifica la sesión y sus feriados/horarios, pero no aporta precios. "
+         "Las cotizaciones bursátiles son best-effort desde Yahoo Finance, pueden estar retrasadas o incompletas y no constituyen un feed de ejecución; amplitud y líderes/rezagados por acción no están incluidos. El calendario XNYS clasifica horarios/feriados, pero no aporta precios. "
         + context["context_limitations"]
     )
     bullish, bearish = [], []
@@ -157,14 +161,26 @@ def acquire_intraday_evidence(
         f"Contexto macroeconómico/noticias: {available_feeds} de {len(feeds)} feeds consultados con estado correcto; "
         "los titulares son contexto, no prueba de causalidad."
     )
+    market_items = [
+        item for category in ("indices", "volatility", "rates", "dollar", "commodities")
+        for item in market_evidence.get("groups", {}).get(category, [])
+        if item.get("status") == "ok"
+    ]
+    market_highlights = [
+        f"{item['name']} {item['last_price']:.4g}"
+        + (f" ({item['change_percent']:+.2f}%)" if item.get("change_percent") is not None else "")
+        for item in market_items[:5]
+    ]
     summary_points.append(
-        "Estado bursátil XNYS al corte: "
+        f"Mercado estadounidense: {market_evidence['available_instruments']}/"
+        f"{market_evidence['expected_instruments']} cotizaciones disponibles al corte; "
+        + ("; ".join(market_highlights) if market_highlights else "sin cotizaciones verificables")
+        + ". Estado XNYS: "
         + (f"{calendar_evidence['session_state']} ({calendar_evidence['as_of_et']}); "
            f"última sesión {calendar_evidence['last_completed_session_date']}; "
            f"próxima sesión {calendar_evidence['next_session_date']}."
-           if calendar_evidence["status"] == "ok"
-           else "no disponible; no se infiere el estado.")
-        + " La cuenta privada Binance y los precios/indicadores del mercado bursátil estadounidense siguen sin integrarse."
+           if calendar_evidence["status"] == "ok" else "calendario no disponible.")
+        + " Amplitud bursátil y líderes/rezagados por acción no disponibles; cuenta privada Binance no integrada."
     )
     report["executive_summary"] = summary_points
     return report
