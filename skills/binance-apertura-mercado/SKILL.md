@@ -27,7 +27,7 @@ Generate a detailed PDF report using the previous completed America/Santo_Doming
 8. Bullish/long and bearish/short scenarios with triggers and invalidation.
 9. Risk management, assumptions, source register, limitations, and conclusion.
 
-If U.S. market or account data is unavailable, state that explicitly. Never infer portfolio performance from public candles. The XNYS exchange calendar supplies U.S. cash-session holidays, early closes, DST-aware session times, and session classification. A best-effort Yahoo Finance snapshot now covers major indices, VIX, index futures, Treasury 10Y yield, DXY, WTI, gold, and sector ETFs with source URLs and observation timestamps. It is not a licensed execution feed; breadth and stock-level leaders/laggards remain unavailable. If a supported Binance transaction-statement CSV is present in data/account_exports, summarize balance-change activity by event type and asset; otherwise mark account activity unavailable. Never infer equity or returns from this CSV.
+If U.S. market or account data is unavailable, state that explicitly. Never infer portfolio performance from public candles. The XNYS exchange calendar supplies U.S. cash-session holidays, early closes, DST-aware session times, and session classification. A best-effort Yahoo Finance snapshot now covers major indices, VIX, index futures, Treasury 10Y yield, DXY, WTI, gold, and sector ETFs with source URLs and observation timestamps. It is not a licensed execution feed; breadth and stock-level leaders/laggards remain unavailable. If a supported Binance transaction-history CSV is present in data/account_exports, summarize balance-change activity by event type and asset; otherwise mark account activity unavailable. Never infer equity or returns from this CSV.
 
 ## Local Engine workflow
 - Job type: `market.opening_report`
@@ -64,4 +64,4 @@ The opening, closing, and intraday PDF composers and the audit PDF use Spanish l
 - 0.3.0 — 2026-11-16: Localized report headings, tables, scenario narratives, disclaimers, and audit output into Spanish; added independent language-marker QA.
 - 0.5.0 — 2026-11-16: Integrated XNYS holiday/early-close calendar and a 09:10 ET premarket reference.
 - 0.6.0 — 2026-11-16: Added source-attributed Yahoo Finance quotes for major U.S. indices, VIX, futures, rates, dollar, commodities, and sector ETFs.
-- 0.7.0 — 2026-11-16: Added read-only local Binance transaction-statement CSV activity summaries; portfolio equity and flow-adjusted returns remain unavailable.
+- 0.7.0 — 2026-11-16: Added read-only local Binance transaction-history CSV activity summaries; portfolio equity and flow-adjusted returns remain unavailable.
