@@ -30,6 +30,8 @@ class AuditReportTests(unittest.TestCase):
             "session_start_utc": "2026-11-15T04:00:00Z",
             "report_timezone": "America/Santo_Domingo",
             "report_date_local": "2026-11-15",
+            "requested_report_date_local": "2026-11-16",
+            "cutoff_resolution": "previous_local_calendar_day",
             "window_start_local": "2026-11-15T00:00:00-04:00",
             "cutoff_local": "2026-11-16T00:00:00-04:00",
             "window_semantics": "[start, cutoff)",
