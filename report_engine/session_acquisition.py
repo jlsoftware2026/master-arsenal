@@ -191,7 +191,7 @@ def acquire_session_report_evidence(
            f"próxima sesión {calendar_evidence['next_session_date']}."
            if calendar_evidence["status"] == "ok" else "calendario no disponible.")
         + sector_summary
-        + " Amplitud y líderes/rezagados por acción no disponibles; cuenta privada Binance no integrada."
+        + " Amplitud y líderes/rezagados por acción no disponibles; el CSV de cuenta solo resume movimientos y no demuestra patrimonio ni rentabilidad."
     )
     report["executive_summary"] = summary_points
     report["technical_analysis"] = (
