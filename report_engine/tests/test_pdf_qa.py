@@ -34,6 +34,7 @@ class PdfQualityTests(unittest.TestCase):
                 for hour in range(16)
             ]
             data["symbols"][symbol]["candle_count"] = 16
+            data["symbols"][symbol]["expected_candle_count"] = 16
         with TemporaryDirectory() as temp:
             pdf = build_intraday_snapshot_pdf(data, temp)
             with fitz.open(pdf) as document:
