@@ -1,3 +1,10 @@
+---
+name: binance-revision-skills
+description: 'Audita, valida y mejora las tres Skills de análisis de mercado de Binance: Apertura de mercado, Cierre de mercado y Momento específico del mercado. Activar cuando el usuario solicite revisar, corregir, actualizar, comparar, probar o mantener cualquiera de esas Skills o el conjunto completo.'
+version: 0.1.0
+last_reviewed: 2026-11-16
+---
+
 # binance-revision-skills
 
 ## Purpose
@@ -43,3 +50,6 @@ Do not certify a skill based solely on its own assertions. The current automated
 
 ## Status
 Adapted against the user-supplied original Claude audit skill. The PDF now records a desk-check matrix, severity levels, Spanish verdict, and change-history section. U.S. calendar/DST coverage, private-account reconciliation, scorecard linkage, and final cross-platform CI evidence remain incomplete. The original archive hashes are recorded, but the ZIP payloads are not embedded and package integrity must remain NOT VERIFIED. The audit must not certify full source-skill parity.
+
+## Version history
+- 0.1.0 — 2026-11-16: Initial ChatGPT/MASTER ARSENAL adaptation; preserves the original skill identity and documents the Local Engine/PDF workflow and current implementation gaps.
