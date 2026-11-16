@@ -9,7 +9,12 @@ from report_engine import build_intraday_snapshot_pdf
 
 def fixture():
     return {
-        "window_start_utc": "2026-11-13T00:00:00Z",
+        "window_start_utc": "2026-11-13T04:00:00Z",
+        "report_timezone": "America/Santo_Domingo",
+        "report_date_local": "2026-11-13",
+        "window_start_local": "2026-11-13T00:00:00-04:00",
+        "cutoff_local": "2026-11-13T12:30:00-04:00",
+        "is_partial": True,
         "cutoff_utc": "2026-11-13T16:30:00Z",
         "generated_at_utc": "2026-11-13T16:31:00Z",
         "source": "Binance public REST API (fixture)",
@@ -19,8 +24,8 @@ def fixture():
         "executive_summary": "Fixture report; no live market claim.",
         "symbols": {
             symbol: {
-                "candle_count": 16,
-                "first_open_time_utc": "2026-11-13T00:00:00Z",
+                "candle_count": 12,
+                "first_open_time_utc": "2026-11-13T04:00:00Z",
                 "last_close_time_utc": "2026-11-13T15:59:59Z",
                 "ticker_24h": {"priceChangePercent": "1.2"},
                 "response_metadata": {"retrieved_at_utc": "2026-11-13T16:30:30Z"},
@@ -37,7 +42,7 @@ class IntradayPdfTests(unittest.TestCase):
     def test_creates_named_readable_pdf(self):
         with TemporaryDirectory() as temp:
             result = build_intraday_snapshot_pdf(fixture(), temp)
-            self.assertEqual(result.name, "snapshot-mercado-2026-11-13_16-30.pdf")
+            self.assertEqual(result.name, "snapshot-mercado-2026-11-13_12-30.pdf")
             payload = result.read_bytes()
             self.assertTrue(payload.startswith(b"%PDF-"))
             self.assertIn(b"%%EOF", payload[-2048:])
@@ -59,9 +64,9 @@ class IntradayPdfTests(unittest.TestCase):
 
     def test_rejects_wrong_window_start(self):
         data = fixture()
-        data["window_start_utc"] = "2026-11-13T01:00:00Z"
+        data["window_start_utc"] = "2026-11-13T05:00:00Z"
         with TemporaryDirectory() as temp:
-            with self.assertRaisesRegex(ValueError, "00:00 UTC"):
+            with self.assertRaisesRegex(ValueError, "local midnight"):
                 build_intraday_snapshot_pdf(data, temp)
 
     def test_rejects_candle_closing_after_exclusive_cutoff(self):
