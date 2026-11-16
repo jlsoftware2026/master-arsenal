@@ -18,7 +18,7 @@ def inspect_pdf_artifact(
     Optional PNG previews are written only to the caller-selected directory.
     """
     try:
-        import fitz
+        import pymupdf as fitz
     except ImportError as exc:  # pragma: no cover - dependency installation failure
         raise RuntimeError("PDF quality inspection requires PyMuPDF") from exc
 
