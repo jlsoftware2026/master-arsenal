@@ -376,6 +376,16 @@ class JobRunner:
                         "recommendation": "Regenerate the artifact and inspect the source evidence.",
                     })
                 artifacts.append(item)
+        findings.append({
+            "severity": "warning", "title": "CI and live-test evidence not attached",
+            "evidence": "The local workspace contains no trusted CI test-run manifest.",
+            "recommendation": "Attach verified GitHub Actions results and separate live endpoint checks before certifying test coverage.",
+        })
+        findings.append({
+            "severity": "warning", "title": "Raw market evidence not available for full recalculation",
+            "evidence": "PDF artifacts contain report output, but the audit has no separate immutable raw-candle/indicator evidence bundle to recalculate every metric.",
+            "recommendation": "Persist a source-linked evidence manifest and independently recompute indicators and overlapping report windows.",
+        })
         if not artifacts:
             findings.append({
                 "severity": "warning", "title": "No market report artifacts available",
@@ -387,6 +397,7 @@ class JobRunner:
             "generated_at_utc": generated.isoformat().replace("+00:00", "Z"),
             "artifacts": artifacts,
             "findings": findings,
+            "test_evidence": [],
         }
         output_directory = self.manager.workspace.directory("reports/audit")
         artifact = build_skills_audit_pdf(report, output_directory)
