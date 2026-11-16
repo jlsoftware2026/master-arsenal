@@ -271,7 +271,7 @@ def collect_us_market_snapshot(
         "unavailable_symbols": [item["symbol"] for item in unavailable],
         "groups": results,
         "sector_leaders": leaders[:3],
-        "sector_laggards": leaders[-3:],
+        "sector_laggards": sorted(sectors, key=lambda item: item["change_percent"])[:3],
         "market_breadth": {
             "status": "not_available",
             "reason": "Advance/decline breadth and stock-level leaders/laggards are not supplied by this instrument set.",
