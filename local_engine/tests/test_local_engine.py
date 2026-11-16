@@ -144,7 +144,11 @@ class LocalEngineTests(unittest.TestCase):
             "market.intraday_snapshot",
             {"cutoff_utc": "2026-11-13T03:00:00Z", "interval": "1h", "market": "spot"},
         )
-        with patch("local_engine.runtime.BinancePublicClient", return_value=FakeBinanceClient()):
+        with patch("local_engine.runtime.BinancePublicClient", return_value=FakeBinanceClient()), \
+             patch("report_engine.acquisition.collect_market_context", return_value={
+                 "macro_context": "No macro items.", "news": "No news items.",
+                 "macro_sources": [], "news_sources": [], "context_status": "complete",
+             }):
             result = JobRunner(self.manager).run(job["job_id"])
         self.assertEqual(result["status"], "completed")
         artifact = result["result"]["artifact_path"]
@@ -172,7 +176,12 @@ class LocalEngineTests(unittest.TestCase):
             job = self._approved_job(job_type, {
                 "session_date_utc": "2026-11-12", "interval": "1h", "market": "spot"
             })
-            with patch("local_engine.runtime.BinancePublicClient", return_value=FakeBinanceClient()):
+            with patch("local_engine.runtime.BinancePublicClient", return_value=FakeBinanceClient()), \
+                 patch("report_engine.session_acquisition.collect_market_context", return_value={
+                     "macro_context": "No macro items.", "news": "No news items.",
+                     "macro_sources": [], "news_sources": [], "context_status": "complete",
+                     "context_limitations": "Fixture context only.",
+                 }):
                 result = JobRunner(self.manager).run(job["job_id"])
             self.assertEqual(result["status"], "completed", result)
             self.assertTrue(result["result"]["artifact_path"].startswith(expected_dir + "/"))
