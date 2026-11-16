@@ -686,6 +686,9 @@ class JobRunner:
                 return False
             if as_of.tzinfo is None or expected <= 0 or available_count < 0 or available_count > expected:
                 return False
+            calendar_reference = (report.get("us_equity_calendar") or {}).get("as_of_utc")
+            if calendar_reference != snapshot.get("as_of_utc"):
+                return False
             groups = snapshot.get("groups")
             if not isinstance(groups, dict):
                 return False
@@ -715,6 +718,12 @@ class JobRunner:
                 if not math.isfinite(price) or price <= 0 or observed.tzinfo is None or observed > as_of:
                     return False
                 if not str(entry.get("source", "")).startswith("Yahoo Finance"):
+                    return False
+                try:
+                    retrieved = datetime.fromisoformat(entry["retrieved_at_utc"].replace("Z", "+00:00"))
+                except (KeyError, TypeError, ValueError, AttributeError):
+                    return False
+                if retrieved.tzinfo is None:
                     return False
                 if not str(entry.get("source_url", "")).startswith("https://query1.finance.yahoo.com/v8/finance/chart/"):
                     return False
