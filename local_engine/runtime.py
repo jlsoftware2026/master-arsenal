@@ -450,10 +450,7 @@ class JobRunner:
                 "evidence": "Cross-report comparison could not be performed on the available manifests.",
                 "recommendation": "Generate reports with overlapping windows to enable consistency checks.",
             })
-        manifest_names = {item.get("pdf_filename") for item in (
-            json.loads(path.read_text(encoding="utf-8")) for path in manifest_paths
-            if path.is_file()
-        )}
+        manifest_names = {item.get("pdf_filename") for item in evidence_manifests}
         for item in artifacts:
             if item["filename"] not in manifest_names:
                 findings.append({
