@@ -178,6 +178,12 @@ def audit_evidence_manifest(path: str | Path, workspace_root: str | Path) -> dic
         return {"manifest": manifest_path.name, "status": "failed",
                 "findings": findings + [f"Invalid report window: {type(exc).__name__}: {exc}"]}
 
+    methodology = report.get("indicator_methodology") or {}
+    if methodology.get("report_window_excludes_lookback") is not True:
+        findings.append("Indicator warm-up history is not explicitly excluded from report-window statistics.")
+    lookback_count = methodology.get("lookback_candles")
+    if not isinstance(lookback_count, int) or isinstance(lookback_count, bool) or lookback_count < 200:
+        findings.append("Indicator warm-up methodology does not declare at least 200 prior candles.")
     symbols = report.get("symbols")
     if not isinstance(symbols, dict):
         symbols = {}
