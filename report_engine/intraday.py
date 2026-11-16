@@ -92,6 +92,13 @@ def _validate_input(report: dict[str, Any]):
         raise ValueError("Local report window timestamps must include their UTC offsets")
     if local_start.astimezone(timezone.utc) != start or local_cutoff.astimezone(timezone.utc) != cutoff:
         raise ValueError("Local and UTC report window boundaries do not match")
+    expected_local_start = start.astimezone(ZoneInfo("America/Santo_Domingo"))
+    expected_local_cutoff = cutoff.astimezone(ZoneInfo("America/Santo_Domingo"))
+    if (local_start.replace(tzinfo=None) != expected_local_start.replace(tzinfo=None)
+            or local_start.utcoffset() != expected_local_start.utcoffset()
+            or local_cutoff.replace(tzinfo=None) != expected_local_cutoff.replace(tzinfo=None)
+            or local_cutoff.utcoffset() != expected_local_cutoff.utcoffset()):
+        raise ValueError("Local timestamps do not match the IANA America/Santo_Domingo rules")
     if local_start.date() != report_date or local_start.time().isoformat() != "00:00:00":
         raise ValueError("Intraday report must begin at local midnight on report_date_local")
     if local_cutoff.date() != report_date or local_cutoff <= local_start:
