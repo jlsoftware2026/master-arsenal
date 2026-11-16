@@ -1,5 +1,6 @@
 """Offline tests for the report engine's UTC-day acquisition contract."""
 import unittest
+from unittest.mock import patch
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
