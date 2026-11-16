@@ -277,6 +277,13 @@ class LocalEngineTests(unittest.TestCase):
         self.assertEqual(audit["scorecard_status"], "passed")
         self.assertGreater(audit["overlapping_candles_checked"], 0)
 
+        with (account_export_directory / "transaction-history.csv").open("a", encoding="utf-8") as stream:
+            stream.write("private-user-123,2026-11-16T14:30:00Z,Spot,Deposit,USDT,1,changed after report\\n")
+        tamper_audit_job = self._approved_job("skills.audit")
+        tamper_audit = JobRunner(self.manager).run(tamper_audit_job["job_id"])
+        self.assertEqual(tamper_audit["status"], "completed", tamper_audit)
+        self.assertEqual(tamper_audit["result"]["account_export_status"], "not_verified")
+
     def test_intraday_snapshot_cannot_run_before_explicit_approval(self):
         job = new_job("market.intraday_snapshot", {
             "cutoff_utc": "2026-11-13T03:00:00Z"
