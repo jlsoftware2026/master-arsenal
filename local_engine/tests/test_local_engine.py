@@ -246,7 +246,7 @@ class LocalEngineTests(unittest.TestCase):
              }):
             result = JobRunner(self.manager).run(job["job_id"])
         self.assertEqual(result["status"], "completed", result)
-        self.assertIn("snapshot-mercado-", result["result"]["filename"])
+        self.assertIn("snapshot-mercado_", result["result"]["filename"])
         self.assertEqual(result["result"]["report_date_local"], datetime.now(ZoneInfo("America/Santo_Domingo")).date().isoformat())
 
     def test_intraday_snapshot_job_rejects_non_pdf_output(self):
