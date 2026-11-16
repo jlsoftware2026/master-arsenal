@@ -256,6 +256,28 @@ def _us_market_rows(snapshot: Any) -> tuple[list[list[str]], list[str]]:
     return rows, unavailable
 
 
+def _account_rows(snapshot: Any) -> tuple[list[list[str]], list[str]]:
+    if not isinstance(snapshot, dict):
+        return [], []
+    labels = {
+        "realized_pnl": "PnL realizado reportado", "commission": "Comisiones",
+        "funding_fee": "Funding", "deposit": "Depósitos", "withdrawal": "Retiros",
+        "internal_transfer": "Transferencias internas", "trade_spend": "Gasto de operaciones",
+        "trade_receive": "Ingreso de operaciones", "interest": "Intereses/recompensas",
+        "other": "Otros movimientos",
+    }
+    rows = []
+    aggregates = snapshot.get("aggregates_by_event_and_asset") or {}
+    if isinstance(aggregates, dict):
+        for event, assets in aggregates.items():
+            if not isinstance(assets, dict):
+                continue
+            for asset, amount in sorted(assets.items()):
+                rows.append([labels.get(event, event), str(asset), str(amount)])
+    assumptions = snapshot.get("assumptions") or []
+    return rows, [str(item) for item in assumptions if item]
+
+
 def _summary_flowables(value: Any, styles) -> list[Any]:
     if isinstance(value, list):
         return [paragraph(f"• {_text(item)}", styles["body"]) for item in value[:7]]
@@ -318,6 +340,7 @@ def _build_session_pdf(report: dict[str, Any], output_directory: Path | str, kin
             ("Análisis de la cuenta Binance", _label(report.get("binance_account_data_status", "unavailable"))),
             ("Cobertura del mercado bursátil estadounidense", _label(report.get("us_equity_market_data_status", "not_integrated"))),
             ("Horario de la sesión bursátil estadounidense", _label(report.get("us_equity_session_state", "not_available"))),
+            ("Actividad de cuenta Binance (CSV)", _label(report.get("binance_account_data_status", "unavailable"))),
             ("Última sesión bursátil completada (ET)", (report.get("us_equity_calendar") or {}).get("last_completed_session_date", "No disponible")),
             ("Próxima sesión bursátil (ET)", (report.get("us_equity_calendar") or {}).get("next_session_date", "No disponible")),
             ("Apertura / cierre oficial (ET)", f"{(report.get('us_equity_calendar') or {}).get('session_open_et') or 'N/D'} / {(report.get('us_equity_calendar') or {}).get('session_close_et') or 'N/D'}"),
@@ -348,6 +371,36 @@ def _build_session_pdf(report: dict[str, Any], output_directory: Path | str, kin
             "se conservan en el manifiesto de evidencia; los datos pueden estar retrasados y no son un feed de ejecución.",
             styles["small"],
         ),
+        section_heading("Actividad de cuenta Binance — CSV local", styles),
+    ])
+    account_snapshot = report.get("binance_account_data") or {}
+    account_rows, account_assumptions = _account_rows(account_snapshot)
+    story.append(paragraph(
+        f"Estado: {_label(account_snapshot.get('status', 'unavailable'))}; "
+        f"archivos: {account_snapshot.get('file_count', 0)}; "
+        f"eventos dentro de la ventana: {account_snapshot.get('events_in_window', 0)}; "
+        f"filas leídas: {account_snapshot.get('rows_scanned', 0)}; "
+        f"duplicados omitidos: {account_snapshot.get('duplicate_rows', 0)}.",
+        styles["body"],
+    ))
+    if account_rows:
+        story.append(data_table(
+            ["Tipo de movimiento", "Activo", "Variación agregada"],
+            account_rows, styles, widths=[70*mm, 30*mm, 50*mm],
+        ))
+    else:
+        story.append(paragraph(
+            "No hay movimientos de cuenta verificables en esta ventana. Coloca exportaciones CSV compatibles en data/account_exports.",
+            styles["body"],
+        ))
+    if account_assumptions:
+        story.append(paragraph("Advertencias de importación: " + "; ".join(account_assumptions), styles["small"]))
+    story.append(paragraph(
+        "El importador solo agrega movimientos de CSV. No calcula patrimonio total, PnL no realizado, costo base completo "
+        "ni rentabilidad ajustada por flujos; esos cálculos requieren balances y registros completos.",
+        styles["small"],
+    ))
+    story.extend([
         section_heading("Horario de la sesión bursátil estadounidense", styles),
         paragraph(_label(report.get("us_equity_session_state", "not_available")), styles["body"]),
         Spacer(1, 3 * mm),
