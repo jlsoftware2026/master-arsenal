@@ -755,13 +755,21 @@ class JobRunner:
             files = snapshot.get("files")
             if not isinstance(files, list) or len(files) != snapshot.get("file_count"):
                 return False
+            account_directory = self.manager.workspace.directory("data/account_exports")
+            csv_paths = sorted(
+                path for path in account_directory.iterdir()
+                if path.suffix.lower() == ".csv" and not path.is_symlink()
+            )
+            if len(csv_paths) != snapshot.get("file_count"):
+                return False
             for item in files:
                 if not isinstance(item, dict):
                     return False
                 digest = item.get("sha256")
+                file_id = item.get("file_id")
                 if (
-                    not isinstance(item.get("file_id"), str)
-                    or not item["file_id"].startswith("account_export_")
+                    not isinstance(file_id, str)
+                    or not file_id.startswith("account_export_")
                     or not isinstance(digest, str)
                     or len(digest) != 64
                     or any(char not in "0123456789abcdef" for char in digest.lower())
@@ -770,6 +778,14 @@ class JobRunner:
                     or item["bytes"] <= 0
                     or not isinstance(item.get("rows_scanned"), int)
                 ):
+                    return False
+                try:
+                    file_index = int(file_id.rsplit("_", 1)[1]) - 1
+                    source_path = csv_paths[file_index]
+                    raw = source_path.read_bytes()
+                except (ValueError, IndexError, OSError):
+                    return False
+                if len(raw) != item["bytes"] or hashlib.sha256(raw).hexdigest() != digest:
                     return False
             return True
         account_export_ok = bool(all_reports) and all(
