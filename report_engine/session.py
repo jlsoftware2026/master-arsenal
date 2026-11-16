@@ -1,7 +1,7 @@
 """PDF composers for completed UTC market-day opening and closing reports."""
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, time, timedelta, timezone
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -231,6 +231,17 @@ def _build_session_pdf(report: dict[str, Any], output_directory: Path | str, kin
     date_text = requested_date.isoformat() if kind == "opening" else report["report_date_local"]
     filename = ("apertura-mercado_" if kind == "opening" else "cierre-mercado_") + date_text + ".pdf"
     title = "Informe de apertura del mercado" if kind == "opening" else "Informe de cierre del mercado"
+    eastern = ZoneInfo("America/New_York")
+    dominican = ZoneInfo("America/Santo_Domingo")
+    scheduled_et = datetime.combine(
+        requested_date, time(9, 30) if kind == "opening" else time(16, 0), tzinfo=eastern
+    )
+    scheduled_local = scheduled_et.astimezone(dominican)
+    session_clock_label = "Apertura regular de EE. UU. (ET / hora local)" if kind == "opening" else "Cierre regular de EE. UU. (ET / hora local)"
+    session_clock_value = (
+        f"{scheduled_et.strftime('%Y-%m-%d %H:%M %Z')} / "
+        f"{scheduled_local.strftime('%Y-%m-%d %H:%M %Z')}"
+    )
     styles = report_styles()
     story = [
         Paragraph(title, styles["title"]),
@@ -244,6 +255,9 @@ def _build_session_pdf(report: dict[str, Any], output_directory: Path | str, kin
             ("Fecha de solicitud local", report.get("requested_report_date_local", report.get("report_date_local"))),
             ("Resolución de la hora de corte", _label(report.get("cutoff_resolution"))),
             ("Generado en UTC", generated.isoformat().replace("+00:00", "Z")),
+            ("Generado en hora local", generated.astimezone(dominican).isoformat()),
+            ("Generado en ET", generated.astimezone(eastern).isoformat()),
+            (session_clock_label, session_clock_value),
             ("Fuente principal", _label(report.get("source", "No especificado"))),
             ("Mercado", _label(report.get("market", "No especificado"))),
             ("Intervalo", report.get("interval", "No especificado")),
