@@ -205,7 +205,7 @@ def collect_binance_account_exports(
                 continue
             mapping = {_header(name): name for name in reader.fieldnames}
             if not REQUIRED_HEADERS.issubset(mapping):
-                unsupported_files.append(path.name)
+                unsupported_files.append(file_id)
                 continue
             supported_files += 1
             file_rows = file_events = 0
