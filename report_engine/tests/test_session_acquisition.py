@@ -114,6 +114,9 @@ class SessionAcquisitionTests(unittest.TestCase):
             self.assertEqual(report["cutoff_local"], "2026-11-14T18:30:00-04:00")
             self.assertEqual(payload["report_window"]["report_timezone"], "America/Santo_Domingo")
             self.assertEqual(len(payload["raw_candle_evidence_sha256"]), 64)
+            from report_engine.evidence import audit_evidence_manifest
+            audit = audit_evidence_manifest(manifests[0], Path(temp))
+            self.assertEqual(audit["status"], "passed", audit["findings"])
 
     def test_opening_and_closing_workflows_create_pdf(self):
         with TemporaryDirectory() as temp:
