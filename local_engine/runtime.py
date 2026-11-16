@@ -282,21 +282,32 @@ class JobRunner:
 
     def _session_report(self, job: dict[str, Any], kind: str) -> dict[str, Any]:
         parameters = job["parameters"]
-        allowed = {"session_date_utc", "interval", "market"}
+        allowed = {"session_date_local", "session_date_utc", "cutoff_local", "interval", "market"}
         unknown = set(parameters) - allowed
         if unknown:
             raise ValueError(f"Unknown {kind} report parameters: {sorted(unknown)}")
-        session_date_text = parameters.get("session_date_utc")
+        session_date_text = parameters.get("session_date_local", parameters.get("session_date_utc"))
+        if "session_date_local" in parameters and "session_date_utc" in parameters:
+            raise ValueError("Specify session_date_local only; session_date_utc is a legacy alias")
         session_date = None
         if session_date_text is not None:
             if not isinstance(session_date_text, str):
-                raise ValueError("parameters.session_date_utc must be YYYY-MM-DD")
+                raise ValueError("parameters.session_date_local must be YYYY-MM-DD")
             try:
                 session_date = datetime.strptime(session_date_text, "%Y-%m-%d").date()
             except ValueError as exc:
-                raise ValueError("parameters.session_date_utc must be YYYY-MM-DD") from exc
+                raise ValueError("parameters.session_date_local must be YYYY-MM-DD") from exc
             if session_date.isoformat() != session_date_text:
-                raise ValueError("parameters.session_date_utc must be canonical YYYY-MM-DD")
+                raise ValueError("parameters.session_date_local must be canonical YYYY-MM-DD")
+        cutoff_text = parameters.get("cutoff_local")
+        cutoff_local = None
+        if cutoff_text is not None:
+            if not isinstance(cutoff_text, str):
+                raise ValueError("parameters.cutoff_local must be an ISO-8601 local datetime")
+            try:
+                cutoff_local = datetime.fromisoformat(cutoff_text)
+            except ValueError as exc:
+                raise ValueError("parameters.cutoff_local must be an ISO-8601 local datetime") from exc
         interval = parameters.get("interval", "1h")
         market = parameters.get("market", "spot")
         if not isinstance(interval, str):
@@ -313,6 +324,7 @@ class JobRunner:
             BinancePublicClient(), output_directory, session_date=session_date,
             interval=interval, market=market,
             manifest_directory=self.manager.workspace.directory("data/manifests"),
+            **({"cutoff_local": cutoff_local} if kind == "closing" and cutoff_local is not None else {}),
         )
         resolved = artifact.resolve(strict=True)
         if not resolved.is_relative_to(output_directory):
@@ -332,7 +344,7 @@ class JobRunner:
             "size_bytes": len(payload),
             "sha256": digest,
             **manifest_metadata,
-            "session_date_utc": resolved.stem.rsplit("_", 1)[-1],
+            "session_date_local": resolved.stem.rsplit("_", 1)[-1],
             "market": market,
             "interval": interval,
             "source": "Binance public REST API",
@@ -502,19 +514,32 @@ class JobRunner:
 
     def _intraday_snapshot(self, job: dict[str, Any]) -> dict[str, Any]:
         parameters = job["parameters"]
-        allowed = {"cutoff_utc", "interval", "market"}
+        allowed = {"cutoff_utc", "cutoff_local", "interval", "market"}
         unknown = set(parameters) - allowed
         if unknown:
             raise ValueError(f"Unknown intraday parameters: {sorted(unknown)}")
+        if "cutoff_utc" in parameters and "cutoff_local" in parameters:
+            raise ValueError("Specify cutoff_local or cutoff_utc, not both")
+        cutoff = None
         cutoff_text = parameters.get("cutoff_utc")
-        if not isinstance(cutoff_text, str):
-            raise ValueError("parameters.cutoff_utc is required as an ISO-8601 UTC string")
-        try:
-            cutoff = datetime.fromisoformat(cutoff_text.replace("Z", "+00:00"))
-        except ValueError as exc:
-            raise ValueError("parameters.cutoff_utc must be an ISO-8601 UTC string") from exc
-        if cutoff.tzinfo is None or cutoff.utcoffset().total_seconds() != 0:
-            raise ValueError("parameters.cutoff_utc must include a UTC timezone")
+        if cutoff_text is not None:
+            if not isinstance(cutoff_text, str):
+                raise ValueError("parameters.cutoff_utc must be an ISO-8601 UTC string")
+            try:
+                cutoff = datetime.fromisoformat(cutoff_text.replace("Z", "+00:00"))
+            except ValueError as exc:
+                raise ValueError("parameters.cutoff_utc must be an ISO-8601 UTC string") from exc
+            if cutoff.tzinfo is None or cutoff.utcoffset().total_seconds() != 0:
+                raise ValueError("parameters.cutoff_utc must include a UTC timezone")
+        cutoff_local_text = parameters.get("cutoff_local")
+        cutoff_local = None
+        if cutoff_local_text is not None:
+            if not isinstance(cutoff_local_text, str):
+                raise ValueError("parameters.cutoff_local must be an ISO-8601 local datetime")
+            try:
+                cutoff_local = datetime.fromisoformat(cutoff_local_text)
+            except ValueError as exc:
+                raise ValueError("parameters.cutoff_local must be an ISO-8601 local datetime") from exc
         interval = parameters.get("interval", "1h")
         market = parameters.get("market", "spot")
         if not isinstance(interval, str):
@@ -532,6 +557,7 @@ class JobRunner:
             BinancePublicClient(), cutoff, output_directory,
             interval=interval, market=market,
             manifest_directory=self.manager.workspace.directory("data/manifests"),
+            cutoff_local=cutoff_local,
         )
         resolved_artifact = artifact.resolve(strict=True)
         if not resolved_artifact.is_relative_to(output_directory):
@@ -557,9 +583,8 @@ class JobRunner:
             "size_bytes": size_bytes,
             "sha256": digest,
             **manifest_metadata,
-            "window_start_utc": cutoff.replace(hour=0, minute=0, second=0, microsecond=0)
-                                      .isoformat().replace("+00:00", "Z"),
-            "cutoff_utc": cutoff.isoformat().replace("+00:00", "Z"),
+            "report_date_local": resolved_artifact.stem.split("-")[-1].split("_")[0]
+                                 if "_" in resolved_artifact.stem else "see evidence manifest",
             "market": market,
             "interval": interval,
             "source": "Binance public REST API",
