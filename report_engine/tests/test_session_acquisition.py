@@ -11,7 +11,7 @@ from report_engine.session_acquisition import (
     acquire_session_report_evidence, generate_closing_report_pdf, generate_opening_report_pdf,
 )
 
-START = datetime(2026, 11, 14, tzinfo=timezone.utc)
+START = datetime(2026, 11, 14, 4, tzinfo=timezone.utc)
 END = START + timedelta(days=1)
 
 
@@ -25,7 +25,8 @@ class FakeClient:
         return END + timedelta(minutes=1) if not self.future_server else END - timedelta(minutes=1)
 
     def get_historical_klines(self, symbol, interval, start, end, market="spot"):
-        count = 250 if end <= START else 24
+        duration_hours = int((end - start).total_seconds() // 3600)
+        count = 250 if duration_hours >= 200 else duration_hours
         rows = []
         for index in range(count):
             opened = start + timedelta(hours=index)
@@ -60,8 +61,8 @@ class SessionAcquisitionTests(unittest.TestCase):
 
     def test_evidence_contains_exact_session_and_separate_warmup(self):
         report = acquire_session_report_evidence(FakeClient(), START.date())
-        self.assertEqual(report["session_start_utc"], "2026-11-14T00:00:00Z")
-        self.assertEqual(report["session_end_utc"], "2026-11-15T00:00:00Z")
+        self.assertEqual(report["session_start_utc"], "2026-11-14T04:00:00Z")
+        self.assertEqual(report["session_end_utc"], "2026-11-15T04:00:00Z")
         for symbol in ("BTCUSDT", "ETHUSDT"):
             item = report["symbols"][symbol]
             self.assertEqual(item["candle_count"], 24)
@@ -81,11 +82,25 @@ class SessionAcquisitionTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "indicator-history pagination did not complete"):
             acquire_session_report_evidence(FakeClient(incomplete=True), START.date())
 
+    def test_closing_supports_partial_dominican_calendar_day(self):
+        from report_engine.session_acquisition import acquire_session_report_evidence
+        cutoff = datetime(2026, 11, 14, 18, 30)
+        report = acquire_session_report_evidence(
+            FakeClient(), START.date(), report_kind="closing", cutoff_local=cutoff
+        )
+        self.assertTrue(report["is_partial"])
+        self.assertEqual(report["report_timezone"], "America/Santo_Domingo")
+        self.assertEqual(report["report_date_local"], "2026-11-14")
+        self.assertEqual(report["session_start_utc"], "2026-11-14T04:00:00Z")
+        self.assertEqual(report["session_end_utc"], "2026-11-14T22:30:00Z")
+        self.assertEqual(report["data_cutoff_utc"], "2026-11-14T22:00:00Z")
+        self.assertEqual(report["symbols"]["BTCUSDT"]["candle_count"], 18)
+
     def test_opening_and_closing_workflows_create_pdf(self):
         with TemporaryDirectory() as temp:
             opening = generate_opening_report_pdf(FakeClient(), temp, START.date())
             closing = generate_closing_report_pdf(FakeClient(), temp, START.date())
-            self.assertEqual(opening.name, "apertura-mercado_2026-11-14.pdf")
+            self.assertEqual(opening.name, "apertura-mercado_2026-11-13.pdf")
             self.assertEqual(closing.name, "cierre-mercado_2026-11-14.pdf")
             self.assertTrue(opening.read_bytes().startswith(b"%PDF-"))
             self.assertTrue(closing.read_bytes().startswith(b"%PDF-"))
