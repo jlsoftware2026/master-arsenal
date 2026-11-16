@@ -52,7 +52,8 @@ class USMarketDataTests(unittest.TestCase):
             opener=lambda request, timeout: FakeResponse(chart_payload()),
         )
         item = result["groups"]["indices"][0]
-        self.assertEqual(result["status"], "complete")
+        self.assertEqual(result["status"], "partial")
+        self.assertEqual(result["instrument_snapshot_status"], "complete")
         self.assertEqual(item["last_price"], 100.0)
         self.assertEqual(item["observed_at_utc"], "2026-11-16T14:55:00Z")
         self.assertEqual(item["change"], 5.0)
