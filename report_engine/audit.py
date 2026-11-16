@@ -196,16 +196,23 @@ def audit_market_report_artifact(path: str | Path, report_type: str) -> dict[str
             "BTCUSDT", "ETHUSDT", "Technical indicator", "validation", "Bullish / long scenario", "Bearish / short scenario",
             "Macroeconomic context", "Relevant market news", "Data provenance",
             "Macro/news feed retrieval register", "Feed URL", "UTC", "Important notice",
+            "America/Santo_Domingo", "Local reporting window", "COMPLETED LOCAL DAY",
+            "Binance account analytics", "U.S. equity-market coverage", "Activation timing",
         ),
         "closing": (
             "BTCUSDT", "ETHUSDT", "Bullish / long scenario", "Bearish / short scenario",
             "Macroeconomic context", "Relevant market news", "Data provenance",
             "Macro/news feed retrieval register", "Important notice",
+            "America/Santo_Domingo", "Local reporting window", "Binance account analytics",
+            "U.S. equity-market coverage", "Activation timing", "Opening forecast scorecard",
         ),
         "intraday": (
             "BTCUSDT", "ETHUSDT", "Technical indicator", "validation", "Macroeconomic context", "Relevant news",
             "Bullish / long scenario", "Bearish / short scenario",
             "Source and provenance notes", "Macro/news feed retrieval register", "Feed URL", "UTC", "Disclaimer",
+            "America/Santo_Domingo", "Local reporting window", "PARTIAL LOCAL DAY",
+            "U.S. equity session state", "Comparison basis", "Binance account analytics",
+            "U.S. equity-market coverage", "Last fully closed candle boundary UTC",
         ),
     }
     if report_type not in requirements:
