@@ -33,14 +33,15 @@ class PdfQualityTests(unittest.TestCase):
                  "close": str(100 + hour), "volume": str(10 + hour)}
                 for hour in range(16)
             ]
+            data["symbols"][symbol]["candle_count"] = 16
         with TemporaryDirectory() as temp:
             pdf = build_intraday_snapshot_pdf(data, temp)
             with fitz.open(pdf) as document:
                 text = "\\n".join(page.get_text() for page in document)
-            self.assertIn("BTCUSDT close price", text)
-            self.assertIn("BTCUSDT base-asset volume", text)
-            self.assertIn("ETHUSDT close price", text)
-            self.assertIn("ETHUSDT base-asset volume", text)
+            self.assertIn("BTCUSDT: precio de cierre", text)
+            self.assertIn("BTCUSDT: volumen del activo base", text)
+            self.assertIn("ETHUSDT: precio de cierre", text)
+            self.assertIn("ETHUSDT: volumen del activo base", text)
 
     def test_chart_rejects_non_finite_values_and_mismatched_labels(self):
         with self.assertRaisesRegex(ValueError, "finite"):
