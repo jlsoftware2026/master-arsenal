@@ -1,7 +1,7 @@
 ---
 name: binance-momento-mercado
 description: 'Informe de mercado a una hora concreta o snapshot intradía. Activar cuando el usuario diga “momento específico del mercado”, “estado del mercado ahora”, “resumen a esta hora”, “snapshot intradía” o solicite el comportamiento del día hasta una hora indicada. El análisis empieza al inicio del día local y termina en la hora de corte solicitada.'
-version: 0.1.0
+version: 0.2.0
 last_reviewed: 2026-11-16
 ---
 
@@ -56,3 +56,5 @@ Adapted against the user-supplied original Claude skill package. U.S. equity pre
 
 ## Language parity status
 The original Claude skill specifies Spanish-language report content. The current PDF composer still renders English headings and labels; this remains a high-severity parity gap and must be localized before the workflow can be certified as equivalent to the original.
+
+- 0.2.0 — 2026-11-16: Reconciled activation phrases, Dominican local-day semantics, PDF-only delivery, explicit limitations, and source-derived report requirements. Outstanding parity gaps remain disclosed.
