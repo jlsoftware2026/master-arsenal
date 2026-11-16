@@ -276,7 +276,7 @@ class LocalEngineTests(unittest.TestCase):
                  "macro_context": "No macro items.", "news": "No news items.",
                  "macro_sources": [], "news_sources": [], "context_status": "complete",
                  "context_limitations": "Fixture context only.",
-             }):
+             }), patch("report_engine.acquisition.collect_us_market_snapshot", return_value=FAKE_US_MARKET_SNAPSHOT):
             result = JobRunner(self.manager).run(job["job_id"])
         self.assertEqual(result["status"], "completed", result)
         self.assertIn("snapshot-mercado_", result["result"]["filename"])
