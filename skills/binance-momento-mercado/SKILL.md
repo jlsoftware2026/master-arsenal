@@ -19,6 +19,8 @@ Generate a detailed intraday PDF snapshot from 00:00 UTC through an explicit, co
 5. Price/volume charts, conditional bullish/bearish range scenarios for the remaining period, invalidation references, and risks.
 
 ## Integrity rules
+The Local Engine may retain a source-linked raw-evidence manifest under `data/manifests` for independent audit. This is internal audit evidence; the user-facing report output remains PDF-only.
+
 Do not treat an incomplete day as a closed session. Headlines are candidate context only, not proof of market causation. Scenario levels are conditional references, not forecasts, targets, or probabilities. Never fabricate values, events, citations, or forecasts. Generate and independently inspect the PDF; if PDF generation or QA fails, fail the job and do not substitute another format.
 
 ## Status
