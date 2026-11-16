@@ -211,7 +211,8 @@ class LocalEngineTests(unittest.TestCase):
         (account_export_directory / "transaction-history.csv").write_text(
             "User_ID,UTC_Time,Account,Operation,Coin,Change,Remark\n"
             "private-user-123,2026-11-11T14:00:00Z,Spot,Deposit,USDT,100,private note\n"
-            "private-user-123,2026-11-16T14:00:00Z,USD-M Futures,Funding Fee,USDT,-0.5,private note\n",
+            "private-user-123,2026-11-16T14:00:00Z,USD-M Futures,Funding Fee,USDT,-0.5,private note\n"
+            "private-user-123,2026-11-16 14:30:00,Spot,Deposit,USDT,1,private note\n",
             encoding="utf-8",
         )
         for job_type, expected_dir, expected_name, report_date in (
