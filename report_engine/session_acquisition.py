@@ -8,6 +8,7 @@ from typing import Any
 
 from binance_data_engine.client import BinancePublicClient
 from binance_data_engine.session import acquire_market_window
+from .account_exports import collect_binance_account_exports
 from .context import collect_market_context
 from .evidence import write_evidence_manifest
 from .session import build_closing_report_pdf, build_opening_report_pdf
@@ -29,6 +30,7 @@ def acquire_session_report_evidence(
     report_kind: str = "completed",
     cutoff_local: datetime | None = None,
     now: datetime | None = None,
+    account_export_directory: Path | str | None = None,
 ) -> dict[str, Any]:
     """Acquire opening, closing, or completed local-day evidence.
 
@@ -78,7 +80,11 @@ def acquire_session_report_evidence(
         "completed_historical_local_day"
     )
     report["report_timezone"] = REPORT_TIMEZONE
-    report["binance_account_data_status"] = "unavailable"
+    account_evidence = collect_binance_account_exports(
+        account_export_directory, window.start_utc, window.end_utc
+    )
+    report["binance_account_data"] = account_evidence
+    report["binance_account_data_status"] = account_evidence["status"]
     report["us_equity_market_data_status"] = "not_integrated"
     eastern = ZoneInfo("America/New_York")
     if report_kind == "opening":
@@ -104,7 +110,7 @@ def acquire_session_report_evidence(
     )
     report["activation_timing_status"] = "not_automated"
     report["source_skill_limitations"] = [
-        "Los saldos, posiciones, comisiones, financiación y PnL ajustado por flujos de la cuenta privada de Binance no están disponibles; las velas públicas del mercado no son datos de cuenta.",
+        "La actividad de cuenta se importa solo desde CSV de historial de transacciones con esquema admitido. Sin exportaciones válidas no hay datos privados; este módulo no calcula patrimonio, PnL no realizado, costo base completo ni rentabilidad ajustada por flujos. Las velas públicas no son datos de cuenta.",
         "Las cotizaciones de índices, VIX, futuros, tasas, DXY, materias primas y ETF sectoriales se consultan best-effort mediante Yahoo Finance; la amplitud bursátil y líderes/rezagados por acción no están incluidos. El calendario XNYS se consulta por separado y puede quedar no disponible si falla su proveedor.",
         "El horario de activación de apertura/cierre no está automatizado; el scorecard compara escenarios solo cuando existe un manifiesto de apertura íntegro de la misma fecha.",
     ]
@@ -173,7 +179,10 @@ def acquire_session_report_evidence(
         if sector_leaders or sector_laggards else " Rendimiento sectorial no disponible."
     )
     summary_points.append(
-        f"Mercado estadounidense: {market_evidence['available_instruments']}/"
+        f"Actividad de cuenta Binance: {account_evidence['events_in_window']} eventos en "
+        f"{account_evidence['file_count']} archivos; estado {account_evidence['status']}. "
+        "No se infiere patrimonio ni rentabilidad de cartera. "
+        + f"Mercado estadounidense: {market_evidence['available_instruments']}/"
         f"{market_evidence['expected_instruments']} cotizaciones disponibles al corte; "
         + ("; ".join(market_highlights) if market_highlights else "sin cotizaciones verificables")
         + ". Calendario XNYS: "
@@ -220,6 +229,7 @@ def acquire_session_report_evidence(
         "El calendario XNYS aporta feriados y horarios, no precios. El análisis de la cuenta privada de Binance y la activación automática "
         "no están disponibles en esta versión. El scorecard de apertura/cierre depende de un manifiesto íntegro de apertura de la misma fecha. "
         + market_evidence.get("limitations", "No se suministraron limitaciones del proveedor bursátil.") + " "
+        + account_evidence.get("limitations", "No se suministraron limitaciones de la exportación de cuenta.") + " "
         + context.get("context_limitations", "No se suministraron limitaciones de los feeds.")
     )
     return report
@@ -232,9 +242,11 @@ def generate_opening_report_pdf(
     interval: str = "1h",
     market: str = "spot",
     manifest_directory: Path | str | None = None,
+    account_export_directory: Path | str | None = None,
 ) -> Path:
     evidence = acquire_session_report_evidence(
-        client, session_date, interval, market, report_kind="opening"
+        client, session_date, interval, market, report_kind="opening",
+        account_export_directory=account_export_directory,
     )
     artifact = build_opening_report_pdf(evidence, output_directory)
     if manifest_directory is not None:
@@ -254,10 +266,12 @@ def generate_closing_report_pdf(
     market: str = "spot",
     manifest_directory: Path | str | None = None,
     cutoff_local: datetime | None = None,
+    account_export_directory: Path | str | None = None,
 ) -> Path:
     evidence = acquire_session_report_evidence(
         client, session_date, interval, market,
         report_kind="closing", cutoff_local=cutoff_local,
+        account_export_directory=account_export_directory,
     )
     scorecard = build_opening_forecast_scorecard(evidence, manifest_directory)
     evidence["opening_forecast_scorecard"] = scorecard
