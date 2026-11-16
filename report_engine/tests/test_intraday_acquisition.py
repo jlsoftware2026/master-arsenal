@@ -58,7 +58,8 @@ class IntradayAcquisitionTests(unittest.TestCase):
     def setUp(self):
         self.context = patch("report_engine.acquisition.collect_market_context", return_value={
             "macro_context": "No macro items.", "news": "No news items.",
-            "macro_sources": [], "news_sources": [], "context_status": "complete",\n                   "context_limitations": "Fixture context only.",
+            "macro_sources": [], "news_sources": [], "context_status": "complete",
+                   "context_limitations": "Fixture context only.",
         })
         self.context.start()
 
