@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
@@ -46,17 +47,17 @@ def acquire_intraday_evidence(
     bullish, bearish = [], []
     for symbol in ("BTCUSDT", "ETHUSDT"):
         candles = report["symbols"][symbol]["candles"]
-        high = max(float(candle["high"]) for candle in candles)
-        low = min(float(candle["low"]) for candle in candles)
+        high = max(Decimal(candle["high"]) for candle in candles)
+        low = min(Decimal(candle["low"]) for candle in candles)
         last = candles[-1]["close"]
         bullish.append(
             f"{symbol}: remaining-session continuation requires acceptance above the "
-            f"observed high {high:g}; invalidation reference is below the observed low {low:g}. "
+            f"observed high {format(high, 'f')}; invalidation reference is below the observed low {format(low, 'f')}. "
             f"Last close: {last}."
         )
         bearish.append(
             f"{symbol}: remaining-session weakness requires acceptance below the "
-            f"observed low {low:g}; invalidation reference is above the observed high {high:g}. "
+            f"observed low {format(low, 'f')}; invalidation reference is above the observed high {format(high, 'f')}. "
             f"Last close: {last}."
         )
     report["bullish_scenario"] = " ".join(bullish) + " Conditional levels only; no probability or target is inferred."
