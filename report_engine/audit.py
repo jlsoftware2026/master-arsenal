@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 from pathlib import Path
 from typing import Any
 
@@ -44,6 +45,20 @@ def build_skills_audit_pdf(report: dict[str, Any], output_directory: Path | str)
         raise ValueError("generated_at_utc must include UTC timezone")
     if generated.astimezone(timezone.utc).date().isoformat() != audit_date:
         raise ValueError("generated_at_utc date must match audit_date_utc")
+    report_timezone = report.get("report_timezone", "America/Santo_Domingo")
+    if report_timezone != "America/Santo_Domingo":
+        raise ValueError("report_timezone must be America/Santo_Domingo")
+    audit_date_local = report.get("audit_date_local")
+    if not isinstance(audit_date_local, str):
+        raise ValueError("audit_date_local must be YYYY-MM-DD")
+    try:
+        parsed_local_date = datetime.strptime(audit_date_local, "%Y-%m-%d").date()
+    except ValueError as exc:
+        raise ValueError("audit_date_local must be YYYY-MM-DD") from exc
+    if parsed_local_date.isoformat() != audit_date_local:
+        raise ValueError("audit_date_local must be canonical YYYY-MM-DD")
+    if generated.astimezone(ZoneInfo(report_timezone)).date().isoformat() != audit_date_local:
+        raise ValueError("audit_date_local must match generated_at_utc in the report timezone")
 
     artifacts = report.get("artifacts", [])
     findings = report.get("findings", [])
@@ -57,12 +72,16 @@ def build_skills_audit_pdf(report: dict[str, Any], output_directory: Path | str)
         Paragraph("Binance Skills Independent Audit", styles["title"]),
         Paragraph("Evidence-led review of generated report artifacts and verification coverage", styles["subtitle"]),
         data_table(["Audit metadata", "Value"], [
+            ["Audit date local", audit_date_local],
+            ["Reporting timezone", report_timezone],
             ["Audit date UTC", audit_date],
             ["Generated at UTC", generated_at],
+            ["Report engine version", str(report.get("report_engine_version", "Not supplied"))],
             ["Artifacts discovered", str(len(artifacts))],
             ["Artifacts passing structural QA", str(verified)],
             ["Artifacts not verified / failing", str(unverified)],
-            ["Overall status", status],
+            ["Structural status", status],
+            ["Overall audit verdict", str(report.get("audit_verdict", "No aprobado"))],
         ], styles),
         Spacer(1, 4),
         section_heading("Scope and independence", styles),
@@ -119,6 +138,44 @@ def build_skills_audit_pdf(report: dict[str, Any], output_directory: Path | str)
             paragraph("No additional findings were supplied. Absence of findings is not proof that "
                       "the underlying market analysis is correct.", styles["body"]),
         ])
+    desk_checks = report.get("desk_checks") or []
+    story.append(section_heading("Original-skill desk-check matrix", styles))
+    if desk_checks:
+        desk_rows = [[
+            str(item.get("id", "N/A")),
+            str(item.get("case", "Unspecified")),
+            str(item.get("status", "not verified")),
+            str(item.get("severity", "unclassified")),
+            str(item.get("evidence", "Not supplied")),
+            str(item.get("recommendation", "Not supplied")),
+        ] for item in desk_checks if isinstance(item, dict)]
+        if desk_rows:
+            story.append(data_table(
+                ["ID", "Desk check", "Status", "Severity", "Evidence", "Recommendation"],
+                desk_rows, styles,
+                widths=[12*mm, 30*mm, 20*mm, 16*mm, 44*mm, 31*mm],
+            ))
+    else:
+        story.append(paragraph(
+            "The original-skill desk-check matrix was not supplied. Full audit parity is NOT VERIFIED.",
+            styles["body"],
+        ))
+
+    change_history = report.get("change_history") or []
+    story.append(section_heading("Version and change history", styles))
+    if change_history:
+        change_rows = [[
+            str(item.get("date", "Not supplied")),
+            str(item.get("version", "Not supplied")),
+            str(item.get("change", "Not supplied")),
+        ] for item in change_history if isinstance(item, dict)]
+        if change_rows:
+            story.append(data_table(["Date", "Version", "Change"], change_rows, styles,
+                                    widths=[28*mm, 25*mm, 100*mm]))
+    else:
+        story.append(paragraph("No inspectable version/change history was supplied. NOT VERIFIED.",
+                               styles["body"]))
+
     evidence_manifests = report.get("evidence_manifests") or []
     story.append(section_heading("Raw evidence and indicator recalculation", styles))
     if evidence_manifests:
@@ -179,7 +236,7 @@ def build_skills_audit_pdf(report: dict[str, Any], output_directory: Path | str)
             styles["body"],
         ),
     ])
-    destination = Path(output_directory) / f"auditoria-skills-binance_{audit_date}.pdf"
+    destination = Path(output_directory) / f"auditoria-skills-binance_{audit_date_local}.pdf"
     written = write_pdf_atomic(destination, story, "Binance Skills Independent Audit")
     try:
         inspect_pdf_artifact(written)
