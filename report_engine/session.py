@@ -274,8 +274,13 @@ def _account_rows(snapshot: Any) -> tuple[list[list[str]], list[str]]:
                 continue
             for asset, amount in sorted(assets.items()):
                 rows.append([labels.get(event, event), str(asset), str(amount)])
-    assumptions = snapshot.get("assumptions") or []
-    return rows, [str(item) for item in assumptions if item]
+    warnings = [str(item) for item in (snapshot.get("assumptions") or []) if item]
+    warnings.extend(
+        "Esquema no admitido: " + str(item)
+        for item in (snapshot.get("unsupported_files") or [])
+    )
+    warnings.extend(str(item) for item in (snapshot.get("parse_errors") or [])[:10])
+    return rows, warnings
 
 
 def _summary_flowables(value: Any, styles) -> list[Any]:
@@ -377,7 +382,8 @@ def _build_session_pdf(report: dict[str, Any], output_directory: Path | str, kin
     account_rows, account_assumptions = _account_rows(account_snapshot)
     story.append(paragraph(
         f"Estado: {_label(account_snapshot.get('status', 'unavailable'))}; "
-        f"archivos: {account_snapshot.get('file_count', 0)}; "
+        f"archivos: {account_snapshot.get('file_count', 0)} "
+        f"(admitidos: {account_snapshot.get('supported_file_count', 0)}); "
         f"eventos dentro de la ventana: {account_snapshot.get('events_in_window', 0)}; "
         f"filas leídas: {account_snapshot.get('rows_scanned', 0)}; "
         f"duplicados omitidos: {account_snapshot.get('duplicate_rows', 0)}.",
