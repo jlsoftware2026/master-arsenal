@@ -1,3 +1,10 @@
+---
+name: binance-cierre-mercado
+description: 'Informe de cierre y recapitulación diaria. Activar cuando el usuario diga “cierre de mercado”, “resumen de cierre” o solicite cómo terminó la sesión. Analiza el día de la fecha local de solicitud, tanto la sesión bursátil estadounidense como la actividad de la cuenta Binance.'
+version: 0.1.0
+last_reviewed: 2026-11-16
+---
+
 # binance-cierre-mercado
 
 ## Purpose
@@ -45,3 +52,6 @@ Disclose incomplete data and unavailable feeds. Headlines are candidate context 
 
 ## Status
 Adapted against the user-supplied original Claude skill package. U.S. market data/calendar, private-account analytics, automated activation timing, and same-date opening forecast scorecard remain unavailable/not implemented and are disclosed.
+
+## Version history
+- 0.1.0 — 2026-11-16: Initial ChatGPT/MASTER ARSENAL adaptation; preserves the original skill identity and documents the Local Engine/PDF workflow and current implementation gaps.
