@@ -6,6 +6,7 @@ import tempfile
 import threading
 import unittest
 from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 from decimal import Decimal
 from pathlib import Path
 from unittest.mock import patch
@@ -246,8 +247,7 @@ class LocalEngineTests(unittest.TestCase):
             result = JobRunner(self.manager).run(job["job_id"])
         self.assertEqual(result["status"], "completed", result)
         self.assertIn("snapshot-mercado-", result["result"]["filename"])
-        self.assertEqual(result["result"]["report_date_local"], datetime.now().astimezone().date().isoformat()
-                         if False else result["result"]["report_date_local"])
+        self.assertEqual(result["result"]["report_date_local"], datetime.now(ZoneInfo("America/Santo_Domingo")).date().isoformat())
 
     def test_intraday_snapshot_job_rejects_non_pdf_output(self):
         job = new_job("market.intraday_snapshot", {
