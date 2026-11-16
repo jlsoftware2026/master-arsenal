@@ -341,7 +341,7 @@ def _build_session_pdf(report: dict[str, Any], output_directory: Path | str, kin
         Spacer(1, 3 * mm),
         section_heading("Resumen ejecutivo", styles),
         *_summary_flowables(report.get("executive_summary"), styles),
-    ]
+    ])
     if kind == "closing":
         scorecard = report.get("opening_forecast_scorecard") or {}
         story.append(section_heading("Evaluación de escenarios de apertura de la misma fecha", styles))
