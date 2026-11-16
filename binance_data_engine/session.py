@@ -20,8 +20,8 @@ def acquire_completed_market_day(
     indicator_lookback: int = 250,
 ) -> dict[str, Any]:
     """Acquire a complete UTC calendar day and separate pre-session indicator history."""
-    if interval_milliseconds(interval) is None or interval in {"1d", "3d", "1w"}:
-        raise ValueError(f"Unsupported fixed intraday interval: {interval!r}")
+    if interval_milliseconds(interval) is None or interval_milliseconds(interval) < 60_000 or interval in {"1d", "3d", "1w"}:
+        raise ValueError(f"Unsupported report interval (minimum 1m): {interval!r}")
     interval_ms = interval_milliseconds(interval)
     if 86_400_000 % interval_ms:
         raise ValueError("The selected interval must divide a 24-hour UTC day exactly")
