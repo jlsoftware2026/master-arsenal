@@ -51,6 +51,16 @@ class FakeClient:
 
 class SessionAcquisitionTests(unittest.TestCase):
     def setUp(self):
+        self.market = patch("report_engine.session_acquisition.collect_us_market_snapshot", return_value:{
+    "status": "unavailable", "provider": "Fixture",
+    "as_of_utc": "2026-11-16T15:00:00Z",
+    "expected_instruments": 0, "available_instruments": 0,
+    "unavailable_symbols": [], "groups": {},
+    "sector_leaders": [], "sector_laggards": [],
+    "market_breadth": {"status": "not_available"},
+    "limitations": "Fixture market data only."
+})
+        self.market.start()
         self.context = patch("report_engine.session_acquisition.collect_market_context", return_value={
             "macro_context": "No macro items.", "news": "No news items.",
             "macro_sources": [], "news_sources": [], "context_status": "complete",
@@ -60,6 +70,7 @@ class SessionAcquisitionTests(unittest.TestCase):
 
     def tearDown(self):
         self.context.stop()
+        self.market.stop()
 
     def test_evidence_contains_exact_session_and_separate_warmup(self):
         report = acquire_session_report_evidence(FakeClient(), START.date())
