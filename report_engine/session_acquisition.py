@@ -99,12 +99,42 @@ def acquire_session_report_evidence(
         "día calendario local parcial hasta la hora de corte indicada" if window.is_partial
         else "día calendario local completado"
     )
-    report["executive_summary"] = (
-        f"Referencia de Binance: {period_label} ({target_date.isoformat()} {REPORT_TIMEZONE}). "
-        "Rendimiento observado (desde la apertura de la primera vela hasta el cierre de la última vela completa): "
-        + "; ".join(changes)
-        + ". Mediciones descriptivas únicamente; no se infieren causas ni pronósticos."
+    summary_points = [
+        f"Referencia Binance: {period_label} ({target_date.isoformat()}, {REPORT_TIMEZONE}); ventana local {window.start_local.isoformat()} a {window.end_local.isoformat()}.",
+    ]
+    for symbol in ("BTCUSDT", "ETHUSDT"):
+        item = report["symbols"][symbol]
+        performance = item["performance"]
+        change = performance.get("change_percent")
+        change_text = f"{change}%" if change is not None else "no disponible"
+        summary_points.append(
+            f"{symbol}: variación observada {change_text}; rango {performance.get('low')}–{performance.get('high')}; "
+            f"último cierre completo {performance.get('close')}."
+        )
+    summary_points.append(
+        "Calidad de datos: BTCUSDT "
+        f"{report['symbols']['BTCUSDT'].get('candle_count', 0)} velas y ETHUSDT "
+        f"{report['symbols']['ETHUSDT'].get('candle_count', 0)} velas; se excluyen las velas incompletas."
     )
+    indicator_parts = []
+    for symbol in ("BTCUSDT", "ETHUSDT"):
+        indicators = report["symbols"][symbol].get("indicators") or {}
+        indicator_parts.append(
+            f"{symbol} EMA20={indicators.get('ema_20', 'N/D')}, "
+            f"EMA50={indicators.get('ema_50', 'N/D')}, RSI14={indicators.get('rsi_14', 'N/D')}"
+        )
+    summary_points.append("Indicadores técnicos calculados: " + "; ".join(indicator_parts) + ".")
+    feeds = report.get("context_sources") or []
+    available_feeds = sum(1 for item in feeds if isinstance(item, dict) and item.get("status") == "ok")
+    summary_points.append(
+        f"Contexto macroeconómico/noticias: {available_feeds} de {len(feeds)} feeds consultados con estado correcto; "
+        "los titulares son contexto y no prueban causalidad."
+    )
+    summary_points.append(
+        "Limitaciones: los datos privados de cuenta Binance y la cobertura completa del mercado bursátil estadounidense "
+        "no están integrados; la activación automática tampoco está implementada."
+    )
+    report["executive_summary"] = summary_points
     report["technical_analysis"] = (
         "Los indicadores utilizan una serie independiente de calentamiento previa a la ventana y velas completamente cerradas "
         "de la ventana del informe. Las velas de calentamiento se excluyen del rendimiento del período y de los gráficos."
