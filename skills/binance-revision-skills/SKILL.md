@@ -20,7 +20,7 @@ Independently audit the other three market-report workflows, their source data, 
 7. **Findings:** classify severity, cite inspectable evidence, explain impact, and recommend corrective actions.
 
 ## Current automated checks
-The Local Engine scans the fixed opening, closing, and intraday report folders, hashes discovered PDFs, independently parses each artifact, extracts text, checks text bounds, and raster-renders pages. Missing artifacts and failed QA are explicit findings. An empty artifact set is insufficient evidence, never a pass.
+The Local Engine scans the fixed opening, closing, and intraday report folders, hashes discovered PDFs, independently parses each artifact, extracts text, checks text bounds, raster-renders pages, validates filename prefixes, and checks for mandatory BTC/ETH, scenario, macro/news, provenance, and feed-status sections. Missing artifacts and failed structural/content checks are explicit findings. An empty artifact set is insufficient evidence, never a pass.
 
 ## Independence and integrity
 Do not certify a skill based solely on its own assertions. The current automated audit is primarily a PDF structural/readability audit; it does not yet independently recalculate every indicator or fully validate all news claims, scenario quality, or market-analysis semantics. Mark those areas NOT VERIFIED unless separate evidence is supplied. The audit itself must be a PDF; if PDF generation fails, report the blocker and do not substitute another format.
