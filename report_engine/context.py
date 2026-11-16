@@ -78,7 +78,7 @@ def _parse_feed(payload: bytes, feed: dict[str, str], start: datetime, end: date
                     link = child.attrib.get("href")
                     if link:
                         break
-        if not link or not link.startswith(("https://", "http://")):
+        if not link or not link.startswith("https://"):
             continue
         published_raw = _child_text(entry, {"pubdate", "published", "updated", "date"})
         published = _published(published_raw)
