@@ -66,9 +66,14 @@ def acquire_session_report_evidence(
     report["report_timezone"] = REPORT_TIMEZONE
     report["binance_account_data_status"] = "unavailable"
     report["us_equity_market_data_status"] = "not_integrated"
+    report["opening_forecast_scorecard_status"] = (
+        "not_implemented" if report_kind == "closing" else "not_applicable"
+    )
+    report["activation_timing_status"] = "not_automated"
     report["source_skill_limitations"] = [
         "Private Binance account balances, positions, fees, funding, and flow-adjusted PnL are unavailable; public market candles are not account data.",
         "Full U.S. equity indices, VIX, rates, DXY, commodities, sector breadth, and exchange-calendar evidence are not integrated or verified.",
+        "Opening/closing activation timing is not automated; the same-date opening forecast scorecard is not implemented.",
     ]
 
     changes = []
