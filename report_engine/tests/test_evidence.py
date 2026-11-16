@@ -12,7 +12,7 @@ from report_engine.evidence import (
     audit_cross_report_consistency, audit_evidence_manifest, write_evidence_manifest,
 )
 
-START = datetime(2026, 11, 16, tzinfo=timezone.utc)
+START = datetime(2026, 11, 16, 4, tzinfo=timezone.utc)
 CUTOFF = START + timedelta(hours=3)
 
 
@@ -48,6 +48,11 @@ def _report():
         }
     return {
         "window_start_utc": START.isoformat().replace("+00:00", "Z"),
+        "report_timezone": "America/Santo_Domingo",
+        "report_date_local": "2026-11-16",
+        "window_start_local": "2026-11-16T00:00:00-04:00",
+        "cutoff_local": "2026-11-16T03:00:00-04:00",
+        "is_partial": True,
         "cutoff_utc": CUTOFF.isoformat().replace("+00:00", "Z"),
         "generated_at_utc": (CUTOFF + timedelta(minutes=1)).isoformat().replace("+00:00", "Z"),
         "interval": "1h",
