@@ -53,7 +53,7 @@ def _report():
         "interval": "1h",
         "source": "Binance public REST API",
         "read_only": True,
-        "indicator_methodology": {"lookback_candles": 250},
+        "indicator_methodology": {"lookback_candles": 250, "report_window_excludes_lookback": True},
         "symbols": symbols,
     }
 
