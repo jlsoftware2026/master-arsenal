@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 from tempfile import TemporaryDirectory
 import unittest
 
-from report_engine.session import build_closing_report_pdf, build_opening_report_pdf
+from report_engine.session import build_closing_report_pdf, build_opening_report_pdf, _us_market_rows
 
 START = datetime(2026, 11, 14, 4, tzinfo=timezone.utc)
 END = START + timedelta(days=1)
@@ -70,6 +70,29 @@ def _report(kind="opening"):
 
 
 class SessionReportTests(unittest.TestCase):
+    def test_market_snapshot_rows_include_units_and_missing_symbols(self):
+        rows, unavailable = _us_market_rows({
+            "groups": {
+                "indices": [{
+                    "status": "ok", "name": "S&P 500", "symbol": "^GSPC",
+                    "unit": "index_points", "last_price": 5000.25,
+                    "change_percent": 0.5, "observed_at_et": "2026-11-16T10:00:00-05:00",
+                }],
+                "rates": [{
+                    "status": "ok", "name": "U.S. Treasury 10Y yield", "symbol": "^TNX",
+                    "unit": "yield_percent", "last_price": 4.25,
+                    "change_basis_points": 5.0, "observed_at_et": "2026-11-16T10:00:00-05:00",
+                }],
+                "sectors": [{"status": "unavailable", "symbol": "XLK"}],
+            }
+        })
+        self.assertEqual(rows[0][3], "5000.25 pts")
+        self.assertEqual(rows[1][3], "4.250%")
+        self.assertEqual(rows[1][4], "+5.0 pb")
+        self.assertEqual(unavailable, ["XLK"])
+
+
+
     def test_opening_pdf_uses_previous_local_day_and_is_readable(self):
         with TemporaryDirectory() as temp:
             path = build_opening_report_pdf(_report("opening"), temp)
