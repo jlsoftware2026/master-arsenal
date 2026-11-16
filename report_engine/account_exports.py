@@ -1,4 +1,4 @@
-"""Read-only parser for Binance transaction-history CSV exports.
+"""Read-only parser for the common Binance transaction-history CSV export schema.
 
 Only the documented transaction-statement schema is accepted. User IDs and
 remarks are never copied into report evidence. Unsupported schemas are
@@ -224,7 +224,7 @@ def collect_binance_account_exports(
                     parse_errors.append(f"{file_id}: row {row_number}: {type(exc).__name__}: {exc}")
             file_records.append({
                 "file_id": file_id, "sha256": digest, "bytes": size,
-                "format": "binance_transaction_statement_csv",
+                "format": "binance_transaction_history_csv",
                 "rows_scanned": file_rows, "events_in_window": file_events,
             })
         except Exception as exc:
@@ -257,7 +257,7 @@ def collect_binance_account_exports(
         "unknown_operation_count": counts["other"],
         "assumptions": sorted(assumptions),
         "limitations": (
-            "This parser supports Binance transaction-statement CSV files with the documented User_ID, UTC_Time, "
+            "This parser supports Binance transaction-history CSV files with the documented User_ID, UTC_Time, "
             "Account, Operation, Coin, Change, Remark schema. It aggregates balance-change events only. It does not "
             "calculate total account equity, open-position unrealized PnL, full spot cost basis, tax PnL, or "
             "flow-adjusted portfolio returns; daily balance snapshots and complete position histories are required."
