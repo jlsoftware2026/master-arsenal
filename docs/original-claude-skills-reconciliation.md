@@ -2,7 +2,7 @@
 
 **Source of truth:** the four user-supplied Claude `.skill` packages received on 2026-11-16.  
 **Target branch:** `feature/phase-3-pdf-report-engine`.  
-**Status:** reconciliation in progress; Phase 3 is not merge-ready.
+**Status:** timezone-window integration implemented on the feature branch; final regression/CI verification and remaining source requirements are still outstanding. Phase 3 is not merge-ready.
 
 ## Executive finding
 
@@ -12,10 +12,10 @@ The current implementation is a strong PDF/data-engine foundation, but it is not
 
 | Area | Original Claude requirement | Current Phase 3 implementation | Required adaptation |
 |---|---|---|---|
-| Primary timezone | `America/Santo_Domingo`; show local timestamps and ET where relevant | UTC-day windows and UTC-oriented report labels | Use IANA timezone conversion for every report boundary, display local time and UTC provenance |
-| Opening Binance window | Previous local calendar day, 00:00–23:59:59 | Previous completed UTC day | Select previous Dominican calendar date and convert both local-midnight boundaries to UTC |
-| Closing Binance window | Current local calendar day; partial until local midnight | Requires a completed UTC day | Support partial current local-day data after Wall Street close; label exact local cutoff and never call it a full day |
-| Intraday window | Local midnight through exact requested local cutoff; use current local time if omitted | Explicit UTC cutoff and UTC midnight | Accept/resolve local cutoff, convert local midnight and cutoff to UTC, exclude post-cutoff candles |
+| Primary timezone | `America/Santo_Domingo`; show local timestamps and ET where relevant | Local-day boundaries now drive acquisition, PDF validation, filenames, charts, and evidence manifests; local and UTC timestamps are shown | Final cross-platform regression verification remains pending; ET/U.S. session data is not yet integrated |
+| Opening Binance window | Previous local calendar day, 00:00–23:59:59 | Previous Dominican local calendar day is acquired via UTC-converted half-open boundaries | Verify on final CI head and preserve previous-local-date behavior |
+| Closing Binance window | Current local calendar day; partial until local midnight | Partial current local-day windows and historical completed local days are supported; exact cutoff is retained and unfinished candles are excluded | Verify partial closing regression and final CI head |
+| Intraday window | Local midnight through exact requested local cutoff; use current local time if omitted | Local cutoff is accepted; omission resolves execution-time local time; final incomplete candle is excluded | Verify explicit/omitted cutoff and cross-UTC-date regressions on final CI head |
 | U.S. market session | 9:30 a.m.–4:00 p.m. ET with DST-aware conversion; weekends/holidays handled | Not represented as a full U.S. cash-session calendar | Add an exchange-calendar/session-state layer and report last completed session on holidays/weekends |
 | U.S. market coverage | S&P 500, Nasdaq Composite and/or Nasdaq 100, Dow, Russell 2000, VIX, futures, Treasury 10Y, DXY, WTI, gold, sectors, breadth, leaders/laggards | Binance BTC/ETH candles, optional USD-M derivatives, selected RSS feeds | Add attributed public-market data adapters; explicitly disclose unavailable series rather than omit silently |
 | Binance private account | Read-only connector or user exports; otherwise mark account unavailable | Public Binance REST only | Keep private-account section explicitly unavailable until a supported read-only connector/export parser exists; never imply public candles are account data |
@@ -65,18 +65,23 @@ The current implementation is a strong PDF/data-engine foundation, but it is not
 - Audit result must be Aprobado / Aprobado con reservas / No aprobado; unresolved critical/high findings cannot be passed.
 - Original audit output structure and maintenance/versioning instructions must be retained.
 
-## Critical implementation blockers before merge
+## Implementation progress and remaining merge blockers
 
-1. **Dominican local-day semantics:** the current acquisition, report validation, filenames/date labels, manifests, and audit are UTC-calendar-based. All must use the same explicitly recorded local reporting date and its UTC-converted half-open interval.
-2. **Closing partial-day support:** the current completed-day acquisition rejects an unfinished day; original closing skill explicitly requires a partial local-day snapshot when run after the U.S. close but before local midnight.
-3. **Intraday local cutoff:** the current handler requires `cutoff_utc`; it does not implement the original local-time activation/default behavior.
-4. **U.S. market context:** current report evidence does not include the full required equity indices, VIX, Treasury, DXY, WTI, gold, breadth/sectors or exchange-calendar handling.
-5. **Private account section:** current implementation has no Binance private-account connection or export parser. It must render an explicit “not available” section and must not imply that public BTC/ETH market candles represent the user's account.
-6. **Closing scorecard:** no linkage currently compares an opening forecast with the same-date close.
-7. **Audit parity:** the audit must implement the original desk-check matrix and verdict/severity rules; existing PDF/raw-candle checks alone do not establish source-skill compliance.
+The feature branch now contains the following timezone work:
+1. **Dominican local-day semantics:** opening, closing, and intraday acquisition resolve America/Santo_Domingo boundaries and convert them to UTC only at the Binance request boundary. PDFs, filenames, chart axes, and evidence manifests carry local and UTC timestamps.
+2. **Partial closing day:** closing supports a current local-day cutoff; the requested cutoff is retained and any unfinished final candle is excluded. Historical closing dates without a cutoff use the completed local day.
+3. **Intraday cutoff:** cutoff_local is supported, and an omitted cutoff resolves execution-time Dominican local time. A legacy UTC cutoff remains accepted for compatibility.
+4. **Evidence traceability:** evidence schema v2 stores local-window metadata, PDF SHA-256, and a canonical raw-candle/warm-up evidence SHA-256. The audit independently verifies these fields.
+5. **Regression coverage:** tests have been updated for local-midnight conversion, previous-local-day opening, partial closing, optional intraday cutoff, cross-UTC-date windows, and unfinished-candle exclusion. Final CI verification on the latest code head is still pending.
+
+Remaining source-derived blockers:
+- **U.S. market context/calendar:** full index, VIX, Treasury, DXY, WTI, gold, breadth/sectors, economic catalysts, exchange-calendar, holiday, and DST-aware session-state coverage is not integrated. Reports explicitly disclose this as unavailable/not verified.
+- **Private Binance account section:** no private-account connector or user-export parser exists. Reports explicitly mark account analytics unavailable and never represent public candles as account data.
+- **Opening/closing timing and scorecard:** automated activation timing and same-date opening-forecast-to-close scorecard linkage are not implemented; reports disclose these gaps.
+- **Audit parity:** the audit still needs the original desk-check matrix, severity/verdict acceptance rules, and package/version integrity checks. Existing PDF/raw-candle QA alone does not establish full source-skill compliance.
 
 ## Merge gate
 
-Do not merge Phase 3 until blockers 1–3 are implemented and regression-tested, blockers 4–6 are either implemented or explicitly represented as unavailable/not verified in the PDF and audit, all four workflows pass the cross-platform CI matrix, and the audit reports no unresolved critical/high temporal or data-integrity findings.
+Do not merge Phase 3 until the timezone and partial-window changes pass the full cross-platform CI matrix on the final code head, the remaining source-derived gaps are either implemented or clearly disclosed in both reports and audit, and no unresolved critical/high temporal or data-integrity findings remain.
 
 This document records source-derived requirements and the observed code gap. It does not claim that the listed adaptations have already been implemented.
