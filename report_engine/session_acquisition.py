@@ -102,7 +102,7 @@ def acquire_session_report_evidence(
     report["source_skill_limitations"] = [
         "Los saldos, posiciones, comisiones, financiación y PnL ajustado por flujos de la cuenta privada de Binance no están disponibles; las velas públicas del mercado no son datos de cuenta.",
         "Los índices bursátiles estadounidenses, VIX, tasas, DXY, materias primas y amplitud sectorial no están integrados; el calendario XNYS se consulta por separado y puede quedar no disponible si falla su proveedor.",
-        "El horario de activación de apertura/cierre no está automatizado; la comparación del pronóstico de apertura con el cierre de esa misma fecha no está implementada.",
+        "El horario de activación de apertura/cierre no está automatizado; el scorecard compara escenarios solo cuando existe un manifiesto de apertura íntegro de la misma fecha.",
     ]
 
     changes = []
@@ -192,7 +192,7 @@ def acquire_session_report_evidence(
         "El contexto RSS está limitado por fecha, pero no es exhaustivo. El calendario XNYS se integra solo para horario/feriados "
         "y no aporta precios; la cobertura completa del mercado bursátil estadounidense, el análisis de la cuenta privada de Binance "
         "y la activación automática de apertura/cierre "
-        "no están disponibles en esta versión. La comparación del pronóstico de apertura con el cierre de esa misma fecha no está implementada. "
+        "no están disponibles en esta versión. El scorecard de apertura/cierre depende de un manifiesto íntegro de apertura de la misma fecha. "
         + context.get("context_limitations", "No se suministraron limitaciones de los feeds.")
     )
     return report
