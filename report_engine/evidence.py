@@ -157,6 +157,16 @@ def audit_evidence_manifest(path: str | Path, workspace_root: str | Path) -> dic
         generated_at = _strict_utc(report.get("generated_at_utc"))
         if generated_at < end:
             findings.append("Report generation timestamp precedes the exclusive window end.")
+        manifest_generated = _strict_utc(payload.get("manifest_generated_at_utc"))
+        if manifest_generated < generated_at:
+            findings.append("Evidence manifest timestamp precedes report generation.")
+        context_retrieved = report.get("context_retrieved_at_utc")
+        if context_retrieved and _strict_utc(context_retrieved) > generated_at:
+            findings.append("Report generation timestamp precedes macro/news context retrieval.")
+        for provenance_item in report.get("provenance") or []:
+            if isinstance(provenance_item, dict) and provenance_item.get("retrieved_at_utc") not in (None, "Not supplied"):
+                if _strict_utc(provenance_item["retrieved_at_utc"]) < end:
+                    findings.append("Binance market-data retrieval predates the report-window end.")
         if report.get("source") != "Binance public REST API":
             findings.append("Report source is not identified as Binance public REST API.")
         if report.get("read_only") is not True:
