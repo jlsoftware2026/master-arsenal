@@ -10,7 +10,7 @@ import sys
 import tempfile
 import threading
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Iterator
 from uuid import UUID
@@ -524,13 +524,13 @@ class JobRunner:
             for item in all_reports
         )
         opening_dates_ok = bool(opening_reports) and all(
-            item.get("cutoff_resolution") == "previous_local_calendar_day"
+            isinstance(item.get("requested_report_date_local"), str)
+            and item.get("cutoff_resolution") == "previous_local_calendar_day"
             and item.get("report_date_local") == (
                 datetime.fromisoformat(item["requested_report_date_local"]).date()
-                - __import__("datetime").timedelta(days=1)
+                - timedelta(days=1)
             ).isoformat()
             for item in opening_reports
-            if isinstance(item.get("requested_report_date_local"), str)
         )
         closing_windows_ok = bool(closing_reports) and all(
             item.get("cutoff_resolution") in {
