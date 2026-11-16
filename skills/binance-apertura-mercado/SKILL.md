@@ -9,6 +9,19 @@ Generate a detailed PDF report using the previous completed America/Santo_Doming
 - On U.S. weekends/holidays, disclose that no regular session opens and use the last completed U.S. cash session for equity context. Keep the Binance reference on the previous Dominican local calendar day.
 - The current Local Engine does not schedule or enforce this activation time; disclose that limitation and require the caller to initiate the job.
 
+## Required PDF sections
+1. Executive summary and report timestamp.
+2. U.S. premarket context: S&P 500, Nasdaq, Dow, Russell 2000, VIX, index futures, Treasury 10Y, DXY, WTI, and gold.
+3. Sector breadth, leading/lagging groups, and notable stocks.
+4. BTCUSDT and ETHUSDT previous Dominican local-day performance.
+5. Technical indicators and support/resistance.
+6. Macroeconomic calendar, Fed context, earnings, geopolitical catalysts, and timestamped news.
+7. Binance account/portfolio: balances, equity, realized/unrealized PnL, fees/funding, positions, and flows, only when authorized account data or user exports exist.
+8. Bullish/long and bearish/short scenarios with triggers and invalidation.
+9. Risk management, assumptions, source register, limitations, and conclusion.
+
+If U.S. market or account data is unavailable, state that explicitly. Never infer portfolio performance from public candles. The current build does not yet integrate full U.S. market/calendar data or private-account exports; the PDF must disclose both gaps.
+
 ## Local Engine workflow
 - Job type: `market.opening_report`
 - Fixed output directory: `reports/opening`
