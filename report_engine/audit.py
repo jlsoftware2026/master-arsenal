@@ -125,7 +125,7 @@ def build_skills_audit_pdf(report: dict[str, Any], output_directory: Path | str)
     story.append(section_heading("Resultado por Skill", styles))
     if skill_results:
         skill_rows = [[
-            str(item.get("name", "Unknown")),
+            str(item.get("name", "Desconocido")),
             _status_es(item.get("package_integrity", "not_verified")),
             _status_es(item.get("temporal_coherence", "not_verified")),
             _status_es(item.get("data_security", "not_verified")),
@@ -146,12 +146,12 @@ def build_skills_audit_pdf(report: dict[str, Any], output_directory: Path | str)
             if not isinstance(item, dict):
                 continue
             rows.append([
-                str(item.get("filename", "Unknown")),
-                str(item.get("report_type", "Unknown")),
-                str(item.get("qa_status", "not verified")),
+                str(item.get("filename", "Desconocido")),
+                str(item.get("report_type", "Desconocido")),
+                str(item.get("qa_status", "no verificado")),
                 str(item.get("page_count", "N/A")),
                 str(item.get("size_bytes", "N/A")),
-                str(item.get("sha256", "Not supplied")),
+                str(item.get("sha256", "No indicado")),
                 str(item.get("issues", "None supplied")),
             ])
         if rows:
@@ -173,11 +173,11 @@ def build_skills_audit_pdf(report: dict[str, Any], output_directory: Path | str)
             if not isinstance(item, dict):
                 continue
             rows.append([
-                str(item.get("severity", "unclassified")),
-                str(item.get("title", "Untitled finding")),
-                str(item.get("impact", "Impact not supplied")),
-                str(item.get("evidence", "No evidence supplied")),
-                str(item.get("recommendation", "No recommendation supplied")),
+                str(item.get("severity", "Sin clasificar")),
+                str(item.get("title", "Hallazgo sin título")),
+                str(item.get("impact", "Impacto no indicado")),
+                str(item.get("evidence", "No se suministró evidencia")),
+                str(item.get("recommendation", "No se indicó corrección")),
             ])
         if rows:
             story.append(data_table(["Severidad", "Hallazgo", "Impacto", "Evidencia observada", "Corrección"], rows, styles))
@@ -194,11 +194,11 @@ def build_skills_audit_pdf(report: dict[str, Any], output_directory: Path | str)
         source_rows = [[
             str(item.get("name", "N/A")),
             _status_es(item.get("status", "not_verified")),
-            str(item.get("adapted_version", "Not supplied")),
-            str(item.get("last_reviewed", "Not supplied")),
-            str(item.get("archive_sha256", "Not supplied")),
-            str(item.get("source_skill_sha256", "Not supplied")),
-            str(item.get("adapted_skill_sha256", "Not supplied")),
+            str(item.get("adapted_version", "No indicado")),
+            str(item.get("last_reviewed", "No indicado")),
+            str(item.get("archive_sha256", "No indicado")),
+            str(item.get("source_skill_sha256", "No indicado")),
+            str(item.get("adapted_skill_sha256", "No indicado")),
         ] for item in source_packages if isinstance(item, dict)]
         if source_rows:
             story.append(data_table(
@@ -219,12 +219,12 @@ def build_skills_audit_pdf(report: dict[str, Any], output_directory: Path | str)
     if desk_checks:
         desk_rows = [[
             str(item.get("id", "N/A")),
-            str(item.get("case", "Unspecified")),
-            str(item.get("status", "not verified")),
-            str(item.get("severity", "unclassified")),
-            "Expected: " + str(item.get("expected", "Not supplied")) + " Observed: " + str(item.get("observed", item.get("evidence", "Not supplied"))),
-            str(item.get("impact", "Impact not supplied")),
-            str(item.get("recommendation", "Not supplied")),
+            str(item.get("case", "No especificado")),
+            str(item.get("status", "no verificado")),
+            str(item.get("severity", "Sin clasificar")),
+            "Expected: " + str(item.get("expected", "No indicado")) + " Observed: " + str(item.get("observed", item.get("evidence", "No indicado"))),
+            str(item.get("impact", "Impacto no indicado")),
+            str(item.get("recommendation", "No indicado")),
         ] for item in desk_checks if isinstance(item, dict)]
         if desk_rows:
             story.append(data_table(
@@ -266,9 +266,9 @@ def build_skills_audit_pdf(report: dict[str, Any], output_directory: Path | str)
     story.append(section_heading("Versionado e historial de cambios", styles))
     if change_history:
         change_rows = [[
-            str(item.get("date", "Not supplied")),
-            str(item.get("version", "Not supplied")),
-            str(item.get("change", "Not supplied")),
+            str(item.get("date", "No indicado")),
+            str(item.get("version", "No indicado")),
+            str(item.get("change", "No indicado")),
         ] for item in change_history if isinstance(item, dict)]
         if change_rows:
             story.append(data_table(["Fecha", "Versión", "Cambio"], change_rows, styles,
@@ -281,11 +281,11 @@ def build_skills_audit_pdf(report: dict[str, Any], output_directory: Path | str)
     story.append(section_heading("Evidencia original y recálculo de indicadores", styles))
     if evidence_manifests:
         manifest_rows = [[
-            str(item.get("manifest", "Unknown")),
-            str(item.get("report_type", "Unknown")),
-            str(item.get("status", "not verified")),
+            str(item.get("manifest", "Desconocido")),
+            str(item.get("report_type", "Desconocido")),
+            str(item.get("status", "no verificado")),
             ", ".join(item.get("symbols_checked", [])),
-            str(item.get("indicator_recalculation", "not verified")),
+            str(item.get("indicator_recalculation", "no verificado")),
             "; ".join(item.get("findings", [])) or "No finding",
         ] for item in evidence_manifests if isinstance(item, dict)]
         if manifest_rows:
@@ -313,10 +313,10 @@ def build_skills_audit_pdf(report: dict[str, Any], output_directory: Path | str)
     story.append(section_heading("Evidencia de pruebas", styles))
     if test_evidence:
         test_rows = [[
-            str(item.get("suite", "Unknown")),
-            str(item.get("status", "not verified")),
-            str(item.get("run_id", "Not supplied")),
-            str(item.get("details", "Not supplied")),
+            str(item.get("suite", "Desconocido")),
+            str(item.get("status", "no verificado")),
+            str(item.get("run_id", "No indicado")),
+            str(item.get("details", "No indicado")),
         ] for item in test_evidence if isinstance(item, dict)]
         if test_rows:
             story.append(data_table(["Suite", "Estado", "ID de ejecución", "Detalles"], test_rows, styles))
