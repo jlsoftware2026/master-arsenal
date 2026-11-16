@@ -127,6 +127,21 @@ class SessionAcquisitionTests(unittest.TestCase):
             audit = audit_evidence_manifest(manifests[0], Path(temp))
             self.assertEqual(audit["status"], "passed", audit["findings"])
 
+    def test_us_cash_session_clock_conversion_respects_eastern_dst(self):
+        import pymupdf as fitz
+        with TemporaryDirectory() as temp:
+            winter = generate_opening_report_pdf(FakeClient(), temp, date(2026, 11, 14))
+            with fitz.open(winter) as document:
+                winter_text = " ".join(page.get_text("text") for page in document)
+            self.assertIn("09:30 EST", winter_text)
+            self.assertIn("10:30 AST", winter_text)
+
+            summer = generate_opening_report_pdf(FakeClient(), temp, date(2026, 3, 9))
+            with fitz.open(summer) as document:
+                summer_text = " ".join(page.get_text("text") for page in document)
+            self.assertIn("09:30 EDT", summer_text)
+            self.assertIn("09:30 AST", summer_text)
+
     def test_opening_and_closing_workflows_create_pdf(self):
         with TemporaryDirectory() as temp:
             opening = generate_opening_report_pdf(FakeClient(), temp, START.date())
