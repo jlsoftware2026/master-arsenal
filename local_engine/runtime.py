@@ -336,6 +336,8 @@ class JobRunner:
             raise ValueError(f"{kind.capitalize()} report failed PDF integrity checks")
         digest = hashlib.sha256(payload).hexdigest()
         manifest_metadata = self._evidence_manifest_metadata(resolved)
+        manifest_file = self.manager.workspace.directory(manifest_metadata["manifest_path"])
+        manifest_report = json.loads(manifest_file.read_text(encoding="utf-8"))["report"]
         return {
             "report_type": expected_output,
             "format": "pdf",
@@ -344,7 +346,11 @@ class JobRunner:
             "size_bytes": len(payload),
             "sha256": digest,
             **manifest_metadata,
-            "session_date_local": resolved.stem.rsplit("_", 1)[-1],
+            "report_date_local": manifest_report["report_date_local"],
+            "window_start_local": manifest_report["window_start_local"],
+            "cutoff_local": manifest_report["cutoff_local"],
+            "window_start_utc": manifest_report["session_start_utc"],
+            "cutoff_utc": manifest_report["session_end_utc"],
             "market": market,
             "interval": interval,
             "source": "Binance public REST API",
@@ -575,6 +581,8 @@ class JobRunner:
             raise ValueError("Generated artifact failed PDF signature checks")
         digest = hashlib.sha256(resolved_artifact.read_bytes()).hexdigest()
         manifest_metadata = self._evidence_manifest_metadata(resolved_artifact)
+        manifest_file = self.manager.workspace.directory(manifest_metadata["manifest_path"])
+        manifest_report = json.loads(manifest_file.read_text(encoding="utf-8"))["report"]
         return {
             "report_type": "market.intraday_snapshot",
             "format": "pdf",
@@ -583,7 +591,11 @@ class JobRunner:
             "size_bytes": size_bytes,
             "sha256": digest,
             **manifest_metadata,
-            "report_date_local": resolved_artifact.stem.removeprefix("snapshot-mercado-").split("_", 1)[0],
+            "report_date_local": manifest_report["report_date_local"],
+            "window_start_local": manifest_report["window_start_local"],
+            "cutoff_local": manifest_report["cutoff_local"],
+            "window_start_utc": manifest_report["window_start_utc"],
+            "cutoff_utc": manifest_report["cutoff_utc"],
             "market": market,
             "interval": interval,
             "source": "Binance public REST API",
