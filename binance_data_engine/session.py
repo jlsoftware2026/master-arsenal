@@ -102,9 +102,9 @@ def acquire_completed_market_day(
             "performance": {
                 "open": str(opening), "close": str(closing),
                 "change_percent": str(change_pct) if change_pct is not None else None,
-                "high": str(max(c.high for c in candles)),
-                "low": str(min(c.low for c in candles)),
-                "base_volume": str(sum((c.volume for c in candles), Decimal("0"))),
+                "high": str(max(Decimal(str(c.high)) for c in candles)),
+                "low": str(min(Decimal(str(c.low)) for c in candles)),
+                "base_volume": str(sum((Decimal(str(c.volume)) for c in candles), Decimal("0"))),
             },
             "validation": [issue.to_dict() for issue in validation],
             "indicators": analyze_candles(history + candles),
@@ -236,7 +236,8 @@ def acquire_market_window(
             raise ValueError(f"{symbol}: report-window pagination is incomplete or inconsistent")
         _validate_series(candles, symbol, interval, start, data_end,
                          expected_count, "report-window")
-        opening, closing = candles[0].open, candles[-1].close
+        opening = Decimal(str(candles[0].open))
+        closing = Decimal(str(candles[-1].close))
         change_pct = ((closing - opening) / opening * Decimal("100")) if opening else None
         item: dict[str, Any] = {
             "candles": [candle.to_dict() for candle in candles],
