@@ -28,13 +28,13 @@ class PdfQualityTests(unittest.TestCase):
         data = fixture()
         for symbol in ("BTCUSDT", "ETHUSDT"):
             data["symbols"][symbol]["candles"] = [
-                {"open_time": f"2026-11-13T{hour:02d}:00:00Z",
-                 "close_time": f"2026-11-13T{hour:02d}:59:59Z",
+                {"open_time": f"2026-11-13T{hour + 4:02d}:00:00Z",
+                 "close_time": f"2026-11-13T{hour + 4:02d}:59:59Z",
                  "close": str(100 + hour), "volume": str(10 + hour)}
-                for hour in range(16)
+                for hour in range(12)
             ]
-            data["symbols"][symbol]["candle_count"] = 16
-            data["symbols"][symbol]["expected_candle_count"] = 16
+            data["symbols"][symbol]["candle_count"] = 12
+            data["symbols"][symbol]["expected_candle_count"] = 12
         with TemporaryDirectory() as temp:
             pdf = build_intraday_snapshot_pdf(data, temp)
             with fitz.open(pdf) as document:
