@@ -677,8 +677,8 @@ class JobRunner:
             item.get("opening_forecast_scorecard_status") == "not_implemented"
             for item in closing_reports
         )
-        artifact_qa_ok = bool(artifacts) and all(item.get("status") == "passed" for item in artifacts)
-        passed_report_types = {item.get("report_type") for item in artifacts if item.get("status") == "passed"}
+        artifact_qa_ok = bool(artifacts) and all(item.get("qa_status") == "passed" for item in artifacts)
+        passed_report_types = {item.get("report_type") for item in artifacts if item.get("qa_status") == "passed"}
         all_operational_artifacts_ok = artifact_qa_ok and {"opening", "closing", "intraday"}.issubset(passed_report_types)
         language_parity_ok = all_operational_artifacts_ok
         desk_checks = [
