@@ -11,6 +11,7 @@ from binance_data_engine.session import acquire_market_window
 from .context import collect_market_context
 from .evidence import write_evidence_manifest
 from .session import build_closing_report_pdf, build_opening_report_pdf
+from .scorecard import build_opening_forecast_scorecard
 from .us_market_calendar import classify_us_equity_session
 from .timezone import (
     LOCAL_TZ, REPORT_TIMEZONE, completed_local_day, current_local_report_date,
@@ -95,7 +96,7 @@ def acquire_session_report_evidence(
         else "not_available"
     )
     report["opening_forecast_scorecard_status"] = (
-        "not_implemented" if report_kind == "closing" else "not_applicable"
+        "not_verified" if report_kind == "closing" else "not_applicable"
     )
     report["activation_timing_status"] = "not_automated"
     report["source_skill_limitations"] = [
@@ -230,6 +231,13 @@ def generate_closing_report_pdf(
     evidence = acquire_session_report_evidence(
         client, session_date, interval, market,
         report_kind="closing", cutoff_local=cutoff_local,
+    )
+    scorecard = build_opening_forecast_scorecard(evidence, manifest_directory)
+    evidence["opening_forecast_scorecard"] = scorecard
+    evidence["opening_forecast_scorecard_status"] = scorecard["status"]
+    evidence["limitations"] = (
+        evidence.get("limitations", "") + " Scorecard apertura/cierre: "
+        + scorecard["status"] + ". " + scorecard.get("reason", scorecard.get("limitations", ""))
     )
     artifact = build_closing_report_pdf(evidence, output_directory)
     if manifest_directory is not None:
