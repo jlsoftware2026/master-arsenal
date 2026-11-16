@@ -209,9 +209,9 @@ class LocalEngineTests(unittest.TestCase):
     def test_opening_and_closing_jobs_generate_pdf_after_approval(self):
         account_export_directory = self.manager.workspace.directory("data/account_exports")
         (account_export_directory / "transaction-history.csv").write_text(
-            "User_ID,UTC_Time,Account,Operation,Coin,Change,Remark\\n"
-            "private-user-123,2026-11-11T14:00:00Z,Spot,Deposit,USDT,100,private note\\n"
-            "private-user-123,2026-11-16T14:00:00Z,USD-M Futures,Funding Fee,USDT,-0.5,private note\\n",
+            "User_ID,UTC_Time,Account,Operation,Coin,Change,Remark\n"
+            "private-user-123,2026-11-11T14:00:00Z,Spot,Deposit,USDT,100,private note\n"
+            "private-user-123,2026-11-16T14:00:00Z,USD-M Futures,Funding Fee,USDT,-0.5,private note\n",
             encoding="utf-8",
         )
         for job_type, expected_dir, expected_name, report_date in (
@@ -278,7 +278,7 @@ class LocalEngineTests(unittest.TestCase):
         self.assertGreater(audit["overlapping_candles_checked"], 0)
 
         with (account_export_directory / "transaction-history.csv").open("a", encoding="utf-8") as stream:
-            stream.write("private-user-123,2026-11-16T14:30:00Z,Spot,Deposit,USDT,1,changed after report\\n")
+            stream.write("private-user-123,2026-11-16T14:30:00Z,Spot,Deposit,USDT,1,changed after report\n")
         tamper_audit_job = self._approved_job("skills.audit")
         tamper_audit = JobRunner(self.manager).run(tamper_audit_job["job_id"])
         self.assertEqual(tamper_audit["status"], "completed", tamper_audit)
