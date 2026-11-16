@@ -275,11 +275,14 @@ def _account_rows(snapshot: Any) -> tuple[list[list[str]], list[str]]:
             for asset, amount in sorted(assets.items()):
                 rows.append([labels.get(event, event), str(asset), str(amount)])
     warnings = [str(item) for item in (snapshot.get("assumptions") or []) if item]
-    warnings.extend(
-        "Esquema no admitido: " + str(item)
-        for item in (snapshot.get("unsupported_files") or [])
-    )
-    warnings.extend(str(item) for item in (snapshot.get("parse_errors") or [])[:10])
+    unsupported = snapshot.get("unsupported_files") or []
+    parse_errors = snapshot.get("parse_errors") or []
+    warnings.extend("Esquema no admitido: " + str(item) for item in unsupported[:10])
+    warnings.extend(str(item) for item in parse_errors[:10])
+    if len(unsupported) > 10:
+        warnings.append(f"{len(unsupported) - 10} esquemas no admitidos adicionales omitidos.")
+    if len(parse_errors) > 10:
+        warnings.append(f"{len(parse_errors) - 10} errores de importación adicionales omitidos.")
     return rows, warnings
 
 
