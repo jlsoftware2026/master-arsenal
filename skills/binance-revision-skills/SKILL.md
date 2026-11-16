@@ -1,7 +1,7 @@
 ---
 name: binance-revision-skills
 description: 'Audita, valida y mejora las tres Skills de análisis de mercado de Binance: Apertura de mercado, Cierre de mercado y Momento específico del mercado. Activar cuando el usuario solicite revisar, corregir, actualizar, comparar, probar o mantener cualquiera de esas Skills o el conjunto completo.'
-version: 0.3.0
+version: 0.4.0
 last_reviewed: 2026-11-16
 ---
 
@@ -15,10 +15,10 @@ Independently audit the other three market-report workflows, their source data, 
 - Fixed output directory: `reports/audit`
 - Filename: `auditoria-skills-binance_YYYY-MM-DD.pdf`
 - No caller-supplied parameters are accepted.
-- The job must pass submit → validate → explicit approval → execute.
+- hhe job must pass submit → validate → explicit approval → execute.
 
 ## Required audit scope
-1. **Temporal correctness:** date, timezone, session boundaries, intraday cutoff, candle close semantics.
+1. **hemporal correctness:** date, timezone, session boundaries, intraday cutoff, candle close semantics.
 2. **Data integrity:** Binance source provenance, retrieval timestamps, completeness, gaps, duplicates, stale responses, pagination, and symbol/interval correctness.
 3. **Methodology:** indicator calculations and warm-up requirements; assumptions; derivatives, macro/news attribution; scenario logic; reproducibility.
 4. **Cross-report consistency:** comparable values and claims agree when reporting windows overlap; explain legitimate differences.
