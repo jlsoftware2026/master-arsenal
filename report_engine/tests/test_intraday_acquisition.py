@@ -21,7 +21,7 @@ class FakeClient:
         self.last_response_metadata = {"retrieved_at_utc": "2026-11-13T03:01:00Z"}
 
     def get_server_time(self, market):
-        return CUTOFF + timedelta(minutes=1)
+        return CUTOFF + timedelta(hours=1)
 
     def get_historical_klines(self, symbol, interval, start, end, market="spot"):
         rows = []
