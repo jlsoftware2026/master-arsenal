@@ -27,7 +27,7 @@ def _status_es(value: Any) -> str:
 
 def _text_audit(value: Any) -> str:
     if not value:
-        return "None reported"
+        return "No informado"
     if isinstance(value, list):
         return "; ".join(str(item) for item in value)
     return str(value)
@@ -119,7 +119,7 @@ def build_skills_audit_pdf(report: dict[str, Any], output_directory: Path | str)
         for item in executive_summary[:7]:
             story.append(paragraph(f"• {item}", styles["body"]))
     else:
-        story.append(paragraph("No executive summary was supplied.", styles["body"]))
+        story.append(paragraph("No se suministró un resumen ejecutivo.", styles["body"]))
 
     skill_results = report.get("skill_results") or []
     story.append(section_heading("Resultado por Skill", styles))
@@ -162,7 +162,7 @@ def build_skills_audit_pdf(report: dict[str, Any], output_directory: Path | str)
             ])
     else:
         story.extend([
-            section_heading("Artifact inspection register", styles),
+            section_heading("Registro de inspección de informes", styles),
             paragraph("No había informes PDF de apertura, cierre o intradía disponibles. "
                       "Su exactitud NO ESTÁ VERIFICADA.", styles["body"]),
         ])
@@ -183,7 +183,7 @@ def build_skills_audit_pdf(report: dict[str, Any], output_directory: Path | str)
             story.append(data_table(["Severidad", "Hallazgo", "Impacto", "Evidencia observada", "Corrección"], rows, styles))
     else:
         story.extend([
-            section_heading("Findings", styles),
+            section_heading("Hallazgos", styles),
             paragraph("No se suministraron hallazgos adicionales. La ausencia de hallazgos no demuestra que "
                       "el análisis de mercado subyacente sea correcto.", styles["body"]),
         ])
