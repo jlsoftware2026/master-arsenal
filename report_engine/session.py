@@ -226,6 +226,7 @@ def _build_session_pdf(report: dict[str, Any], output_directory: Path | str, kin
             ("Data status", report.get("data_status", "Not independently certified")),
             ("Binance account analytics", report.get("binance_account_data_status", "unavailable")),
             ("U.S. equity-market coverage", report.get("us_equity_market_data_status", "not_integrated")),
+            ("U.S. cash-session timing", report.get("us_equity_session_state", "not_available")),
             ("Opening forecast scorecard", report.get("opening_forecast_scorecard_status", "not_available")),
             ("Activation timing", report.get("activation_timing_status", "not_automated")),
             ("Report perspective", "Previous Dominican local calendar day for the upcoming U.S. session" if kind == "opening"
