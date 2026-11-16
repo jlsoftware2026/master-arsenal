@@ -1,6 +1,8 @@
 """Offline tests for completed UTC-day Binance acquisition and PDF workflow."""
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
+from pathlib import Path
+import json
 from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import patch
@@ -104,9 +106,8 @@ class SessionAcquisitionTests(unittest.TestCase):
                 cutoff_local=cutoff,
             )
             self.assertEqual(artifact.name, "cierre-mercado_2026-11-14.pdf")
-            manifests = list((__import__("pathlib").Path(temp) / "manifests").glob("*.evidence.json"))
+            manifests = list((Path(temp) / "manifests").glob("*.evidence.json"))
             self.assertEqual(len(manifests), 1)
-            import json
             payload = json.loads(manifests[0].read_text(encoding="utf-8"))
             report = payload["report"]
             self.assertTrue(report["is_partial"])
