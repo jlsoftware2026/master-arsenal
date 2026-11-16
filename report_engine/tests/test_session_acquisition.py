@@ -1,5 +1,5 @@
 """Offline tests for completed UTC-day Binance acquisition and PDF workflow."""
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from pathlib import Path
 import json
