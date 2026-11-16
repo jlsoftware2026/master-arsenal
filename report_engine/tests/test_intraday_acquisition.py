@@ -68,9 +68,9 @@ class IntradayAcquisitionTests(unittest.TestCase):
     def tearDown(self):
         self.context.stop()
 
-    def test_acquires_completed_utc_day_candles_for_core_symbols(self):
+    def test_acquires_local_day_candles_for_core_symbols(self):
         report = acquire_intraday_evidence(FakeClient(), CUTOFF, "1h")
-        self.assertEqual(report["data_status"], "complete")
+        self.assertEqual(report["data_status"], "partial")
         for symbol in ("BTCUSDT", "ETHUSDT"):
             item = report["symbols"][symbol]
             self.assertEqual(item["candle_count"], 23)
