@@ -68,15 +68,35 @@ class FakeBinanceClient:
         return {"symbol": symbol, "priceChangePercent": "1.0"}
 
 
-FAKE_US_MARKET_SNAPSHOT = {
-    "status": "unavailable", "provider": "Fixture",
-    "as_of_utc": "2026-11-16T15:00:00Z",
-    "expected_instruments": 0, "available_instruments": 0,
-    "unavailable_symbols": [], "groups": {},
-    "sector_leaders": [], "sector_laggards": [],
-    "market_breadth": {"status": "not_available"},
-    "limitations": "Fixture market data only.",
-}
+def fake_us_market_snapshot(as_of):
+    cutoff = as_of.astimezone(timezone.utc)
+    observed = cutoff - timedelta(minutes=5)
+    retrieved = datetime.now(timezone.utc)
+    period1 = int((cutoff - timedelta(days=7)).timestamp())
+    period2 = int(cutoff.timestamp()) + 1
+    source_url = (
+        "https://query1.finance.yahoo.com/v8/finance/chart/%5EGSPC"
+        f"?period1={period1}&period2={period2}&interval=5m&includePrePost=true"
+    )
+    return {
+        "status": "partial", "instrument_snapshot_status": "complete",
+        "provider": "Yahoo Finance public chart endpoint (best effort)",
+        "as_of_utc": cutoff.isoformat().replace("+00:00", "Z"),
+        "expected_instruments": 1, "available_instruments": 1,
+        "unavailable_symbols": [],
+        "groups": {"indices": [{
+            "status": "ok", "name": "S&P 500", "symbol": "^GSPC",
+            "category": "indices", "unit": "index_points", "last_price": 6000.0,
+            "previous_close": 5990.0, "change": 10.0, "change_percent": 0.1669,
+            "observed_at_utc": observed.isoformat().replace("+00:00", "Z"),
+            "source": "Yahoo Finance public chart endpoint (best effort)",
+            "source_url": source_url,
+            "retrieved_at_utc": retrieved.isoformat().replace("+00:00", "Z"),
+        }]},
+        "sector_leaders": [], "sector_laggards": [],
+        "market_breadth": {"status": "not_available"},
+        "limitations": "Fixture quote only; not a complete market feed.",
+    }
 
 
 class LocalEngineTests(unittest.TestCase):
@@ -163,7 +183,7 @@ class LocalEngineTests(unittest.TestCase):
                  "macro_context": "No macro items.", "news": "No news items.",
                  "macro_sources": [], "news_sources": [], "context_status": "complete",
                    "context_limitations": "Fixture context only.",
-             }), patch("report_engine.acquisition.collect_us_market_snapshot", return_value=FAKE_US_MARKET_SNAPSHOT):
+             }), patch("report_engine.acquisition.collect_us_market_snapshot", side_effect=fake_us_market_snapshot):
             result = JobRunner(self.manager).run(job["job_id"])
         self.assertEqual(result["status"], "completed")
         artifact = result["result"]["artifact_path"]
@@ -205,7 +225,7 @@ class LocalEngineTests(unittest.TestCase):
                          "retrieved_at_utc": "2026-11-13T03:02:00Z", "matching_items": 0,
                          "feed_url": "https://www.federalreserve.gov/feeds/press_all.xml",
                      }],
-                 }), patch("report_engine.session_acquisition.collect_us_market_snapshot", return_value=FAKE_US_MARKET_SNAPSHOT):
+                 }), patch("report_engine.session_acquisition.collect_us_market_snapshot", side_effect=fake_us_market_snapshot):
                 result = JobRunner(self.manager).run(job["job_id"])
             self.assertEqual(result["status"], "completed", result)
             self.assertTrue(result["result"]["artifact_path"].startswith(expected_dir + "/"))
@@ -223,7 +243,7 @@ class LocalEngineTests(unittest.TestCase):
                 "macro_sources": [], "news_sources": [], "context_status": "complete",
                 "context_limitations": "Fixture context only.",
             }
-        ), patch("report_engine.acquisition.collect_us_market_snapshot", return_value=FAKE_US_MARKET_SNAPSHOT):
+        ), patch("report_engine.acquisition.collect_us_market_snapshot", side_effect=fake_us_market_snapshot):
             intraday_result = JobRunner(self.manager).run(intraday_job["job_id"])
         self.assertEqual(intraday_result["status"], "completed", intraday_result)
         self.assertTrue(intraday_result["result"]["filename"].startswith("snapshot-mercado_"))
@@ -241,6 +261,7 @@ class LocalEngineTests(unittest.TestCase):
         self.assertEqual(audit["language_parity_status"], "passed")
         self.assertEqual(audit["us_session_status"], "passed")
         self.assertEqual(audit["us_holiday_status"], "passed")
+        self.assertEqual(audit["us_market_data_provenance_status"], "passed")
         self.assertEqual(audit["scorecard_status"], "passed")
         self.assertGreater(audit["overlapping_candles_checked"], 0)
 
@@ -276,7 +297,7 @@ class LocalEngineTests(unittest.TestCase):
                  "macro_context": "No macro items.", "news": "No news items.",
                  "macro_sources": [], "news_sources": [], "context_status": "complete",
                  "context_limitations": "Fixture context only.",
-             }), patch("report_engine.acquisition.collect_us_market_snapshot", return_value=FAKE_US_MARKET_SNAPSHOT):
+             }), patch("report_engine.acquisition.collect_us_market_snapshot", side_effect=fake_us_market_snapshot):
             result = JobRunner(self.manager).run(job["job_id"])
         self.assertEqual(result["status"], "completed", result)
         self.assertIn("snapshot-mercado_", result["result"]["filename"])
