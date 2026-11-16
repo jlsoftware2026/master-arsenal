@@ -8,6 +8,7 @@ from typing import Any
 from binance_data_engine.client import BinancePublicClient
 from binance_data_engine.session import acquire_completed_market_day
 from .context import collect_market_context
+from .evidence import write_evidence_manifest
 
 from .session import build_closing_report_pdf, build_opening_report_pdf
 
@@ -83,9 +84,13 @@ def generate_opening_report_pdf(
     session_date: date | None = None,
     interval: str = "1h",
     market: str = "spot",
+    manifest_directory: Path | str | None = None,
 ) -> Path:
     evidence = acquire_session_report_evidence(client, session_date, interval, market)
-    return build_opening_report_pdf(evidence, output_directory)
+    artifact = build_opening_report_pdf(evidence, output_directory)
+    if manifest_directory is not None:
+        write_evidence_manifest(evidence, "opening", artifact, manifest_directory)
+    return artifact
 
 
 def generate_closing_report_pdf(
@@ -94,6 +99,10 @@ def generate_closing_report_pdf(
     session_date: date | None = None,
     interval: str = "1h",
     market: str = "spot",
+    manifest_directory: Path | str | None = None,
 ) -> Path:
     evidence = acquire_session_report_evidence(client, session_date, interval, market)
-    return build_closing_report_pdf(evidence, output_directory)
+    artifact = build_closing_report_pdf(evidence, output_directory)
+    if manifest_directory is not None:
+        write_evidence_manifest(evidence, "closing", artifact, manifest_directory)
+    return artifact
