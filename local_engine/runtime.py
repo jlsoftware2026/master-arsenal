@@ -268,7 +268,7 @@ class JobRunner:
         if len(raw) > 50_000_000:
             raise ValueError("Report evidence manifest exceeds the 50 MB safety limit")
         payload = json.loads(raw.decode("utf-8"))
-        if payload.get("schema") != "ma.report-evidence/v1":
+        if payload.get("schema") != "ma.report-evidence/v2":
             raise ValueError("Report evidence manifest schema is invalid")
         if payload.get("pdf_filename") != artifact.name:
             raise ValueError("Evidence manifest PDF filename does not match the generated artifact")
