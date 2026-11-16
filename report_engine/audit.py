@@ -127,3 +127,53 @@ def build_skills_audit_pdf(report: dict[str, Any], output_directory: Path | str)
         written.unlink(missing_ok=True)
         raise
     return written
+
+
+def audit_market_report_artifact(path: str | Path, report_type: str) -> dict[str, Any]:
+    """Independently check PDF structure and minimum report-content requirements."""
+    requirements = {
+        "opening": (
+            "BTCUSDT", "ETHUSDT", "Bullish / long scenario", "Bearish / short scenario",
+            "Macroeconomic context", "Relevant market news", "Data provenance",
+            "Macro/news feed retrieval register", "Important notice",
+        ),
+        "closing": (
+            "BTCUSDT", "ETHUSDT", "Bullish / long scenario", "Bearish / short scenario",
+            "Macroeconomic context", "Relevant market news", "Data provenance",
+            "Macro/news feed retrieval register", "Important notice",
+        ),
+        "intraday": (
+            "BTCUSDT", "ETHUSDT", "Macroeconomic context", "Relevant news",
+            "Bullish / long scenario", "Bearish / short scenario",
+            "Source and provenance notes", "Macro/news feed retrieval register", "Disclaimer",
+        ),
+    }
+    if report_type not in requirements:
+        raise ValueError("report_type must be opening, closing, or intraday")
+    source = Path(path).resolve(strict=True)
+    structural = inspect_pdf_artifact(source)
+    import fitz
+    with fitz.open(source) as document:
+        extracted = "\\n".join(page.get_text("text") for page in document)
+    normalized = extracted.casefold()
+    missing = [marker for marker in requirements[report_type]
+               if marker.casefold() not in normalized]
+    filename_prefix = {
+        "opening": "apertura-mercado_",
+        "closing": "cierre-mercado_",
+        "intraday": "snapshot-mercado-",
+    }[report_type]
+    filename_ok = source.name.startswith(filename_prefix) and source.suffix.lower() == ".pdf"
+    if not filename_ok:
+        missing.append(f"Expected filename prefix: {filename_prefix}")
+    return {
+        "structural_qa": structural,
+        "report_type": report_type,
+        "content_checks": {
+            "required_markers": list(requirements[report_type]),
+            "missing_markers": missing,
+            "filename_contract": filename_ok,
+        },
+        "status": "passed" if not missing else "failed",
+        "missing_markers": missing,
+    }
