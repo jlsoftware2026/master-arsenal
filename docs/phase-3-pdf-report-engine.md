@@ -123,4 +123,4 @@ The mandatory single-download executable JAR requirement is recorded in `docs/di
 
 
 ## Cross-platform verification
-The most recent successful full CI matrix must be recorded here after the final code head passes Ubuntu/Windows × Python 3.11/3.12. Earlier successful runs do not certify later commits.
+The full four-job matrix passed on commit `b06b58c6fec60ed69823d841bbc6faf87209414b` in GitHub Actions run `43924297424`: Ubuntu/Windows × Python 3.11/3.12. Each job passed 27 Binance Data Engine tests, 29 Local Engine tests, and 67 PDF Report Engine tests. The PDF suite includes Spanish content-marker checks for opening, closing, and intraday artifacts, partial closing, seven-point summaries, ET/DST conversion, and evidence-manifest filename binding. Any later code change must rerun the full matrix.
