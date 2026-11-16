@@ -10,8 +10,8 @@ from binance_data_engine.models import Candle
 from report_engine.acquisition import acquire_intraday_evidence, generate_intraday_snapshot_pdf
 
 
-START = datetime(2026, 11, 13, tzinfo=timezone.utc)
-CUTOFF = START + timedelta(hours=3)
+START = datetime(2026, 11, 12, 4, tzinfo=timezone.utc)
+CUTOFF = datetime(2026, 11, 13, 3, tzinfo=timezone.utc)
 
 
 class FakeClient:
@@ -35,10 +35,11 @@ class FakeClient:
                     close=101 + index, volume=10,
                 ))
         else:
-            for hour in range(3):
+            count = int((end - start).total_seconds() // 3600)
+            for hour in range(count):
                 if self.missing and hour == 1:
                     continue
-                opened = START + timedelta(hours=hour)
+                opened = start + timedelta(hours=hour)
                 rows.append(Candle(
                     symbol=symbol, interval=interval, open_time=opened,
                     close_time=opened + timedelta(hours=1) - timedelta(milliseconds=1),
@@ -72,31 +73,32 @@ class IntradayAcquisitionTests(unittest.TestCase):
         self.assertEqual(report["data_status"], "complete")
         for symbol in ("BTCUSDT", "ETHUSDT"):
             item = report["symbols"][symbol]
-            self.assertEqual(item["candle_count"], 3)
-            self.assertEqual(item["expected_candle_count"], 3)
+            self.assertEqual(item["candle_count"], 23)
+            self.assertEqual(item["expected_candle_count"], 23)
             self.assertEqual(item["last_close_time_utc"], "2026-11-13T02:59:59.999000Z")
             self.assertEqual(item["indicator_history"]["candle_count"], 250)
             self.assertIsNotNone(item["indicators"]["ema_200"])
 
     def test_missing_candle_is_rejected(self):
-        with self.assertRaisesRegex(ValueError, "expected 3 candles, received 2"):
+        with self.assertRaisesRegex(ValueError, "expected 23 candles, received 22"):
             acquire_intraday_evidence(FakeClient(missing=True), CUTOFF, "1h")
 
     def test_incomplete_pagination_is_rejected(self):
-        with self.assertRaisesRegex(ValueError, "pagination did not complete"):
+        with self.assertRaisesRegex(ValueError, "pagination is incomplete or inconsistent"):
             acquire_intraday_evidence(FakeClient(incomplete=True), CUTOFF, "1h")
 
-    def test_unaligned_cutoff_is_rejected(self):
-        with self.assertRaisesRegex(ValueError, "align exactly"):
-            acquire_intraday_evidence(
-                FakeClient(), CUTOFF + timedelta(minutes=30), "1h"
-            )
+    def test_unaligned_cutoff_is_preserved_and_incomplete_final_candle_excluded(self):
+        requested = CUTOFF + timedelta(minutes=30)
+        report = acquire_intraday_evidence(FakeClient(), requested, "1h")
+        self.assertEqual(report["cutoff_utc"], requested.isoformat().replace("+00:00", "Z"))
+        self.assertEqual(report["data_cutoff_utc"], CUTOFF.isoformat().replace("+00:00", "Z"))
+        self.assertEqual(report["symbols"]["BTCUSDT"]["candle_count"], 23)
 
     def test_end_to_end_workflow_writes_pdf_from_acquired_evidence(self):
         with TemporaryDirectory() as temp:
             result = generate_intraday_snapshot_pdf(FakeClient(), CUTOFF, temp, "1h")
             self.assertTrue(result.is_file())
-            self.assertEqual(result.name, "snapshot-mercado-2026-11-13_03-00.pdf")
+            self.assertEqual(result.name, "snapshot-mercado-2026-11-12_23-00.pdf")
             self.assertTrue(result.read_bytes().startswith(b"%PDF-"))
 
     def test_rejects_unsupported_interval(self):
