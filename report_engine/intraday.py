@@ -72,7 +72,7 @@ def _validate_input(report: dict[str, Any]):
         raise ValueError("Report input must be an object")
     required = {
         "window_start_utc", "cutoff_utc", "generated_at_utc", "symbols",
-        "report_timezone", "report_date_local", "window_start_local", "cutoff_local", "window_semantics", "is_partial",
+        "report_timezone", "report_date_local", "requested_report_date_local", "cutoff_resolution", "window_start_local", "cutoff_local", "window_semantics", "is_partial",
     }
     missing = required - set(report)
     if missing:
@@ -107,6 +107,12 @@ def _validate_input(report: dict[str, Any]):
         raise ValueError("cutoff_local must be later than local midnight on report_date_local")
     if report.get("is_partial") is not True:
         raise ValueError("Intraday snapshots must be marked as partial local-day windows")
+    if report["requested_report_date_local"] != report["report_date_local"]:
+        raise ValueError("Intraday requested and reporting local dates must match")
+    if report["cutoff_resolution"] not in {
+        "explicit_utc_cutoff", "explicit_local_cutoff", "execution_time_local_default"
+    }:
+        raise ValueError("Intraday report has an invalid cutoff-resolution method")
     if cutoff <= start:
         raise ValueError("cutoff_utc must be later than the report window start")
     if generated < cutoff:
