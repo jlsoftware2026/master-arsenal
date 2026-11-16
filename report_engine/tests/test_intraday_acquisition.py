@@ -107,7 +107,7 @@ class IntradayAcquisitionTests(unittest.TestCase):
         with TemporaryDirectory() as temp:
             result = generate_intraday_snapshot_pdf(FakeClient(), CUTOFF, temp, "1h")
             self.assertTrue(result.is_file())
-            self.assertEqual(result.name, "snapshot-mercado-2026-11-12_23-00.pdf")
+            self.assertEqual(result.name, "snapshot-mercado_2026-11-12_23-00.pdf")
             self.assertTrue(result.read_bytes().startswith(b"%PDF-"))
 
     def test_rejects_unsupported_interval(self):
