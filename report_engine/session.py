@@ -286,6 +286,40 @@ def _build_session_pdf(report: dict[str, Any], output_directory: Path | str, kin
         section_heading("Resumen ejecutivo", styles),
         *_summary_flowables(report.get("executive_summary"), styles),
     ]
+    if kind == "closing":
+        scorecard = report.get("opening_forecast_scorecard") or {}
+        story.append(section_heading("Evaluación de escenarios de apertura de la misma fecha", styles))
+        story.append(paragraph(
+            f"Estado: {_label(report.get('opening_forecast_scorecard_status', scorecard.get('status', 'not_verified')))}. "
+            + _text(scorecard.get("reason") or scorecard.get("limitations") or
+                    "No se suministró detalle adicional del scorecard."),
+            styles["body"],
+        ))
+        scorecard_symbols = scorecard.get("symbols") if isinstance(scorecard, dict) else None
+        if isinstance(scorecard_symbols, dict) and scorecard_symbols:
+            rows = []
+            for symbol in REQUIRED_SYMBOLS:
+                item = scorecard_symbols.get(symbol)
+                if isinstance(item, dict):
+                    rows.append([
+                        symbol,
+                        _text(item.get("opening_reference_high")),
+                        _text(item.get("opening_reference_low")),
+                        _text(item.get("closing_high")),
+                        _text(item.get("closing_low")),
+                        _text(item.get("closing_close")),
+                        _text(item.get("outcome")),
+                    ])
+            if rows:
+                story.append(data_table(
+                    ["Activo", "Máx. referencia", "Mín. referencia", "Máx. cierre", "Mín. cierre", "Cierre", "Resultado observado"],
+                    rows, styles, widths=[19*mm, 23*mm, 23*mm, 23*mm, 23*mm, 20*mm, 42*mm],
+                ))
+        story.append(paragraph(
+            "La evaluación mide rupturas de rango y ubicación del cierre; no representa rentabilidad, probabilidad, "
+            "ejecución de órdenes ni un backtest.",
+            styles["small"],
+        ))
     for symbol in REQUIRED_SYMBOLS:
         item = report["symbols"][symbol]
         story.extend([
