@@ -436,7 +436,7 @@ class OriginalSkillIntegrityTests(unittest.TestCase):
 
     def test_all_four_adaptations_match_recorded_original_skill_identities(self):
         result = verify_original_skill_packages(self.REPOSITORY_ROOT)
-        self.assertEqual(result["status"], "not_verified")
+        self.assertEqual(result["status"], "not_verified", result["findings"])
         self.assertEqual(len(result["packages"]), 4)
         self.assertEqual(result["adaptation_status"], "passed")
         self.assertEqual(len(result["manifest_sha256"]), 64)
