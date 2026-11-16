@@ -351,26 +351,26 @@ def audit_market_report_artifact(path: str | Path, report_type: str) -> dict[str
     """Independently check PDF structure and minimum report-content requirements."""
     requirements = {
         "opening": (
-            "BTCUSDT", "ETHUSDT", "Technical indicator", "validation", "Bullish / long scenario", "Bearish / short scenario",
-            "Macroeconomic context", "Relevant market news", "Data provenance",
-            "Macro/news feed retrieval register", "Feed URL", "UTC", "Important notice",
-            "America/Santo_Domingo", "Local reporting window", "COMPLETED LOCAL DAY",
-            "Binance account analytics", "U.S. equity-market coverage", "U.S. cash-session timing", "Activation timing",
+            "BTCUSDT", "ETHUSDT", "Indicador técnico", "Validación de datos", "Escenario alcista / largo", "Escenario bajista / corto",
+            "Contexto macroeconómico", "Noticias relevantes del mercado", "Procedencia de los datos",
+            "Registro de consulta de fuentes macro/noticias", "URL del feed", "UTC", "Aviso importante",
+            "America/Santo_Domingo", "Ventana de análisis local", "DÍA LOCAL COMPLETO",
+            "Análisis de la cuenta Binance", "Cobertura del mercado bursátil estadounidense", "Horario de la sesión bursátil estadounidense", "Horario de activación",
         ),
         "closing": (
-            "BTCUSDT", "ETHUSDT", "Bullish / long scenario", "Bearish / short scenario",
-            "Macroeconomic context", "Relevant market news", "Data provenance",
-            "Macro/news feed retrieval register", "Important notice",
-            "America/Santo_Domingo", "Local reporting window", "Binance account analytics",
-            "U.S. equity-market coverage", "Activation timing", "Opening forecast scorecard",
+            "BTCUSDT", "ETHUSDT", "Escenario alcista / largo", "Escenario bajista / corto",
+            "Contexto macroeconómico", "Noticias relevantes del mercado", "Procedencia de los datos",
+            "Registro de consulta de fuentes macro/noticias", "Aviso importante",
+            "America/Santo_Domingo", "Ventana de análisis local", "Análisis de la cuenta Binance",
+            "Cobertura del mercado bursátil estadounidense", "Horario de activación", "Comparación del pronóstico de apertura",
         ),
         "intraday": (
-            "BTCUSDT", "ETHUSDT", "Technical indicator", "validation", "Macroeconomic context", "Relevant news",
-            "Bullish / long scenario", "Bearish / short scenario",
-            "Source and provenance notes", "Macro/news feed retrieval register", "Feed URL", "UTC", "Disclaimer",
-            "America/Santo_Domingo", "Local reporting window", "PARTIAL LOCAL DAY",
-            "U.S. equity session state", "Comparison basis", "Binance account analytics",
-            "U.S. equity-market coverage", "Last fully closed candle boundary UTC",
+            "BTCUSDT", "ETHUSDT", "Indicador técnico", "Validación de datos", "Contexto macroeconómico", "Noticias relevantes",
+            "Escenario alcista / largo", "Escenario bajista / corto",
+            "Fuentes y notas de procedencia", "Registro de consulta de fuentes macro/noticias", "URL del feed", "UTC", "Aviso",
+            "America/Santo_Domingo", "Ventana de análisis local", "DÍA LOCAL PARCIAL",
+            "Estado de la sesión bursátil estadounidense", "Base de comparación", "Análisis de la cuenta Binance",
+            "Cobertura del mercado bursátil estadounidense", "Límite de la última vela cerrada (UTC)",
         ),
     }
     if report_type not in requirements:
