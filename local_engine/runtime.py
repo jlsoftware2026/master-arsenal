@@ -19,7 +19,7 @@ from . import __version__
 from .protocol import JobValidationError, load_job, utc_now, validate_job
 
 from binance_data_engine.client import BinancePublicClient
-from report_engine import generate_intraday_snapshot_pdf
+from report_engine import (\n    generate_closing_report_pdf, generate_intraday_snapshot_pdf,\n    generate_opening_report_pdf,\n)
 
 DIRECTORIES = (
     "config", "jobs/inbox", "jobs/validated", "jobs/awaiting_approval", "jobs/running",
@@ -240,6 +240,8 @@ class JobRunner:
         self.manager = manager
         self.handlers = {
             "engine.health_check": self._health_check,
+            "market.opening_report": self._opening_report,
+            "market.closing_report": self._closing_report,
             "market.intraday_snapshot": self._intraday_snapshot,
         }
 
@@ -251,6 +253,68 @@ class JobRunner:
             "checked_at_utc": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
             "implemented_job_types": sorted(self.handlers), "read_only": True,
         }
+
+    def _session_report(self, job: dict[str, Any], kind: str) -> dict[str, Any]:
+        parameters = job["parameters"]
+        allowed = {"session_date_utc", "interval", "market"}
+        unknown = set(parameters) - allowed
+        if unknown:
+            raise ValueError(f"Unknown {kind} report parameters: {sorted(unknown)}")
+        session_date_text = parameters.get("session_date_utc")
+        session_date = None
+        if session_date_text is not None:
+            if not isinstance(session_date_text, str):
+                raise ValueError("parameters.session_date_utc must be YYYY-MM-DD")
+            try:
+                session_date = datetime.strptime(session_date_text, "%Y-%m-%d").date()
+            except ValueError as exc:
+                raise ValueError("parameters.session_date_utc must be YYYY-MM-DD") from exc
+            if session_date.isoformat() != session_date_text:
+                raise ValueError("parameters.session_date_utc must be canonical YYYY-MM-DD")
+        interval = parameters.get("interval", "1h")
+        market = parameters.get("market", "spot")
+        if not isinstance(interval, str):
+            raise ValueError("parameters.interval must be a string")
+        if not isinstance(market, str) or market not in {"spot", "usdm"}:
+            raise ValueError("parameters.market must be 'spot' or 'usdm'")
+        relative_directory = "reports/opening" if kind == "opening" else "reports/closing"
+        expected_output = "market.opening_report" if kind == "opening" else "market.closing_report"
+        if (job["output"]["format"] != "pdf" or job["output"]["directory"] != relative_directory):
+            raise ValueError(f"{expected_output} output is fixed to PDF in {relative_directory}")
+        output_directory = self.manager.workspace.directory(relative_directory)
+        generator = generate_opening_report_pdf if kind == "opening" else generate_closing_report_pdf
+        artifact = generator(
+            BinancePublicClient(), output_directory, session_date=session_date,
+            interval=interval, market=market,
+        )
+        resolved = artifact.resolve(strict=True)
+        if not resolved.is_relative_to(output_directory):
+            raise ValueError(f"Generated {kind} report escaped its workspace directory")
+        if not resolved.is_file() or resolved.suffix.lower() != ".pdf":
+            raise ValueError(f"{kind.capitalize()} report did not produce a PDF artifact")
+        payload = resolved.read_bytes()
+        if len(payload) < 16 or not payload.startswith(b"%PDF-") or b"%%EOF" not in payload[-1024:]:
+            raise ValueError(f"{kind.capitalize()} report failed PDF integrity checks")
+        digest = hashlib.sha256(payload).hexdigest()
+        return {
+            "report_type": expected_output,
+            "format": "pdf",
+            "artifact_path": resolved.relative_to(self.manager.workspace.root).as_posix(),
+            "filename": resolved.name,
+            "size_bytes": len(payload),
+            "sha256": digest,
+            "session_date_utc": resolved.stem.rsplit("_", 1)[-1],
+            "market": market,
+            "interval": interval,
+            "source": "Binance public REST API",
+            "read_only": True,
+        }
+
+    def _opening_report(self, job: dict[str, Any]) -> dict[str, Any]:
+        return self._session_report(job, "opening")
+
+    def _closing_report(self, job: dict[str, Any]) -> dict[str, Any]:
+        return self._session_report(job, "closing")
 
     def _intraday_snapshot(self, job: dict[str, Any]) -> dict[str, Any]:
         parameters = job["parameters"]
