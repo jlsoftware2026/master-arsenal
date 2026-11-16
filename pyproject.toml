@@ -7,7 +7,7 @@ name = "master-arsenal-binance-engine"
 version = "0.3.0"
 description = "MASTER ARSENAL Binance data engine and local job runtime"
 requires-python = ">=3.11"
-dependencies = ["reportlab>=4.2,<5", "pymupdf>=1.24,<2", "tzdata>=2024.1; platform_system == 'Windows'"]
+dependencies = ["reportlab>=4.2,<5", "pymupdf>=1.24,<2", "tzdata>=2024.1; platform_system == 'Windows'", "exchange-calendars>=4.13,<5"]
 
 
 [project.scripts]
