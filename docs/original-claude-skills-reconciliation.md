@@ -6,16 +6,16 @@
 
 ## Executive finding
 
-The current implementation is a strong PDF/data-engine foundation, but it is not yet behaviorally equivalent to the original skills. In particular, the report windows are UTC calendar days while all three original reporting skills define calendar days in `America/Santo_Domingo`. The original skills also specify broader U.S. equity-market coverage and private Binance account analysis that the current public-market-data-only engine cannot claim to provide.
+The current implementation is a strong PDF/data-engine foundation, and the three report windows now use `America/Santo_Domingo` local calendar semantics. It is not yet behaviorally equivalent to the original skills: broader U.S. equity-market coverage, private Binance account analysis, activation timing, forecast scorecard linkage, and complete original-package/audit verification remain outstanding.
 
 ## Requirement comparison
 
 | Area | Original Claude requirement | Current Phase 3 implementation | Required adaptation |
 |---|---|---|---|
-| Primary timezone | `America/Santo_Domingo`; show local timestamps and ET where relevant | Local-day boundaries now drive acquisition, PDF validation, filenames, charts, and evidence manifests; local and UTC timestamps are shown | Final cross-platform regression verification remains pending; ET/U.S. session data is not yet integrated |
-| Opening Binance window | Previous local calendar day, 00:00–23:59:59 | Previous Dominican local calendar day is acquired via UTC-converted half-open boundaries | Verify on final CI head and preserve previous-local-date behavior |
-| Closing Binance window | Current local calendar day; partial until local midnight | Partial current local-day windows and historical completed local days are supported; exact cutoff is retained and unfinished candles are excluded | Verify partial closing regression and final CI head |
-| Intraday window | Local midnight through exact requested local cutoff; use current local time if omitted | Local cutoff is accepted; omission resolves execution-time local time; final incomplete candle is excluded | Verify explicit/omitted cutoff and cross-UTC-date regressions on final CI head |
+| Primary timezone | `America/Santo_Domingo`; show local timestamps and ET where relevant | Implemented: local-day boundaries drive acquisition, PDF validation, filenames, charts, and evidence manifests; local and UTC timestamps are shown | Final cross-platform regression verification remains pending; ET/U.S. session data is not yet integrated |
+| Opening Binance window | Previous local calendar day, 00:00–23:59:59 | Implemented: previous Dominican local calendar day is acquired via UTC-converted half-open boundaries | Verify on final CI head and preserve previous-local-date behavior |
+| Closing Binance window | Current local calendar day; partial until local midnight | Implemented: partial current local-day windows and historical completed local days are supported; exact cutoff is retained and unfinished candles are excluded | Verify partial closing regression and final CI head |
+| Intraday window | Local midnight through exact requested local cutoff; use current local time if omitted | Implemented: local cutoff is accepted; omission resolves execution-time local time; final incomplete candle is excluded | Verify explicit/omitted cutoff and cross-UTC-date regressions on final CI head |
 | U.S. market session | 9:30 a.m.–4:00 p.m. ET with DST-aware conversion; weekends/holidays handled | Not represented as a full U.S. cash-session calendar | Add an exchange-calendar/session-state layer and report last completed session on holidays/weekends |
 | U.S. market coverage | S&P 500, Nasdaq Composite and/or Nasdaq 100, Dow, Russell 2000, VIX, futures, Treasury 10Y, DXY, WTI, gold, sectors, breadth, leaders/laggards | Binance BTC/ETH candles, optional USD-M derivatives, selected RSS feeds | Add attributed public-market data adapters; explicitly disclose unavailable series rather than omit silently |
 | Binance private account | Read-only connector or user exports; otherwise mark account unavailable | Public Binance REST only | Keep private-account section explicitly unavailable until a supported read-only connector/export parser exists; never imply public candles are account data |
@@ -60,7 +60,7 @@ The current implementation is a strong PDF/data-engine foundation, but it is not
 
 - Independently inspect the three operational skills, package integrity, semantic consistency, date/time rules, PnL rules, source traceability, and report layout.
 - Required desk checks include the specified dates/times, weekends, holidays, U.S. DST, missing account access, external deposits/withdrawals, missing historical balances, and snapshot with omitted cutoff.
-- Severity taxonomy: Critical, High, Medium, Low.
+- Severity taxonomy: Crítico, Alto, Medio, Bajo.
 - Acceptance requires differentiated triggers, consistent local-time windows, safe account access, no fabricated data, valid packages, and identifiable version/change history.
 - Audit result must be Aprobado / Aprobado con reservas / No aprobado; unresolved critical/high findings cannot be passed.
 - Original audit output structure and maintenance/versioning instructions must be retained.
@@ -72,22 +72,23 @@ The feature branch now contains the following timezone work:
 2. **Partial closing day:** closing supports a current local-day cutoff; the requested cutoff is retained and any unfinished final candle is excluded. Historical closing dates without a cutoff use the completed local day.
 3. **Intraday cutoff:** cutoff_local is supported, and an omitted cutoff resolves execution-time Dominican local time. A legacy UTC cutoff remains accepted for compatibility.
 4. **Evidence traceability:** evidence schema v2 stores local-window metadata, PDF SHA-256, and a canonical raw-candle/warm-up evidence SHA-256. The audit independently verifies these fields.
-5. **Regression coverage:** tests have been updated for local-midnight conversion, previous-local-day opening, partial closing, optional intraday cutoff, cross-UTC-date windows, and unfinished-candle exclusion. Final CI verification on the latest code head is still pending.
+5. **Regression coverage:** tests cover local-midnight conversion, previous-local-day opening, partial closing, optional intraday cutoff, cross-UTC-date windows, unfinished-candle exclusion, PDF marker validation, evidence cutoffs, and Windows line-ending behavior. The final CI run after the latest PDF-marker normalization is still pending.
 
 Remaining source-derived blockers:
 - **U.S. market context/calendar:** full index, VIX, Treasury, DXY, WTI, gold, breadth/sectors, economic catalysts, exchange-calendar, holiday, and DST-aware session-state coverage is not integrated. Reports explicitly disclose this as unavailable/not verified.
 - **Private Binance account section:** no private-account connector or user-export parser exists. Reports explicitly mark account analytics unavailable and never represent public candles as account data.
 - **Opening/closing timing and scorecard:** automated activation timing and same-date opening-forecast-to-close scorecard linkage are not implemented; reports disclose these gaps.
-- **Audit parity:** a desk-check matrix, severity taxonomy, Spanish verdict, and change-history section have been added. Weekend/holiday, U.S. DST, private-account/flow, activation dispatch, and scorecard cases remain unresolved. The original archive and extracted-file hashes are recorded, but the original ZIP payloads are not embedded in the repository; package integrity therefore remains NOT VERIFIED. Full source-skill audit parity is not yet achieved.
+- **Audit parity:** a per-skill results table, desk-check matrix with expected/observed evidence and impact, Spanish severity/verdict, changes applied, pending items, files reviewed, and version/change history have been added. Weekend/holiday, U.S. DST, private-account/flow, activation dispatch, and scorecard cases remain unresolved. The original archive and extracted-file hashes are recorded, but the original ZIP payloads are not embedded in the repository; package integrity therefore remains NOT VERIFIED. Full source-skill audit parity is not yet achieved.
+- **Spanish PDF parity:** the three operational composers and the audit PDF have been localized. LANG-01 verifies Spanish markers in all three operational PDF types; final artifact-level verification remains pending.
 
 ## Merge gate
 
-Do not merge Phase 3 until the timezone and partial-window changes pass the full cross-platform CI matrix on the final code head, the remaining source-derived gaps are either implemented or clearly disclosed in both reports and audit, and no unresolved critical/high temporal or data-integrity findings remain.
+Do not merge Phase 3 until the latest code head passes the full cross-platform CI matrix, the remaining source-derived gaps are either implemented or clearly disclosed in both reports and audit, and no unresolved Crítico/Alto temporal or data-integrity findings remain.
 
 This document records source-derived requirements and the observed code gap. It does not claim that the listed adaptations have already been implemented.
 
 
 ## Additional source-parity finding
-- The original three operational skills specify Spanish-language PDF reports. The current PDF composers still render English headings and labels. This is recorded as high-severity audit check LANG-01 and remains a merge blocker until the operational PDFs are localized and regression-tested.
+- The original three operational skills specify Spanish-language PDF reports. The opening, closing, and intraday composers and the audit PDF have been localized. LANG-01 now requires all three operational PDF types to pass independent Spanish-marker QA on the same final code head.
 - The original intraday filename is `snapshot-mercado_YYYY-MM-DD_HH-mm.pdf` (underscore after `mercado`); the implementation and tests have been corrected to this exact source contract.
 - Original archive SHA-256 and extracted SKILL.md SHA-256 values are recorded in `docs/original-skills-source/manifest.json`. The ZIP payloads are not embedded in the repository, so runtime package-integrity status remains NOT VERIFIED.
