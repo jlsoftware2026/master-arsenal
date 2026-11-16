@@ -1,7 +1,7 @@
 ---
 name: binance-apertura-mercado
 description: 'Informe de apertura/premercado. Activar cuando el usuario diga “apertura de mercado”, “brief de apertura” o solicite el panorama antes de la apertura. Analiza la sesión bursátil estadounidense que abrirá hoy y el comportamiento de la cuenta Binance durante la sesión/día anterior. El día de referencia de la cuenta es el día calendario anterior a la fecha local de solicitud.'
-version: 0.4.0
+version: 0.5.0
 last_reviewed: 2026-11-16
 ---
 
@@ -27,7 +27,7 @@ Generate a detailed PDF report using the previous completed America/Santo_Doming
 8. Bullish/long and bearish/short scenarios with triggers and invalidation.
 9. Risk management, assumptions, source register, limitations, and conclusion.
 
-If U.S. market or account data is unavailable, state that explicitly. Never infer portfolio performance from public candles. The current build does not yet integrate full U.S. market/calendar data or private-account exports; the PDF must disclose both gaps.
+If U.S. market or account data is unavailable, state that explicitly. Never infer portfolio performance from public candles. The XNYS exchange calendar now supplies U.S. cash-session holidays, early closes, DST-aware session times, and premarket/regular/postmarket/closed classification. U.S. index/market prices and private-account exports remain unavailable and must be disclosed.
 
 ## Local Engine workflow
 - Job type: `market.opening_report`
@@ -50,7 +50,7 @@ The Local Engine may retain a source-linked raw-evidence manifest under `data/ma
 Disclose unavailable data and RSS feeds. Headlines are candidate context only, not proof of market causation. Scenario levels are conditional references, not forecasts, targets, or probabilities. Never fabricate values, events, citations, or analysis. Generate and independently inspect the PDF; if PDF generation or QA fails, fail the job and do not substitute another format.
 
 ## Status
-Adapted against the user-supplied original Claude skill package. U.S. market data/calendar and private-account evidence remain explicitly unavailable until integrated.
+Adapted against the user-supplied original Claude skill package. The XNYS calendar is integrated for session timing and holiday classification; U.S. market prices and private-account evidence remain unavailable.
 
 ## Version history
 - 0.1.0 — 2026-11-16: Initial ChatGPT/MASTER ARSENAL adaptation; preserves the original skill identity and documents the Local Engine/PDF workflow and current implementation gaps.
@@ -62,3 +62,4 @@ The opening, closing, and intraday PDF composers and the audit PDF use Spanish l
 - 0.2.0 — 2026-11-16: Reconciled activation phrases, Dominican local-day semantics, PDF-only delivery, explicit limitations, and source-derived report requirements. Outstanding parity gaps remain disclosed.
 
 - 0.3.0 — 2026-11-16: Localized report headings, tables, scenario narratives, disclaimers, and audit output into Spanish; added independent language-marker QA.
+- 0.5.0 — 2026-11-16: Integrated XNYS holiday/early-close calendar and a 09:10 ET premarket reference for opening reports; U.S. market prices and private-account data remain unavailable.
