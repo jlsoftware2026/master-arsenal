@@ -5,6 +5,7 @@ from tempfile import TemporaryDirectory
 import unittest
 
 from report_engine import build_intraday_snapshot_pdf
+from report_engine.audit import audit_market_report_artifact
 
 
 def fixture():
@@ -24,7 +25,24 @@ def fixture():
         "market": "spot",
         "interval": "1h",
         "data_status": "fixture_only",
-        "executive_summary": "Fixture report; no live market claim.",
+        "data_cutoff_utc": "2026-11-13T16:00:00Z",
+        "binance_account_data_status": "unavailable",
+        "us_equity_market_data_status": "not_integrated",
+        "us_equity_session_state": "not_available",
+        "comparison_basis": "Ventana del día local; el período móvil de 24 horas es distinto",
+        "macro_context": "No hay contexto macroeconómico en este fixture.",
+        "news_context": "No hay noticias en este fixture.",
+        "provenance": [{"source": "Binance", "retrieved_at_utc": "2026-11-13T16:30:30Z", "note": "Fixture"}],
+        "context_sources": [{
+            "publisher": "Feed de prueba", "kind": "macro", "status": "ok",
+            "retrieved_at_utc": "2026-11-13T16:30:30Z", "matching_items": 0,
+            "feed_url": "https://example.com/feed.xml",
+        }],
+        "executive_summary": [
+            "Punto uno de prueba.", "Punto dos de prueba.", "Punto tres de prueba.",
+            "Punto cuatro de prueba.", "Punto cinco de prueba.", "Punto seis de prueba.",
+            "Punto siete de prueba.",
+        ],
         "symbols": {
             symbol: {
                 "candle_count": 12,
@@ -50,6 +68,17 @@ class IntradayPdfTests(unittest.TestCase):
             self.assertTrue(payload.startswith(b"%PDF-"))
             self.assertIn(b"%%EOF", payload[-2048:])
             self.assertGreater(len(payload), 1000)
+
+    def test_intraday_pdf_passes_independent_content_and_localization_audit(self):
+        with TemporaryDirectory() as temp:
+            artifact = build_intraday_snapshot_pdf(fixture(), temp)
+            audit = audit_market_report_artifact(artifact, "intraday")
+            self.assertEqual(audit["status"], "passed", audit["missing_markers"])
+            import pymupdf as fitz
+            with fitz.open(artifact) as document:
+                extracted = " ".join(page.get_text("text") for page in document)
+            for point in ("Punto uno de prueba.", "Punto siete de prueba."):
+                self.assertIn(point, extracted)
 
     def test_requires_btc_and_eth(self):
         data = fixture()
