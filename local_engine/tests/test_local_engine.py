@@ -189,6 +189,8 @@ class LocalEngineTests(unittest.TestCase):
             self.assertTrue(result["result"]["artifact_path"].startswith(expected_dir + "/"))
             self.assertEqual(result["result"]["filename"], expected_name)
             self.assertTrue(self.manager.workspace.directory(result["result"]["artifact_path"]).is_file())
+            manifest = self.manager.workspace.directory(result["result"]["manifest_path"])
+            self.assertTrue(manifest.is_file())
 
     def test_intraday_snapshot_cannot_run_before_explicit_approval(self):
         job = new_job("market.intraday_snapshot", {
