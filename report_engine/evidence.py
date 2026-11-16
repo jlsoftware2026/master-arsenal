@@ -16,7 +16,7 @@ from binance_data_engine.models import Candle
 from binance_data_engine.validation import interval_milliseconds
 from binance_data_engine.validation import validate_candles
 
-EVIDENCE_SCHEMA = "ma.report-evidence/v1"
+EVIDENCE_SCHEMA = "ma.report-evidence/v2"
 CORE_SYMBOLS = ("BTCUSDT", "ETHUSDT")
 
 
