@@ -62,6 +62,14 @@ class IntradayPdfTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "UTC"):
                 build_intraday_snapshot_pdf(data, temp)
 
+    def test_rejects_local_timestamp_that_violates_iana_timezone_rules(self):
+        data = fixture()
+        data["window_start_local"] = "2026-11-13T01:00:00-03:00"
+        data["cutoff_local"] = "2026-11-13T13:30:00-03:00"
+        with TemporaryDirectory() as temp:
+            with self.assertRaisesRegex(ValueError, "IANA America/Santo_Domingo"):
+                build_intraday_snapshot_pdf(data, temp)
+
     def test_rejects_wrong_window_start(self):
         data = fixture()
         data["window_start_utc"] = "2026-11-13T05:00:00Z"
