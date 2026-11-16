@@ -4,7 +4,7 @@ from tempfile import TemporaryDirectory
 import unittest
 
 from report_engine.audit import audit_market_report_artifact, build_skills_audit_pdf
-from report_engine.session import build_opening_report_pdf
+from report_engine.session import build_closing_report_pdf, build_opening_report_pdf
 
 
 class AuditReportTests(unittest.TestCase):
@@ -76,6 +76,38 @@ class AuditReportTests(unittest.TestCase):
         with TemporaryDirectory() as temp:
             artifact = build_opening_report_pdf(report, temp)
             audit = audit_market_report_artifact(artifact, "opening")
+            self.assertEqual(audit["status"], "passed", audit["missing_markers"])
+
+    def test_closing_pdf_audit_requires_and_accepts_partial_local_day_status(self):
+        report = {
+            "session_start_utc": "2026-11-16T04:00:00Z",
+            "session_end_utc": "2026-11-16T16:30:00Z",
+            "report_timezone": "America/Santo_Domingo",
+            "report_date_local": "2026-11-16",
+            "requested_report_date_local": "2026-11-16",
+            "cutoff_resolution": "execution_time_local_default",
+            "window_start_local": "2026-11-16T00:00:00-04:00",
+            "cutoff_local": "2026-11-16T12:30:00-04:00",
+            "window_semantics": "[start, cutoff)",
+            "is_partial": True,
+            "source": "Binance public REST API",
+            "market": "spot",
+            "interval": "1h",
+            "data_status": "partial",
+            "binance_account_data_status": "unavailable",
+            "us_equity_market_data_status": "not_integrated",
+            "us_equity_session_state": "not_available",
+            "activation_timing_status": "not_automated",
+            "opening_forecast_scorecard_status": "not_implemented",
+            "data_cutoff_utc": "2026-11-16T16:00:00Z",
+            "generated_at_utc": "2026-11-16T16:31:00Z",
+            "symbols": {"BTCUSDT": {}, "ETHUSDT": {}},
+            "executive_summary": "Resumen de prueba.",
+            "limitations": "Datos privados y mercado estadounidense no disponibles.",
+        }
+        with TemporaryDirectory() as temp:
+            artifact = build_closing_report_pdf(report, temp)
+            audit = audit_market_report_artifact(artifact, "closing")
             self.assertEqual(audit["status"], "passed", audit["missing_markers"])
 
     def test_empty_artifact_set_is_allowed_but_reported_as_insufficient(self):
