@@ -80,6 +80,28 @@ def _validate(report: dict[str, Any]):
     return start, end, generated
 
 
+def _indicator_rows(indicators: Any) -> list[list[str]]:
+    indicators = indicators if isinstance(indicators, dict) else {}
+    definitions = (
+        ("ema_20", "EMA 20"), ("ema_50", "EMA 50"), ("ema_200", "EMA 200"),
+        ("rsi_14", "RSI 14"), ("macd", "MACD"), ("atr_14", "ATR 14"),
+        ("bollinger_20", "Bollinger 20"), ("volume_sma_20", "Volume SMA 20"),
+    )
+    return [[label, _text(indicators.get(key))] for key, label in definitions]
+
+
+def _ticker_summary(value: Any) -> str:
+    if not isinstance(value, dict):
+        return "Not supplied"
+    if value.get("status") != "ok":
+        return f"Unavailable: {value.get('error', 'No endpoint detail')}"
+    data = value.get("data")
+    if not isinstance(data, dict):
+        return "Ticker data unavailable"
+    keys = ("lastPrice", "priceChangePercent", "highPrice", "lowPrice", "volume", "quoteVolume")
+    return "; ".join(f"{key}: {data[key]}" for key in keys if key in data) or "No selected ticker fields supplied"
+
+
 def _derivatives_summary(value: Any) -> str:
     if not isinstance(value, dict) or not value:
         return "Not supplied"
@@ -152,11 +174,32 @@ def _build_session_pdf(report: dict[str, Any], output_directory: Path | str, kin
                 ("First open UTC", item.get("first_open_time_utc", "Not supplied")),
                 ("Last close UTC", item.get("last_close_time_utc", "Not supplied")),
                 ("Price performance", _text(item.get("performance"))),
-                ("24h ticker", _text(item.get("ticker_24h"))),
-                ("Technical indicators", _text(item.get("indicators"))),
+                ("24h ticker", _ticker_summary(item.get("ticker_24h"))),
+                ("Indicator warm-up candles", (item.get("indicator_history") or {}).get("candle_count", "Not supplied")),
+                ("Candle pagination", "complete" if (item.get("pagination") or {}).get("complete") else "not verified"),
                 ("Derivatives context", _derivatives_summary(item.get("derivatives"))),
             ], styles),
+            data_table(["Technical indicator", "Value"], _indicator_rows(item.get("indicators")), styles,
+                       widths=[45*mm, 120*mm]),
         ])
+        issues = item.get("validation") or []
+        if issues:
+            issue_rows = [[
+                str(issue.get("code", "unknown")),
+                str(issue.get("severity", "warning")),
+                str(issue.get("message", "")),
+            ] for issue in issues if isinstance(issue, dict)]
+            if issue_rows:
+                story.extend([
+                    section_heading(f"{symbol} data validation issues", styles),
+                    data_table(["Issue", "Severity", "Details"], issue_rows, styles,
+                               widths=[28*mm, 22*mm, 115*mm]),
+                ])
+        else:
+            story.append(paragraph(
+                f"{symbol}: no validation issues were supplied; this is not proof of live data completeness.",
+                styles["small"],
+            ))
         candles = item.get("candles") or []
         if candles:
             labels = [str(c.get("open_time", ""))[11:16] for c in candles]
