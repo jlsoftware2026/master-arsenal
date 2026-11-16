@@ -75,9 +75,20 @@ def verify_original_skill_packages(repository_root: Path | str) -> dict[str, Any
             adapted_path = root / "skills" / name / "SKILL.md"
             adapted_bytes = adapted_path.read_bytes()
             adapted_text = adapted_bytes.decode("utf-8")
-            if not adapted_text.startswith(f"# {name}\n"):
-                raise ValueError(f"{name}: ChatGPT adaptation heading does not match source package")
-            if "## Local Engine workflow" not in adapted_text or "PDF" not in adapted_text:
+            if not adapted_text.startswith("---\n") or "\n---\n" not in adapted_text[4:]:
+                raise ValueError(f"{name}: adapted SKILL.md YAML frontmatter is missing")
+            frontmatter = adapted_text.split("\n---", 1)[0]
+            fields = {}
+            for line in frontmatter.splitlines():
+                if ":" in line:
+                    key, value = line.split(":", 1)
+                    fields[key.strip()] = value.strip().strip("'\"")
+            body = adapted_text.split("\n---\n", 1)[1]
+            if fields.get("name") != name or not body.startswith(f"# {name}\n"):
+                raise ValueError(f"{name}: ChatGPT adaptation metadata/heading does not match source package")
+            if not fields.get("version") or not fields.get("last_reviewed"):
+                raise ValueError(f"{name}: adapted skill version and review date are required")
+            if "## Local Engine workflow" not in body or "PDF" not in body:
                 raise ValueError(f"{name}: ChatGPT adaptation is missing the Local Engine/PDF contract")
             packages.append({
                 "name": name,
@@ -85,6 +96,8 @@ def verify_original_skill_packages(repository_root: Path | str) -> dict[str, Any
                 "archive_sha256": archive_sha,
                 "source_skill_sha256": source_sha,
                 "adapted_skill_sha256": hashlib.sha256(adapted_bytes).hexdigest(),
+                "adapted_version": fields.get("version"),
+                "last_reviewed": fields.get("last_reviewed"),
                 "archive_members": expected_member,
                 "archive_bytes": item.get("archive_bytes"),
                 "source_skill_bytes": item.get("source_skill_bytes"),
