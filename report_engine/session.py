@@ -48,6 +48,7 @@ def _label(value: Any) -> str:
         "not_available": "No disponible", "not_implemented": "No implementado",
         "not_applicable": "No aplica", "not_automated": "No automatizado",
         "complete": "Completo", "partial": "Parcial", "ok": "Correcto",
+        "passed": "Aprobado", "failed": "Fallido",
         "not_verified": "No verificado", "previous_local_calendar_day": "Día calendario local anterior",
         "explicit_local_cutoff": "Hora de corte local explícita",
         "execution_time_local_default": "Hora local de ejecución",
