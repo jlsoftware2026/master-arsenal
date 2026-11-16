@@ -84,6 +84,19 @@ class USMarketDataTests(unittest.TestCase):
         self.assertEqual(result["sector_leaders"][0]["symbol"], "XLK")
         self.assertEqual(result["sector_laggards"][0]["symbol"], "XLE")
 
+    def test_treasury_ten_year_yield_is_normalized_from_yahoo_tenths_scale(self):
+        catalog = {"rates": (("U.S. Treasury 10Y yield", "^TNX", "yield_percent_x10"),)}
+        result = collect_us_market_snapshot(
+            AS_OF, instruments=catalog,
+            opener=lambda request, timeout: FakeResponse(
+                chart_payload(closes=(42.5, 43.0), previous=42.0)
+            ),
+        )
+        item = result["groups"]["rates"][0]
+        self.assertEqual(item["unit"], "yield_percent")
+        self.assertEqual(item["last_price"], 4.25)
+        self.assertAlmostEqual(item["change_basis_points"], 5.0)
+
     def test_invalid_naive_cutoff_is_rejected(self):
         with self.assertRaisesRegex(ValueError, "timezone-aware"):
             collect_us_market_snapshot(datetime(2026, 11, 16, 15, 0))
