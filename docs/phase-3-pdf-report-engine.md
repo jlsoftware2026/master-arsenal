@@ -51,7 +51,7 @@ Only items with publisher timestamps inside the report's UTC window are included
 - `report_engine.audit.build_skills_audit_pdf` creates `auditoria-skills-binance_YYYY-MM-DD.pdf`.
 - The Local Engine audit handler scans the fixed opening, closing, and intraday report directories, computes SHA-256 digests, and independently parses/renders every discovered PDF.
 - Missing artifacts and QA failures become explicit findings. No artifacts means insufficient evidence, not a pass.
-- The current automated audit focuses on artifact structure/readability. It does not yet independently recalculate every market indicator, verify all news claims, certify scenario quality, or prove parity with the original Claude skill source files.
+- The automated audit checks artifact structure/readability, expected filename prefixes, BTC/ETH presence, required scenario/context/provenance headings, and the macro/news feed retrieval register. It does not yet independently recalculate every market indicator, verify the factual accuracy of news claims, or certify scenario quality or parity with the original Claude skill source files.
 
 ## Local Engine job integration
 
