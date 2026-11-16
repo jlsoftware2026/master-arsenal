@@ -70,9 +70,10 @@ def _display(value: Any) -> str:
     if isinstance(value, float):
         return f"{value:.6g}"
     if isinstance(value, dict):
-        return "; ".join(f"{k}: {_display(v)}" for k, v in value.items())
+        labels = {"lastPrice": "Último precio", "priceChangePercent": "Cambio porcentual", "highPrice": "Máximo 24 h", "lowPrice": "Mínimo 24 h", "volume": "Volumen base", "quoteVolume": "Volumen cotizado"}
+        return "; ".join(f"{labels.get(k, k)}: {_display(v)}" for k, v in value.items())
     if isinstance(value, list):
-        return f"{len(value)} item(s)"
+        return f"{len(value)} elemento(s)"
     return str(value)
 
 
