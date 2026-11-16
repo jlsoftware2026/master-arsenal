@@ -58,6 +58,15 @@ def verify_original_skill_packages(repository_root: Path | str) -> dict[str, Any
                 raise ValueError(f"{name}: recorded original archive SHA-256 is invalid")
             if not isinstance(source_sha, str) or len(source_sha) != 64:
                 raise ValueError(f"{name}: recorded original SKILL.md SHA-256 is invalid")
+            try:
+                int(archive_sha, 16)
+                int(source_sha, 16)
+            except ValueError as exc:
+                raise ValueError(f"{name}: recorded source hashes must be hexadecimal SHA-256 values") from exc
+            if not isinstance(item.get("archive_bytes"), int) or item["archive_bytes"] <= 0:
+                raise ValueError(f"{name}: original archive byte count is invalid")
+            if not isinstance(item.get("source_skill_bytes"), int) or item["source_skill_bytes"] <= 0:
+                raise ValueError(f"{name}: original SKILL.md byte count is invalid")
             expected_member = [f"{name}/SKILL.md"]
             if item.get("zip_members") != expected_member:
                 raise ValueError(f"{name}: recorded original package structure is invalid")
