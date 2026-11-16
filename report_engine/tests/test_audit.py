@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from tempfile import TemporaryDirectory
 import unittest
 
-from report_engine.audit import build_skills_audit_pdf
+from report_engine.audit import audit_market_report_artifact, build_skills_audit_pdf\nfrom report_engine.session import build_opening_report_pdf
 
 
 class AuditReportTests(unittest.TestCase):
@@ -22,6 +22,32 @@ class AuditReportTests(unittest.TestCase):
             path = build_skills_audit_pdf(report, temp)
             self.assertEqual(path.name, "auditoria-skills-binance_2026-11-16.pdf")
             self.assertTrue(path.read_bytes().startswith(b"%PDF-"))
+
+
+    def test_market_report_audit_checks_required_content_and_filename(self):
+        report = {
+            "session_start_utc": "2026-11-15T00:00:00Z",
+            "session_end_utc": "2026-11-16T00:00:00Z",
+            "generated_at_utc": "2026-11-16T00:05:00Z",
+            "symbols": {"BTCUSDT": {}, "ETHUSDT": {}},
+            "executive_summary": "Observed BTC and ETH session data.",
+            "bullish_scenario": "Conditional upside above prior-session high.",
+            "bearish_scenario": "Conditional downside below prior-session low.",
+            "assumptions_and_invalidation": "Opposite side of range invalidates scenario.",
+            "risks": "Volatility and liquidity risk.",
+            "macro_context": "No date-matched macro events.",
+            "news": "No date-matched digital asset news.",
+            "provenance": [{"source": "Binance", "retrieved_at_utc": "2026-11-16T00:01:00Z", "note": "Fixture"}],
+            "context_sources": [{
+                "publisher": "Federal Reserve", "kind": "macro", "status": "ok",
+                "retrieved_at_utc": "2026-11-16T00:01:00Z", "matching_items": 0,
+                "feed_url": "https://www.federalreserve.gov/feeds/press_all.xml",
+            }],
+        }
+        with TemporaryDirectory() as temp:
+            artifact = build_opening_report_pdf(report, temp)
+            audit = audit_market_report_artifact(artifact, "opening")
+            self.assertEqual(audit["status"], "passed", audit["missing_markers"])
 
     def test_empty_artifact_set_is_allowed_but_reported_as_insufficient(self):
         report = {
