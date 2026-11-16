@@ -70,7 +70,7 @@ class IntradayAcquisitionTests(unittest.TestCase):
     def acquire(self, client=None, cutoff=CUTOFF, symbols=("BTCUSDT", "ETHUSDT")):
         context = {"macro_context": "No macro items.", "news": "No news items.",
                    "macro_sources": [], "news_sources": [], "context_status": "complete",
-                   "context_limitations": "Fixture context only.", "context_limitations": "Fixture context only."}
+                   "context_limitations": "Fixture context only."}
         with patch("report_engine.acquisition.collect_market_context", return_value=context):
             return acquire_intraday_evidence(client or FakeClient(), cutoff, "1h", "spot", symbols)
 
