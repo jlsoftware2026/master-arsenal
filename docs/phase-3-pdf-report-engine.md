@@ -110,3 +110,7 @@ python -m unittest discover -s report_engine/tests -v
 
 ## Original-skill parity status
 The three original operational skills specify Spanish-language PDF output. The opening, closing, and intraday composers have been localized; LANG-01 remains unverified until all three PDF artifact types pass independent Spanish-marker QA on the final code head. The exact original intraday filename is `snapshot-mercado_YYYY-MM-DD_HH-mm.pdf`.
+
+
+## Final distribution requirement
+The mandatory single-download executable JAR requirement is recorded in `docs/distribution-requirements.md`. It is a release gate outside this PDF-engine phase; no bootstrapper, Python provisioning, packaging, signing, or CI/CD changes are implemented or authorized by this documentation entry.
