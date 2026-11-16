@@ -34,6 +34,8 @@ def acquire_session_report_evidence(
     """
     if report_kind not in {"opening", "closing", "completed"}:
         raise ValueError("report_kind must be opening, closing, or completed")
+    if cutoff_local is not None and report_kind != "closing":
+        raise ValueError("cutoff_local is supported only for closing reports")
     request_date = session_date or current_local_report_date(now)
     if not isinstance(request_date, date) or isinstance(request_date, datetime):
         raise ValueError("session_date must be datetime.date")
