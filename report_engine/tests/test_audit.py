@@ -103,6 +103,10 @@ class AuditReportTests(unittest.TestCase):
             "generated_at_utc": "2026-11-16T16:31:00Z",
             "symbols": {"BTCUSDT": {}, "ETHUSDT": {}},
             "executive_summary": "Resumen de prueba.",
+            "bullish_scenario": "Escenario alcista condicional de prueba.",
+            "bearish_scenario": "Escenario bajista condicional de prueba.",
+            "macro_context": "Contexto macroeconómico no disponible en este fixture.",
+            "news": "Noticias relevantes no disponibles en este fixture.",
             "limitations": "Datos privados y mercado estadounidense no disponibles.",
         }
         with TemporaryDirectory() as temp:
