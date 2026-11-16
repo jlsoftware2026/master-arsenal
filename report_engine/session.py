@@ -162,19 +162,18 @@ def _ticker_summary(value: Any) -> str:
     data = value.get("data")
     if not isinstance(data, dict):
         return "Datos del ticker no disponibles"
-    keys = ("lastPrice", "priceChangePercent", "highPrice", "lowPrice", "volume", "quoteVolume")
-    return "; ".join(f"{key}: {data[key]}" for key in keys if key in data) or "No se suministraron los campos seleccionados del ticker"
+    labels = {"lastPrice": "Último precio", "priceChangePercent": "Cambio porcentual", "highPrice": "Máximo 24 h", "lowPrice": "Mínimo 24 h", "volume": "Volumen base", "quoteVolume": "Volumen cotizado"}
+    return "; ".join(f"{labels[key]}: {data[key]}" for key in labels if key in data) or "No se suministraron los campos seleccionados del ticker"
 
 
 def _derivatives_summary(value: Any) -> str:
     if not isinstance(value, dict) or not value:
         return "No suministrado"
     rows = []
-    display_keys = ("lastFundingRate", "markPrice", "indexPrice", "openInterest",
-                    "sumOpenInterest", "longShortRatio", "basis")
+    display_keys = {"lastFundingRate": "Tasa de financiación", "markPrice": "Precio de marca", "indexPrice": "Precio del índice", "openInterest": "Interés abierto", "sumOpenInterest": "Interés abierto total", "longShortRatio": "Relación largo/corto", "basis": "Base"}
     for name, result in value.items():
         if not isinstance(result, dict):
-            rows.append(f"{name}: unavailable")
+            rows.append(f"{name}: no disponible")
             continue
         status = result.get("status", "no verificada")
         data = result.get("data")
@@ -182,7 +181,7 @@ def _derivatives_summary(value: Any) -> str:
             data = data[-1] if data else None
         selected = []
         if isinstance(data, dict):
-            selected = [f"{key}={data[key]}" for key in display_keys if key in data]
+            selected = [f"{label}={data[key]}" for key, label in display_keys.items() if key in data]
         suffix = ", ".join(selected) if selected else "último valor no disponible"
         rows.append(f"{name}: {status} ({suffix})")
     return "; ".join(rows)
