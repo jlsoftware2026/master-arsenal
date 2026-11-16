@@ -485,7 +485,7 @@ class JobRunner:
                 resolved = candidate.resolve(strict=True)
                 if not resolved.is_relative_to(directory):
                     findings.append({
-                        "severity": "critical", "title": "Artifact escaped report directory",
+                        "severity": "Crítico", "title": "Artifact escaped report directory",
                         "evidence": str(candidate), "recommendation": "Quarantine and investigate the path.",
                     })
                     continue
@@ -505,7 +505,7 @@ class JobRunner:
                     })
                     if qa["status"] != "passed":
                         findings.append({
-                            "severity": "high", "title": f"Required report content missing: {resolved.name}",
+                            "severity": "Alto", "title": f"Required report content missing: {resolved.name}",
                             "evidence": item["issues"],
                             "recommendation": "Regenerate the report with all required sections and source registers.",
                         })
@@ -515,7 +515,7 @@ class JobRunner:
                         "issues": f"{type(exc).__name__}: {exc}",
                     })
                     findings.append({
-                        "severity": "high", "title": f"PDF structural QA failed: {resolved.name}",
+                        "severity": "Alto", "title": f"PDF structural QA failed: {resolved.name}",
                         "evidence": item["issues"],
                         "recommendation": "Regenerate the artifact and inspect the source evidence.",
                     })
@@ -534,7 +534,7 @@ class JobRunner:
             resolved_manifest = manifest_path.resolve(strict=True)
             if not resolved_manifest.is_relative_to(manifest_directory):
                 findings.append({
-                    "severity": "critical", "title": "Evidence manifest escaped fixed directory",
+                    "severity": "Crítico", "title": "Evidence manifest escaped fixed directory",
                     "evidence": str(manifest_path),
                     "recommendation": "Quarantine the manifest and investigate workspace integrity.",
                 })
@@ -555,13 +555,13 @@ class JobRunner:
                 evidence_manifests.append(audit_result)
                 if audit_result["status"] != "passed":
                     findings.append({
-                        "severity": "high", "title": f"Raw evidence audit failed: {resolved_manifest.name}",
+                        "severity": "Alto", "title": f"Raw evidence audit failed: {resolved_manifest.name}",
                         "evidence": "; ".join(audit_result.get("findings", [])),
                         "recommendation": "Reacquire source data and regenerate the affected report and manifest.",
                     })
             except Exception as exc:
                 findings.append({
-                    "severity": "high", "title": f"Evidence manifest could not be audited: {resolved_manifest.name}",
+                    "severity": "Alto", "title": f"Evidence manifest could not be audited: {resolved_manifest.name}",
                     "evidence": f"{type(exc).__name__}: {exc}",
                     "recommendation": "Quarantine malformed evidence and regenerate the report.",
                 })
@@ -571,7 +571,7 @@ class JobRunner:
         )
         if cross_report["status"] == "failed":
             findings.append({
-                "severity": "high", "title": "Cross-report candle evidence mismatch",
+                "severity": "Alto", "title": "Cross-report candle evidence mismatch",
                 "evidence": "; ".join(cross_report["mismatches"]),
                 "recommendation": "Reconcile the source acquisition and regenerate inconsistent reports.",
             })
@@ -585,7 +585,7 @@ class JobRunner:
         for item in artifacts:
             if item["filename"] not in manifest_names:
                 findings.append({
-                    "severity": "high", "title": f"Evidence manifest missing for {item['filename']}",
+                    "severity": "Alto", "title": f"Evidence manifest missing for {item['filename']}",
                     "evidence": "No matching source-linked manifest was found.",
                     "recommendation": "Regenerate the report through the Local Engine evidence workflow.",
                 })
@@ -648,85 +648,85 @@ class JobRunner:
         artifact_qa_ok = bool(artifacts) and all(item.get("status") == "passed" for item in artifacts)
         desk_checks = [
             check("SKILL-01", "Original source package metadata and ZIP structure",
-                  "not_verified" if source_skill_integrity["status"] == "not_verified" else "failed", "high",
+                  "not_verified" if source_skill_integrity["status"] == "not_verified" else "failed", "Alto",
                   "Original archive and SKILL.md hashes are recorded, but the original ZIP payloads are not stored in the repository.",
                   "Retain the exact source archives in a controlled artifact store and revalidate package members and hashes."),
             check("SKILL-02", "ChatGPT adaptation identity and Local Engine/PDF compatibility",
-                  source_skill_integrity.get("adaptation_status", "failed"), "high",
+                  source_skill_integrity.get("adaptation_status", "failed"), "Alto",
                   "All four adaptation files have the expected identity and Local Engine/PDF contract."
                   if source_skill_integrity.get("adaptation_status") == "passed"
                   else "; ".join(source_skill_integrity["findings"]),
                   "Keep adaptation names, Local Engine job types, and PDF-only output contracts synchronized."),
-            check("SKILL-03", "Cross-skill functional and semantic consistency", "not_verified", "high",
+            check("SKILL-03", "Cross-skill functional and semantic consistency", "not_verified", "Alto",
                   "No automated semantic comparison across all four adapted skill workflows is attached.",
                   "Add contract tests for shared report sections, date semantics, evidence fields, and hand-offs."),
-            check("SKILL-04", "Activation phrase and timing dispatch", "not_implemented", "high",
+            check("SKILL-04", "Activation phrase and timing dispatch", "not_implemented", "Alto",
                   "Activation phrases are documented, but runtime phrase dispatch and ET activation scheduling are not implemented.",
                   "Implement a deterministic trigger router and exchange-calendar-aware activation timing."),
             check("PDF-01", "PDF structure, readability, and layout QA",
-                  "passed" if artifact_qa_ok else "not_verified", "high",
+                  "passed" if artifact_qa_ok else "not_verified", "Alto",
                   "All discovered operational PDFs passed independent parser/render QA."
                   if artifact_qa_ok else "No complete set of operational PDFs passed independent QA.",
                   "Generate opening, closing, and intraday PDFs and attach independent PyMuPDF QA results."),
-            check("CONTENT-01", "Original report section and market-data parity", "not_verified", "high",
+            check("CONTENT-01", "Original report section and market-data parity", "not_verified", "Alto",
                   "U.S. market breadth, catalysts, private account analytics, and full original report semantics are not implemented.",
                   "Implement or explicitly mark each original section unavailable; do not certify source-skill parity."),
             check("TIME-01", "Dominican local-day boundaries", "passed" if local_windows_ok else "not_verified",
-                  "critical", "All retained manifests declare the IANA timezone and half-open window." if local_windows_ok
+                  "Crítico", "All retained manifests declare the IANA timezone and half-open window." if local_windows_ok
                   else "No complete set of valid local-window manifests is available.",
                   "Regenerate and independently audit every operational report."),
             check("OPEN-01", "Opening uses previous local calendar day", "passed" if opening_dates_ok else "not_verified",
-                  "high", "Opening request dates and reference dates were reconciled from evidence manifests." if opening_dates_ok
+                  "Alto", "Opening request dates and reference dates were reconciled from evidence manifests." if opening_dates_ok
                   else "No opening evidence proves the previous-local-day rule.",
                   "Generate an opening report and retain its request-date evidence."),
             check("CLOSE-01", "Closing partial-day cutoff", "passed" if closing_windows_ok else "not_verified",
-                  "high", "Closing manifests declare explicit, execution-time, or historical-complete cutoff resolution." if closing_windows_ok
+                  "Alto", "Closing manifests declare explicit, execution-time, or historical-complete cutoff resolution." if closing_windows_ok
                   else "No closing evidence proves partial-day cutoff handling.",
                   "Generate a current-day closing report before local midnight and inspect the exact cutoff."),
             check("INTRA-01", "Intraday omitted-cutoff default", "passed" if any(
                       x.get("cutoff_resolution") == "execution_time_local_default" for x in intraday_reports
                   ) else "not_exercised" if intraday_reports else "not_verified",
-                  "medium", "An intraday report records execution-time local cutoff." if any(
+                  "Medio", "An intraday report records execution-time local cutoff." if any(
                       x.get("cutoff_resolution") == "execution_time_local_default" for x in intraday_reports
                   ) else "No retained intraday report proves the omitted-cutoff path.",
                   "Run an intraday job with no cutoff parameter."),
-            check("US-01", "U.S. exchange weekends and holidays", "not_implemented", "high",
+            check("US-01", "U.S. exchange weekends and holidays", "not_implemented", "Alto",
                   "No exchange-calendar adapter is integrated.",
                   "Implement and independently test weekend/holiday last-session selection."),
-            check("US-02", "U.S. cash-session DST and state", "not_implemented", "high",
+            check("US-02", "U.S. cash-session DST and state", "not_implemented", "Alto",
                   "Premarket/regular/postmarket classification and DST-aware session calendar are not integrated.",
                   "Add an authoritative exchange calendar and test both U.S. DST transitions."),
             check("ACCT-01", "Missing private Binance account access", "disclosed" if account_disclosed else "not_verified",
-                  "medium", "Reports explicitly label private account analytics unavailable." if account_disclosed
+                  "Medio", "Reports explicitly label private account analytics unavailable." if account_disclosed
                   else "No retained report proves account-data unavailability is disclosed.",
                   "Keep the unavailable disclosure until an authorized read-only source or export parser exists."),
-            check("ACCT-02", "External deposits/withdrawals excluded from PnL", "not_applicable", "high",
+            check("ACCT-02", "External deposits/withdrawals excluded from PnL", "not_applicable", "Alto",
                   "No private account ledger or portfolio return calculation is implemented.",
                   "Implement ledger reconciliation before reporting portfolio returns; exclude deposits/withdrawals from PnL."),
-            check("ACCT-03", "Missing historical account balances", "not_applicable", "medium",
+            check("ACCT-03", "Missing historical account balances", "not_applicable", "Medio",
                   "No private account history or balance snapshots are ingested.",
                   "Require complete historical balances before making account-performance claims."),
             check("SCORE-01", "Same-date opening forecast scorecard", "not_implemented" if scorecard_missing else "not_verified",
-                  "high", "Closing reports disclose that scorecard linkage is not implemented." if scorecard_missing
+                  "Alto", "Closing reports disclose that scorecard linkage is not implemented." if scorecard_missing
                   else "No closing report proves scorecard linkage or explicit unavailability.",
                   "Persist opening scenarios and compare them with same-date observed outcomes."),
             check("PKG-01", "Original skill package integrity and version history",
-                  source_skill_integrity["status"], "high",
+                  source_skill_integrity["status"], "Alto",
                   "All four adapted skill identities are present; original archive and source hashes are recorded but the ZIP payloads are not embedded."
                   if source_skill_integrity["status"] == "not_verified" else "; ".join(source_skill_integrity["findings"]),
                   "Embed the exact original .skill archives or provide a trusted source artifact so the audit can recompute the recorded hashes."),
-            check("CI-01", "Cross-platform CI evidence on audited code head", "not_verified", "high",
+            check("CI-01", "Cross-platform CI evidence on audited code head", "not_verified", "Alto",
                   "No trusted CI run manifest is attached to this local workspace audit.",
                   "Attach the final-head Ubuntu/Windows Python 3.11/3.12 Actions run and inspect all jobs."),
         ]
         unresolved = [
             item for item in desk_checks
-            if item["severity"] in {"critical", "high"}
+            if item["severity"] in {"Crítico", "Alto"}
             and item["status"] in {"failed", "not_implemented", "not_verified", "not_applicable"}
         ]
         medium_unresolved = [
             item for item in desk_checks
-            if item["severity"] == "medium"
+            if item["severity"] == "Medio"
             and item["status"] in {"failed", "not_implemented", "not_verified", "not_applicable", "not_exercised"}
         ]
         audit_verdict = (
