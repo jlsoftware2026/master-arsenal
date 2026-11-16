@@ -300,6 +300,8 @@ class JobRunner:
             if session_date.isoformat() != session_date_text:
                 raise ValueError("parameters.session_date_local must be canonical YYYY-MM-DD")
         cutoff_text = parameters.get("cutoff_local")
+        if kind == "opening" and cutoff_text is not None:
+            raise ValueError("Opening reports do not accept cutoff_local; they use the previous completed local day")
         cutoff_local = None
         if cutoff_text is not None:
             if not isinstance(cutoff_text, str):
