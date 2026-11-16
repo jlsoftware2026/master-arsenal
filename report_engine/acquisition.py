@@ -79,9 +79,11 @@ def acquire_intraday_evidence(
         }
     report["binance_account_data_status"] = "unavailable"
     report["us_equity_market_data_status"] = "not_integrated"
+    report["us_equity_session_state"] = "not_available"
+    report["comparison_basis"] = "Dominican local calendar day; rolling 24-hour ticker is shown separately."
     report["limitations"] = (
         "Private Binance account balances, positions, fees, funding, and flow-adjusted PnL are unavailable. "
-        "Full U.S. equity-market coverage and exchange-calendar evidence are not integrated or verified. "
+         "Full U.S. equity-market coverage, premarket/regular/postmarket classification, and exchange-calendar evidence are not integrated or verified. "
         + context["context_limitations"]
     )
     bullish, bearish = [], []
