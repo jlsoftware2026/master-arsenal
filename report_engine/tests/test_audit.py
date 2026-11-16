@@ -3,7 +3,8 @@ from datetime import datetime, timezone
 from tempfile import TemporaryDirectory
 import unittest
 
-from report_engine.audit import audit_market_report_artifact, build_skills_audit_pdf\nfrom report_engine.session import build_opening_report_pdf
+from report_engine.audit import audit_market_report_artifact, build_skills_audit_pdf
+from report_engine.session import build_opening_report_pdf
 
 
 class AuditReportTests(unittest.TestCase):
