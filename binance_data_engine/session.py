@@ -110,6 +110,7 @@ def acquire_completed_market_day(
             "indicators": analyze_candles(history + candles),
             "indicator_history": {
                 "candle_count": len(history),
+                "candles": [candle.to_dict() for candle in history],
                 "first_open_time_utc": history[0].open_time.isoformat().replace("+00:00", "Z"),
                 "last_close_time_utc": history[-1].close_time.isoformat().replace("+00:00", "Z"),
                 "pagination": history_page.to_dict(),
