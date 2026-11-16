@@ -12,6 +12,14 @@ from .pdf import data_table, paragraph, report_styles, section_heading, write_pd
 from .qa import inspect_pdf_artifact
 
 
+def _text_audit(value: Any) -> str:
+    if not value:
+        return "None reported"
+    if isinstance(value, list):
+        return "; ".join(str(item) for item in value)
+    return str(value)
+
+
 def build_skills_audit_pdf(report: dict[str, Any], output_directory: Path | str) -> Path:
     """Render an evidence-led audit; missing evidence is explicitly not verified."""
     if not isinstance(report, dict):
@@ -111,6 +119,38 @@ def build_skills_audit_pdf(report: dict[str, Any], output_directory: Path | str)
             paragraph("No additional findings were supplied. Absence of findings is not proof that "
                       "the underlying market analysis is correct.", styles["body"]),
         ])
+    evidence_manifests = report.get("evidence_manifests") or []
+    story.append(section_heading("Raw evidence and indicator recalculation", styles))
+    if evidence_manifests:
+        manifest_rows = [[
+            str(item.get("manifest", "Unknown")),
+            str(item.get("report_type", "Unknown")),
+            str(item.get("status", "not verified")),
+            ", ".join(item.get("symbols_checked", [])),
+            str(item.get("indicator_recalculation", "not verified")),
+            "; ".join(item.get("findings", [])) or "No finding",
+        ] for item in evidence_manifests if isinstance(item, dict)]
+        if manifest_rows:
+            story.append(data_table(
+                ["Manifest", "Type", "Status", "Symbols", "Indicators", "Findings"],
+                manifest_rows, styles,
+                widths=[34*mm, 18*mm, 17*mm, 23*mm, 23*mm, 38*mm],
+            ))
+    else:
+        story.append(paragraph(
+            "No internal raw-evidence manifests were available. Indicator recalculation and "
+            "source-linked raw-candle validation are NOT VERIFIED.",
+            styles["body"],
+        ))
+    cross_report = report.get("cross_report_consistency") or {}
+    story.append(section_heading("Cross-report consistency", styles))
+    story.append(paragraph(
+        f"Status: {cross_report.get('status', 'not verified')}; "
+        f"overlapping candles checked: {cross_report.get('overlapping_candles_checked', 0)}; "
+        f"manifests compared: {cross_report.get('manifests_compared', 0)}; "
+        f"mismatches: {_text_audit(cross_report.get('mismatches', []))}",
+        styles["body"],
+    ))
     test_evidence = report.get("test_evidence") or []
     story.append(section_heading("Testing evidence", styles))
     if test_evidence:
