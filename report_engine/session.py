@@ -88,8 +88,8 @@ def _validate(report: dict[str, Any]):
             or local_end.replace(tzinfo=None) != expected_local_end.replace(tzinfo=None)
             or local_end.utcoffset() != expected_local_end.utcoffset()):
         raise ValueError("Local timestamps do not match the IANA America/Santo_Domingo rules")
-    if local_start.date() != report_date:
-        raise ValueError("Local report start must match report_date_local")
+    if local_start.date() != report_date or local_start.time().isoformat() != "00:00:00":
+        raise ValueError("Local report start must be midnight on report_date_local")
     if report.get("is_partial") is True:
         if local_end.date() != report_date:
             raise ValueError("Partial local report cutoff must remain on report_date_local")
