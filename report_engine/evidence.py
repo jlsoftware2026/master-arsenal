@@ -154,6 +154,13 @@ def audit_evidence_manifest(path: str | Path, workspace_root: str | Path) -> dic
             findings.append("Completed session is not exactly 24 hours.")
         if report_type == "intraday" and start.date() != end.date():
             findings.append("Intraday window crosses a UTC date boundary.")
+        generated_at = _strict_utc(report.get("generated_at_utc"))
+        if generated_at < end:
+            findings.append("Report generation timestamp precedes the exclusive window end.")
+        if report.get("source") != "Binance public REST API":
+            findings.append("Report source is not identified as Binance public REST API.")
+        if report.get("read_only") is not True:
+            findings.append("Report is not explicitly marked read-only.")
     except Exception as exc:
         return {"manifest": manifest_path.name, "status": "failed",
                 "findings": findings + [f"Invalid report window: {type(exc).__name__}: {exc}"]}
@@ -189,6 +196,12 @@ def audit_evidence_manifest(path: str | Path, workspace_root: str | Path) -> dic
                     findings.append(f"{symbol}: final report candle does not close at the exclusive window boundary.")
             expected_history = history_data.get("expected_candle_count",
                                                 (report.get("indicator_methodology") or {}).get("lookback_candles"))
+            pagination = item.get("pagination") or {}
+            if pagination.get("complete") is not True or pagination.get("returned") != len(report_candles):
+                findings.append(f"{symbol}: report pagination evidence is incomplete or inconsistent.")
+            history_pagination = history_data.get("pagination") or {}
+            if history_pagination.get("complete") is not True or history_pagination.get("returned") != len(history_candles):
+                findings.append(f"{symbol}: indicator-history pagination evidence is incomplete or inconsistent.")
             if expected_history is not None and len(history_candles) != expected_history:
                 findings.append(f"{symbol}: indicator warm-up candle count is incomplete.")
             if not report_candles:
@@ -214,6 +227,16 @@ def audit_evidence_manifest(path: str | Path, workspace_root: str | Path) -> dic
         except Exception as exc:
             findings.append(f"{symbol}: evidence could not be independently checked: {type(exc).__name__}: {exc}")
 
+    for list_key in ("macro_sources", "news_sources"):
+        for source_item in report.get(list_key) or []:
+            try:
+                published = _strict_utc(source_item.get("published_at_utc"))
+                if not (start <= published < end):
+                    findings.append(f"{list_key}: publication timestamp falls outside the report window.")
+                if not str(source_item.get("url", "")).startswith("https://"):
+                    findings.append(f"{list_key}: source item has no HTTPS URL.")
+            except Exception:
+                findings.append(f"{list_key}: source item has an invalid publication timestamp.")
     context_sources = report.get("context_sources") or []
     for source in context_sources:
         if not isinstance(source, dict):
