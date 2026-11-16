@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from reportlab.lib.units import mm
 from reportlab.platypus import Paragraph, Spacer
 
 from .pdf import data_table, paragraph, report_styles, section_heading, write_pdf_atomic
@@ -82,7 +83,7 @@ def build_skills_audit_pdf(report: dict[str, Any], output_directory: Path | str)
             story.extend([
                 section_heading("Artifact inspection register", styles),
                 data_table(["File", "Type", "QA", "Pages", "Bytes", "SHA-256", "Issues"],
-                           rows, styles, widths=[31, 23, 19, 14, 18, 35, 35]),
+                           rows, styles, widths=[30*mm, 18*mm, 16*mm, 12*mm, 15*mm, 30*mm, 42*mm]),
             ])
     else:
         story.extend([
