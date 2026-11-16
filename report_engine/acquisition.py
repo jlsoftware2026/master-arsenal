@@ -43,6 +43,8 @@ def acquire_intraday_evidence(
     )
     report.update(context)
     report["news_context"] = context["news"]
+    if market == "usdm":
+        report["derivatives_context"] = {symbol: item.get("derivatives", {}) for symbol, item in report["symbols"].items()}
     report["limitations"] = context["context_limitations"]
     bullish, bearish = [], []
     for symbol in ("BTCUSDT", "ETHUSDT"):
