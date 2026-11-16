@@ -231,6 +231,27 @@ def audit_evidence_manifest(path: str | Path, workspace_root: str | Path) -> dic
                 findings.append("Opening reference day must be a completed local calendar day.")
             if report_type == "intraday" and not partial:
                 findings.append("Intraday snapshot must be a partial local-day window.")
+            resolution = report.get("cutoff_resolution")
+            requested_date_text = report.get("requested_report_date_local")
+            if report_type == "opening":
+                if resolution != "previous_local_calendar_day":
+                    findings.append("Opening report does not declare previous-local-day reference semantics.")
+                try:
+                    requested_date = datetime.fromisoformat(requested_date_text).date()
+                    if report_date != requested_date - timedelta(days=1):
+                        findings.append("Opening Binance reference date is not the previous requested local date.")
+                except (TypeError, ValueError):
+                    findings.append("Opening report is missing a valid requested local report date.")
+            elif report_type == "closing":
+                if resolution not in {"explicit_local_cutoff", "execution_time_local_default", "completed_historical_local_day"}:
+                    findings.append("Closing report has an unknown cutoff-resolution method.")
+                if requested_date_text != report_date.isoformat():
+                    findings.append("Closing report date does not match its requested local date.")
+            elif report_type == "intraday":
+                if resolution not in {"explicit_utc_cutoff", "explicit_local_cutoff", "execution_time_local_default"}:
+                    findings.append("Intraday report has an unknown cutoff-resolution method.")
+                if requested_date_text != report_date.isoformat():
+                    findings.append("Intraday report date does not match its requested local date.")
         except Exception as local_exc:
             findings.append(f"Invalid Dominican local-window metadata: {type(local_exc).__name__}: {local_exc}")
         generated_at = _strict_utc(report.get("generated_at_utc"))
