@@ -737,6 +737,44 @@ class JobRunner:
         market_data_provenance_ok = bool(all_reports) and all(
             market_data_provenance_reconciles(item) for item in all_reports
         )
+        def account_export_evidence_reconciles(report):
+            snapshot = report.get("binance_account_data")
+            if not isinstance(snapshot, dict) or snapshot.get("status") != "complete":
+                return False
+            if (
+                snapshot.get("window_start_utc") != report.get("window_start_utc")
+                or snapshot.get("window_end_utc") != report.get("window_end_utc")
+                or snapshot.get("file_count", 0) <= 0
+                or snapshot.get("supported_file_count") != snapshot.get("file_count")
+                or snapshot.get("parse_errors")
+                or snapshot.get("unsupported_files")
+                or snapshot.get("assumptions")
+                or snapshot.get("unknown_operation_count", 0) != 0
+            ):
+                return False
+            files = snapshot.get("files")
+            if not isinstance(files, list) or len(files) != snapshot.get("file_count"):
+                return False
+            for item in files:
+                if not isinstance(item, dict):
+                    return False
+                digest = item.get("sha256")
+                if (
+                    not isinstance(item.get("file_id"), str)
+                    or not item["file_id"].startswith("account_export_")
+                    or not isinstance(digest, str)
+                    or len(digest) != 64
+                    or any(char not in "0123456789abcdef" for char in digest.lower())
+                    or item.get("format") != "binance_transaction_statement_csv"
+                    or not isinstance(item.get("bytes"), int)
+                    or item["bytes"] <= 0
+                    or not isinstance(item.get("rows_scanned"), int)
+                ):
+                    return False
+            return True
+        account_export_ok = bool(all_reports) and all(
+            account_export_evidence_reconciles(item) for item in all_reports
+        )
         local_windows_ok = bool(all_reports) and len(evidence_manifests) == len(manifest_paths) and all(
             item.get("status") == "passed" for item in evidence_manifests
         ) and all(
@@ -833,6 +871,15 @@ class JobRunner:
                   "La evidencia XNYS de cada informe se recalculó de forma independiente y coincide con la última sesión completada y la siguiente sesión."
                   if us_calendar_ok else "La evidencia del calendario XNYS está ausente, no disponible o no coincide con una recalculación independiente.",
                   "Conservar manifiestos de apertura, cierre e intradía y corregir cualquier discrepancia de calendario."),
+            check("ACCOUNT-01", "Importación CSV de actividad de cuenta con integridad verificable",
+                  "passed" if account_export_ok else "not_verified", "Alto",
+                  "Los archivos CSV admitidos tienen hashes SHA-256, esquema, ventana temporal y filas clasificadas verificables."
+                  if account_export_ok else "No hay exportaciones compatibles completas y trazables para esta ventana.",
+                  "Exportar el historial de transacciones Binance con el esquema admitido y colocarlo en data/account_exports."),
+            check("ACCOUNT-02", "Patrimonio, PnL no realizado y rentabilidad ajustada por flujos",
+                  "not_implemented", "Alto",
+                  "El CSV de movimientos no sustituye balances diarios, posiciones abiertas ni historial completo de costos.",
+                  "Añadir estados de cuenta/balances y exportaciones de posiciones completas antes de calcular equity o rentabilidad."),
             check("US-DATA-01", "Proveniencia y corte de cotizaciones estadounidenses",
                   "passed" if market_data_provenance_ok else "not_verified", "Medio",
                   "Las cotizaciones disponibles tienen proveedor, URL de origen y timestamp no posterior al corte; los símbolos no disponibles se declaran."
@@ -1010,6 +1057,7 @@ class JobRunner:
             "us_session_status": next((x["status"] for x in desk_checks if x["id"] == "US-02"), "not_verified"),
             "us_holiday_status": next((x["status"] for x in desk_checks if x["id"] == "US-01"), "not_verified"),
             "scorecard_status": next((x["status"] for x in desk_checks if x["id"] == "SCORE-01"), "not_verified"),
+            "account_export_status": next((x["status"] for x in desk_checks if x["id"] == "ACCOUNT-01"), "not_verified"),
             "us_market_data_provenance_status": next((x["status"] for x in desk_checks if x["id"] == "US-DATA-01"), "not_verified"),
             "audit_date_local": audit_date_local,
             "read_only": True,
