@@ -6,7 +6,7 @@ from decimal import Decimal
 from typing import Any
 
 from .client import BinancePublicClient
-from .engine import CORE_SYMBOLS, analyze_candles
+from .engine import CORE_SYMBOLS, analyze_candles, acquire_derivatives_context
 from .intraday import _validate_series
 from .validation import interval_milliseconds, validate_candles
 
@@ -129,6 +129,8 @@ def acquire_completed_market_day(
                 "status": "unavailable", "error": f"{type(exc).__name__}: {exc}",
                 "response_metadata": dict(client.last_response_metadata),
             }
+        if market == "usdm":
+            item["derivatives"] = acquire_derivatives_context(client, symbol, interval)
         result["symbols"][symbol] = item
     result["provenance"] = [
         {"source": "Binance public REST API",
