@@ -41,6 +41,7 @@ def acquire_intraday_evidence(
         cutoff_utc,
     )
     report.update(context)
+    report["news_context"] = context["news"]
     report["limitations"] = context["context_limitations"]
     report["executive_summary"] = (
         "All expected completed candles for BTCUSDT and ETHUSDT passed strict "
