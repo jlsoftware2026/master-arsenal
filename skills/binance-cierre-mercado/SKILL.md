@@ -3,6 +3,13 @@
 ## Purpose
 Generate a detailed PDF report for the current Dominican local calendar day, including a clearly labeled partial-day window when local midnight has not yet arrived.
 
+## Activation and scheduling
+- Activate on “cierre de mercado”, “resumen de cierre”, “cómo cerró el mercado”, or an equivalent clear request.
+- The original target is normally 15–20 minutes after 4:00 p.m. ET. Convert ET using the current U.S. DST rule.
+- If the U.S. regular session has not closed, do not present a definitive closing report; state that it is still open and offer an intraday snapshot.
+- On U.S. weekends/holidays, disclose the absence of a regular session and use the last completed cash session for equity context. Binance still uses the requested Dominican local calendar date, partial until local midnight if necessary.
+- The current Local Engine does not schedule or enforce this activation time; disclose that limitation.
+
 ## Local Engine workflow
 - Job type: `market.closing_report`
 - Fixed output directory: `reports/closing`
