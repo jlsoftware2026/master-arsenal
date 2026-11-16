@@ -11,6 +11,8 @@ class AuditReportTests(unittest.TestCase):
     def test_audit_pdf_with_inspection_evidence(self):
         report = {
             "audit_date_utc": "2026-11-16",
+            "audit_date_local": "2026-11-16",
+            "report_timezone": "America/Santo_Domingo",
             "generated_at_utc": "2026-11-16T12:00:00Z",
             "artifacts": [{
                 "filename": "snapshot.pdf", "report_type": "intraday",
