@@ -84,7 +84,7 @@ class AccountExportTests(unittest.TestCase):
         with TemporaryDirectory() as temp:
             self.write_csv(
                 Path(temp) / "statement.csv",
-                "uid,2026-11-16T10:00:00Z,Spot,Deposit,USDT,1,23,\n",
+                "uid,2026-11-16T10:00:00Z,Spot,Deposit,USDT,\"1,23\",\n",
             )
             result = collect_binance_account_exports(temp, START, END)
             self.assertEqual(result["status"], "partial")
