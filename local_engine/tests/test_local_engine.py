@@ -238,7 +238,7 @@ class LocalEngineTests(unittest.TestCase):
 
     def test_intraday_snapshot_defaults_to_execution_time_in_dominican_timezone(self):
         job = self._approved_job("market.intraday_snapshot")
-        with patch("local_engine.runtime.BinancePublicClient", return_value=FakeBinanceClient()), \\
+        with patch("local_engine.runtime.BinancePublicClient", return_value=FakeBinanceClient()), \
              patch("report_engine.acquisition.collect_market_context", return_value={
                  "macro_context": "No macro items.", "news": "No news items.",
                  "macro_sources": [], "news_sources": [], "context_status": "complete",
