@@ -208,14 +208,10 @@ class LocalEngineTests(unittest.TestCase):
             "cutoff_utc": "2026-11-13T03:00:00Z"
         })
         job["output"]["directory"] = "reports/closing"
-        self.manager.submit(job)
-        self.manager.validate_pending(job["job_id"])
-        self.manager.approve(job["job_id"])
+        with self.assertRaisesRegex(JobValidationError, "output is fixed to PDF in reports/intraday"):
+            self.manager.submit(job)
         with patch("local_engine.runtime.BinancePublicClient") as client_factory:
-            result = JobRunner(self.manager).run(job["job_id"])
-        self.assertEqual(result["status"], "failed")
-        self.assertIn("output is fixed to PDF in reports/intraday", result["error"])
-        client_factory.assert_not_called()
+            client_factory.assert_not_called()
         self.assertFalse(any(self.manager.workspace.directory("reports/closing").iterdir()))
 
     def test_intraday_snapshot_job_requires_cutoff(self):
@@ -229,12 +225,8 @@ class LocalEngineTests(unittest.TestCase):
             "cutoff_utc": "2026-11-13T03:00:00Z"
         })
         job["output"]["format"] = "json"
-        self.manager.submit(job)
-        self.manager.validate_pending(job["job_id"])
-        self.manager.approve(job["job_id"])
-        result = JobRunner(self.manager).run(job["job_id"])
-        self.assertEqual(result["status"], "failed")
-        self.assertIn("output is fixed to PDF in reports/intraday", result["error"])
+        with self.assertRaisesRegex(JobValidationError, "output is fixed to PDF in reports/intraday"):
+            self.manager.submit(job)
 
 
     def test_skills_audit_job_generates_pdf_and_reports_missing_evidence(self):
