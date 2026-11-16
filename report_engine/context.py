@@ -116,7 +116,6 @@ def collect_market_context(
     fetch = opener or urlopen
     news, macro, sources = [], [], []
     for feed in FEEDS:
-        retrieved = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
         try:
             request = Request(feed["url"], headers={
                 "Accept": "application/rss+xml, application/atom+xml, application/xml, text/xml",
@@ -124,6 +123,7 @@ def collect_market_context(
             })
             with fetch(request, timeout=timeout) as response:
                 payload = response.read(2_000_001)
+            retrieved = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
             entries = _parse_feed(payload, feed, start, end, max_items_per_feed)
             (news if feed["kind"] == "news" else macro).extend(entries)
             sources.append({
@@ -132,6 +132,7 @@ def collect_market_context(
                 "retrieved_at_utc": retrieved, "matching_items": len(entries),
             })
         except Exception as exc:
+            retrieved = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
             sources.append({
                 "publisher": feed["publisher"], "feed_url": feed["url"],
                 "kind": feed["kind"], "status": "unavailable",
