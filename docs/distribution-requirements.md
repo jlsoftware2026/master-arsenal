@@ -10,6 +10,8 @@ The JAR must provide a first-run bootstrap flow that:
 - Provisions a compatible Python runtime and every pinned project dependency if Python remains part of the implementation.
 - Verifies downloaded runtime/dependency artifacts using trusted checksums or signatures before execution.
 - Uses a managed application directory and keeps user reports, evidence, settings, and account exports outside replaceable application files.
+- Creates a fixed `data/account_exports/` import directory for user-supplied Binance transaction-statement CSV files. These files are local-only, excluded from version control, and never uploaded to a private API or embedded in application binaries.
+- The current parser supports the `User_ID, UTC_Time, Account, Operation, Coin, Change, Remark` transaction-statement schema. It omits User_ID and Remark from report evidence, stores only file hashes and aggregate event/asset amounts, and explicitly marks ambiguous UTC timestamps as an assumption.
 - Supports safe, repeatable upgrades without deleting user data or silently downgrading dependencies.
 - Produces clear, actionable diagnostics when installation, network access, or runtime validation fails.
 - Starts the local engine only after dependency and integrity checks succeed.
