@@ -1,20 +1,25 @@
 # binance-momento-mercado
 
 ## Purpose
-Generate a detailed intraday PDF snapshot of market behavior from 00:00 UTC through the requested/current cutoff.
+Generate a detailed intraday PDF snapshot from 00:00 UTC through an explicit, completed-candle cutoff.
 
-## Required workflow
-1. Set the reporting window to the current UTC day beginning 00:00 and ending at the explicitly stated cutoff. Never treat an incomplete day as a closed session.
-2. Acquire and validate Binance market data. BTCUSDT and ETHUSDT are mandatory.
-3. Analyze intraday price action, trend, volatility, volume, technical indicators, derivatives context when available, macroeconomic drivers, and relevant news.
-4. Present bullish/long and bearish/short scenarios, assumptions, invalidation conditions, and risks for the remaining period. Label forecasts as uncertain.
-5. Generate and verify the PDF.
+## Local Engine workflow
+- Job type: `market.intraday_snapshot`
+- Fixed output directory: `reports/intraday`
+- Filename: `snapshot-mercado-YYYY-MM-DD_HH-mm.pdf`
+- Required `parameters.cutoff_utc`; it must be UTC, on the report date, and aligned to the requested interval.
+- Optional `interval` and `market` parameters; defaults are 1h and spot.
+- The job must pass submit → validate → explicit approval → execute.
 
-## Output
-snapshot-mercado-YYYY-MM-DD_HH-mm.pdf
+## Required report evidence
+1. Exact UTC reporting window `[00:00, cutoff)`, generation time, and Binance server time.
+2. Complete, aligned Binance candles for mandatory BTCUSDT and ETHUSDT. Missing, duplicate, malformed, partial, or unclosed candles fail acquisition.
+3. A separate 250-candle historical warm-up for EMA/RSI/MACD/ATR/Bollinger/volume calculations. Exclude warm-up candles from report-window counts, statistics, and charts.
+4. Date-bounded macroeconomic and digital-asset news context with publisher, publication timestamp, URL, retrieval time, and unavailable-feed disclosures.
+5. Price/volume charts, conditional bullish/bearish range scenarios for the remaining period, invalidation references, and risks.
 
 ## Integrity rules
-State the cutoff and data retrieval time in UTC. Disclose missing intervals, stale or partial data, unavailable sources, and provisional methodology. Never fabricate values, events, citations, or forecasts. If PDF generation fails, report the blocker; do not substitute another format.
+Do not treat an incomplete day as a closed session. Headlines are candidate context only, not proof of market causation. Scenario levels are conditional references, not forecasts, targets, or probabilities. Never fabricate values, events, citations, or forecasts. Generate and independently inspect the PDF; if PDF generation or QA fails, fail the job and do not substitute another format.
 
 ## Status
 Provisional ChatGPT adaptation. Exact original Claude skill parameters and report layout have not yet been reconciled against the original .skill source.
