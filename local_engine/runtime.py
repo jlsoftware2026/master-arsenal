@@ -733,9 +733,9 @@ class JobRunner:
             check("US-01", "Fines de semana y festivos bursátiles de EE. UU.", "not_implemented", "Alto",
                   "No hay un adaptador de calendario bursátil integrado.",
                   "Implementar y probar de forma independiente la selección de la última sesión en fines de semana y festivos."),
-            check("US-02", "Horario bursátil y cambio horario de EE. UU.", "not_implemented", "Alto",
-                  "No están integrados la clasificación premercado/regular/posmercado ni el calendario con ajuste DST.",
-                  "Añadir un calendario bursátil autorizado y probar ambos cambios DST de EE. UU."),
+            check("US-02", "Horario bursátil y cambio horario de EE. UU.", "partial", "Medio",
+                  "Los horarios programados de apertura/cierre y los timestamps ET/local se convierten con reglas DST; la clasificación premercado/regular/posmercado y el calendario bursátil aún no están integrados.",
+                  "Añadir un calendario bursátil autorizado para completar la clasificación de sesión y la selección de sesiones en días hábiles, fines de semana y festivos."),
             check("ACCT-01", "Ausencia de acceso a cuenta privada de Binance", "disclosed" if account_disclosed else "not_verified",
                   "Medio", "Los informes indican expresamente que el análisis de la cuenta privada no está disponible." if account_disclosed
                   else "Ningún informe conservado demuestra que se declare la falta de datos de cuenta.",
@@ -767,7 +767,7 @@ class JobRunner:
         medium_unresolved = [
             item for item in desk_checks
             if item["severity"] == "Medio"
-            and item["status"] in {"failed", "not_implemented", "not_verified", "not_applicable", "not_exercised"}
+            and item["status"] in {"failed", "not_implemented", "not_verified", "not_applicable", "not_exercised", "partial"}
         ]
         audit_verdict = (
             "No aprobado" if unresolved else
@@ -852,6 +852,11 @@ class JobRunner:
             "generated_at_utc": generated.isoformat().replace("+00:00", "Z"),
             "report_engine_version": __version__,
             "audit_verdict": audit_verdict,
+            "opening_window_status": next((x["status"] for x in desk_checks if x["id"] == "OPEN-01"), "not_verified"),
+            "closing_window_status": next((x["status"] for x in desk_checks if x["id"] == "CLOSE-01"), "not_verified"),
+            "intraday_cutoff_status": next((x["status"] for x in desk_checks if x["id"] == "INTRA-01"), "not_verified"),
+            "language_parity_status": next((x["status"] for x in desk_checks if x["id"] == "LANG-01"), "not_verified"),
+            "us_session_status": next((x["status"] for x in desk_checks if x["id"] == "US-02"), "not_verified"),
             "desk_checks": desk_checks,
             "skill_results": skill_results,
             "executive_summary": executive_summary,
