@@ -489,6 +489,7 @@ class JobRunner:
         if header != b"%PDF-" or b"%%EOF" not in tail:
             raise ValueError("Generated artifact failed PDF signature checks")
         digest = hashlib.sha256(resolved_artifact.read_bytes()).hexdigest()
+        manifest_metadata = self._evidence_manifest_metadata(resolved_artifact)
         return {
             "report_type": "market.intraday_snapshot",
             "format": "pdf",
@@ -496,6 +497,7 @@ class JobRunner:
             "filename": resolved_artifact.name,
             "size_bytes": size_bytes,
             "sha256": digest,
+            **manifest_metadata,
             "window_start_utc": cutoff.replace(hour=0, minute=0, second=0, microsecond=0)
                                       .isoformat().replace("+00:00", "Z"),
             "cutoff_utc": cutoff.isoformat().replace("+00:00", "Z"),
