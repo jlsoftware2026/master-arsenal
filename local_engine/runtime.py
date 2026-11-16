@@ -891,6 +891,11 @@ class JobRunner:
             "findings_count": len(findings),
             "desk_checks_count": len(desk_checks),
             "audit_verdict": audit_verdict,
+            "opening_window_status": next((x["status"] for x in desk_checks if x["id"] == "OPEN-01"), "not_verified"),
+            "closing_window_status": next((x["status"] for x in desk_checks if x["id"] == "CLOSE-01"), "not_verified"),
+            "intraday_cutoff_status": next((x["status"] for x in desk_checks if x["id"] == "INTRA-01"), "not_verified"),
+            "language_parity_status": next((x["status"] for x in desk_checks if x["id"] == "LANG-01"), "not_verified"),
+            "us_session_status": next((x["status"] for x in desk_checks if x["id"] == "US-02"), "not_verified"),
             "audit_date_local": audit_date_local,
             "read_only": True,
         }
