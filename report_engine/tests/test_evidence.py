@@ -53,6 +53,7 @@ def _report():
         "window_start_local": "2026-11-16T00:00:00-04:00",
         "cutoff_local": "2026-11-16T03:00:00-04:00",
         "is_partial": True,
+        "window_semantics": "[start, cutoff)",
         "cutoff_utc": CUTOFF.isoformat().replace("+00:00", "Z"),
         "generated_at_utc": (CUTOFF + timedelta(minutes=1)).isoformat().replace("+00:00", "Z"),
         "interval": "1h",
@@ -83,6 +84,7 @@ class EvidenceManifestTests(unittest.TestCase):
             self.assertEqual(result["indicator_recalculation"], "passed")
             payload = json.loads(manifest.read_text(encoding="utf-8"))
             self.assertEqual(payload["report_window"]["report_timezone"], "America/Santo_Domingo")
+            self.assertEqual(payload["report_window"]["window_semantics"], "[start, cutoff)")
             self.assertEqual(len(payload["raw_candle_evidence_sha256"]), 64)
 
     def test_raw_candle_evidence_hash_tampering_is_detected(self):
