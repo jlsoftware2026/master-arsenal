@@ -232,9 +232,16 @@ def collect_binance_account_exports(
                         continue
                     # Do not store User_ID or Remark. The normalized event key is
                     # sufficient to collapse overlapping exports without retaining PII.
+                    user_fingerprint = hashlib.sha256(
+                        (row.get(mapping["userid"], "") or "").strip().encode("utf-8")
+                    ).hexdigest()
+                    remark_fingerprint = hashlib.sha256(
+                        (row.get(mapping["remark"], "") or "").strip().encode("utf-8")
+                    ).hexdigest()
                     key = (
                         timestamp.isoformat(), event_type, asset, str(amount),
                         (row.get(mapping["account"], "") or "").strip().lower(),
+                        user_fingerprint, remark_fingerprint,
                     )
                     if key in seen:
                         duplicates += 1
