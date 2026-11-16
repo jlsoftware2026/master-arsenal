@@ -226,8 +226,20 @@ class LocalEngineTests(unittest.TestCase):
         self.assertEqual(result["status"], "failed")
         self.assertIn("output is fixed to PDF in reports/intraday", result["error"])
 
-    def test_unsupported_handler_fails_explicitly(self):
+
+    def test_skills_audit_job_generates_pdf_and_reports_missing_evidence(self):
         job = self._approved_job("skills.audit")
+        result = JobRunner(self.manager).run(job["job_id"])
+        self.assertEqual(result["status"], "completed", result)
+        self.assertEqual(result["result"]["format"], "pdf")
+        self.assertEqual(result["result"]["artifacts_inspected"], 0)
+        self.assertGreaterEqual(result["result"]["findings_count"], 1)
+        artifact = self.manager.workspace.directory(result["result"]["artifact_path"])
+        self.assertTrue(artifact.is_file())
+        self.assertTrue(artifact.read_bytes().startswith(b"%PDF-"))
+
+    def test_unsupported_handler_fails_explicitly(self):
+        job = self._approved_job("engine.validate_data")
         result = JobRunner(self.manager).run(job["job_id"])
         self.assertEqual(result["status"], "failed")
         self.assertIn("not implemented by this runtime", result["error"])
