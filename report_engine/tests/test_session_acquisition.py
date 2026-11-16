@@ -70,6 +70,11 @@ class SessionAcquisitionTests(unittest.TestCase):
             self.assertEqual(item["performance"]["open"], "100")
             self.assertEqual(item["performance"]["close"], "123")
 
+    def test_subminute_session_interval_is_rejected(self):
+        from binance_data_engine.session import acquire_completed_market_day
+        with self.assertRaisesRegex(ValueError, "minimum 1m"):
+            acquire_completed_market_day(FakeClient(), START.date(), interval="1s")
+
     def test_future_or_incomplete_session_is_rejected(self):
         with self.assertRaisesRegex(ValueError, "not yet complete"):
             acquire_session_report_evidence(FakeClient(future_server=True), START.date())
