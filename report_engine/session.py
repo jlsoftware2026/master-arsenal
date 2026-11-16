@@ -196,6 +196,8 @@ def _build_session_pdf(report: dict[str, Any], output_directory: Path | str, kin
         key_value_table([
             ("Local reporting window", f"{report['window_start_local']} to {report['cutoff_local']} ({report['report_timezone']})"),
             ("UTC evidence window", f"{start.isoformat().replace('+00:00', 'Z')} to {end.isoformat().replace('+00:00', 'Z')} (cutoff exclusive)"),
+            ("Last fully closed candle boundary UTC", report.get("data_cutoff_utc", "Not supplied")),
+            ("Unfinished final interval excluded", (report.get("indicator_methodology") or {}).get("partial_final_interval_excluded", False)),
             ("Window status", "PARTIAL LOCAL DAY" if report.get("is_partial") else "COMPLETED LOCAL DAY"),
             ("Generated at UTC", generated.isoformat().replace("+00:00", "Z")),
             ("Primary source", report.get("source", "Not specified")),
