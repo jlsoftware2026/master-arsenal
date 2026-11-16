@@ -677,7 +677,8 @@ class JobRunner:
         )
         artifact_qa_ok = bool(artifacts) and all(item.get("status") == "passed" for item in artifacts)
         passed_report_types = {item.get("report_type") for item in artifacts if item.get("status") == "passed"}
-        language_parity_ok = {"opening", "closing", "intraday"}.issubset(passed_report_types)
+        all_operational_artifacts_ok = artifact_qa_ok and {"opening", "closing", "intraday"}.issubset(passed_report_types)
+        language_parity_ok = all_operational_artifacts_ok
         desk_checks = [
             check("LANG-01", "Idioma de los informes operativos",
                   "passed" if language_parity_ok else "not_verified", "Alto",
@@ -701,9 +702,9 @@ class JobRunner:
                   "Las frases de activación están documentadas, pero no están implementados el enrutamiento por frases ni la programación según ET.",
                   "Implementar un enrutador determinista de activación y horarios basados en el calendario bursátil."),
             check("PDF-01", "Estructura, legibilidad y diseño de PDF",
-                  "passed" if artifact_qa_ok else "not_verified", "Alto",
-                  "Todos los PDF operativos encontrados superaron el análisis y renderizado independiente."
-                  if artifact_qa_ok else "No existe un conjunto completo de PDF operativos que haya superado QA independiente.",
+                  "passed" if all_operational_artifacts_ok else "not_verified", "Alto",
+                  "Los PDF de apertura, cierre e intradía superaron el análisis y renderizado independiente."
+                  if all_operational_artifacts_ok else "No existe evidencia QA independiente aprobada para los tres tipos de PDF operativos.",
                   "Generar PDF de apertura, cierre e intradía y adjuntar los resultados independientes de QA con PyMuPDF."),
             check("CONTENT-01", "Paridad de secciones y datos de mercado", "not_verified", "Alto",
                   "No están implementados la amplitud del mercado estadounidense, sus catalizadores, el análisis de la cuenta privada ni toda la semántica de los informes originales.",
