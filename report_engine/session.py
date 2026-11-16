@@ -222,7 +222,7 @@ def _build_session_pdf(report: dict[str, Any], output_directory: Path | str, kin
             "explicit_local_cutoff", "execution_time_local_default", "completed_historical_local_day"
         }:
             raise ValueError("Closing report has an invalid cutoff-resolution method")
-    date_text = report["report_date_local"]
+    date_text = requested_date.isoformat() if kind == "opening" else report["report_date_local"]
     filename = ("apertura-mercado_" if kind == "opening" else "cierre-mercado_") + date_text + ".pdf"
     title = "Informe de apertura del mercado" if kind == "opening" else "Informe de cierre del mercado"
     styles = report_styles()
