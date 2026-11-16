@@ -1,3 +1,10 @@
+---
+name: binance-apertura-mercado
+description: 'Informe de apertura/premercado. Activar cuando el usuario diga “apertura de mercado”, “brief de apertura” o solicite el panorama antes de la apertura. Analiza la sesión bursátil estadounidense que abrirá hoy y el comportamiento de la cuenta Binance durante la sesión/día anterior. El día de referencia de la cuenta es el día calendario anterior a la fecha local de solicitud.'
+version: 0.1.0
+last_reviewed: 2026-11-16
+---
+
 # binance-apertura-mercado
 
 ## Purpose
@@ -44,3 +51,6 @@ Disclose unavailable data and RSS feeds. Headlines are candidate context only, n
 
 ## Status
 Adapted against the user-supplied original Claude skill package. U.S. market data/calendar and private-account evidence remain explicitly unavailable until integrated.
+
+## Version history
+- 0.1.0 — 2026-11-16: Initial ChatGPT/MASTER ARSENAL adaptation; preserves the original skill identity and documents the Local Engine/PDF workflow and current implementation gaps.
