@@ -682,14 +682,14 @@ class JobRunner:
                   "Localizar títulos, secciones, tablas, etiquetas de gráficos, avisos y contenido de los tres PDF operativos al español."),
             check("SKILL-01", "Metadatos y estructura ZIP de los paquetes originales",
                   "not_verified" if source_skill_integrity["status"] == "not_verified" else "failed", "Alto",
-                  "Original archive and SKILL.md hashes are recorded, but the original ZIP payloads are not stored in the repository.",
-                  "Retain the exact source archives in a controlled artifact store and revalidate package members and hashes."),
+                  "Los hashes del archivo original y del SKILL.md están registrados, pero el contenido ZIP original no está almacenado en el repositorio.",
+                  "Conservar los archivos originales exactos en un repositorio controlado de artefactos y volver a validar sus miembros y hashes."),
             check("SKILL-02", "Identidad de adaptaciones y compatibilidad Local Engine/PDF",
                   source_skill_integrity.get("adaptation_status", "failed"), "Alto",
                   "Los cuatro archivos adaptados conservan la identidad esperada y el contrato Local Engine/PDF."
                   if source_skill_integrity.get("adaptation_status") == "passed"
                   else "; ".join(source_skill_integrity["findings"]),
-                  "Keep adaptation names, Local Engine job types, and PDF-only output contracts synchronized."),
+                  "Mantener sincronizados los nombres de las adaptaciones, los tipos de trabajo del Local Engine y los contratos de salida exclusivamente PDF."),
             check("SKILL-03", "Coherencia funcional y semántica entre Skills", "not_verified", "Alto",
                   "No se adjunta una comparación semántica automatizada de los cuatro flujos adaptados.",
                   "Añadir pruebas de contrato para secciones compartidas, semántica de fechas, campos de evidencia y transferencias entre flujos."),
@@ -706,8 +706,8 @@ class JobRunner:
                   "Implementar o marcar expresamente como no disponible cada sección original; no certificar paridad con las Skills fuente."),
             check("TIME-01", "Límites del día calendario dominicano", "passed" if local_windows_ok else "not_verified",
                   "Crítico", "Todos los manifiestos conservados declaran la zona horaria IANA y la ventana semiabierta." if local_windows_ok
-                  else "No complete set of valid local-window manifests is available.",
-                  "Regenerate and independently audit every operational report."),
+                  else "No hay un conjunto completo de manifiestos válidos de ventanas locales.",
+                  "Volver a generar y auditar de forma independiente cada informe operativo."),
             check("OPEN-01", "Apertura: día calendario local anterior", "passed" if opening_dates_ok else "not_verified",
                   "Alto", "Las fechas de solicitud y referencia de apertura se reconciliaron mediante los manifiestos de evidencia." if opening_dates_ok
                   else "No hay evidencia de apertura que demuestre la regla del día local anterior.",
@@ -724,7 +724,7 @@ class JobRunner:
                   ) else "No hay un informe intradía conservado que demuestre la ruta sin hora de corte explícita.",
                   "Ejecutar un trabajo intradía sin parámetro de hora de corte."),
             check("US-01", "Fines de semana y festivos bursátiles de EE. UU.", "not_implemented", "Alto",
-                  "No exchange-calendar adapter is integrated.",
+                  "No hay un adaptador de calendario bursátil integrado.",
                   "Implementar y probar de forma independiente la selección de la última sesión en fines de semana y festivos."),
             check("US-02", "Horario bursátil y cambio horario de EE. UU.", "not_implemented", "Alto",
                   "No están integrados la clasificación premercado/regular/posmercado ni el calendario con ajuste DST.",
@@ -741,7 +741,7 @@ class JobRunner:
                   "Exigir saldos históricos completos antes de afirmar rendimiento de cuenta."),
             check("SCORE-01", "Comparación del pronóstico de apertura y el cierre", "not_implemented" if scorecard_missing else "not_verified",
                   "Alto", "Los informes de cierre declaran que la vinculación con el pronóstico de apertura no está implementada." if scorecard_missing
-                  else "No closing report proves scorecard linkage or explicit unavailability.",
+                  else "Ningún informe de cierre demuestra la vinculación con el pronóstico ni declara expresamente su indisponibilidad.",
                   "Persistir los escenarios de apertura y compararlos con los resultados observados de esa misma fecha."),
             check("PKG-01", "Integridad de paquetes originales e historial de versiones",
                   source_skill_integrity["status"], "Alto",
@@ -750,7 +750,7 @@ class JobRunner:
                   "Incorporar los archivos .skill originales exactos o aportar un artefacto de origen verificable para recalcular sus hashes."),
             check("CI-01", "Evidencia CI multiplataforma del commit auditado", "not_verified", "Alto",
                   "No se adjunta un manifiesto CI verificable a esta auditoría local.",
-                  "Attach the final-head Ubuntu/Windows Python 3.11/3.12 Actions run and inspect all jobs."),
+                  "Adjuntar la ejecución de Actions del commit final en Ubuntu/Windows con Python 3.11/3.12 e inspeccionar todos los trabajos."),
         ]
         unresolved = [
             item for item in desk_checks
