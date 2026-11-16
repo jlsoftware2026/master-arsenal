@@ -68,6 +68,17 @@ class FakeBinanceClient:
         return {"symbol": symbol, "priceChangePercent": "1.0"}
 
 
+FAKE_US_MARKET_SNAPSHOT = {
+    "status": "unavailable", "provider": "Fixture",
+    "as_of_utc": "2026-11-16T15:00:00Z",
+    "expected_instruments": 0, "available_instruments": 0,
+    "unavailable_symbols": [], "groups": {},
+    "sector_leaders": [], "sector_laggards": [],
+    "market_breadth": {"status": "not_available"},
+    "limitations": "Fixture market data only.",
+}
+
+
 class LocalEngineTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
@@ -152,7 +163,7 @@ class LocalEngineTests(unittest.TestCase):
                  "macro_context": "No macro items.", "news": "No news items.",
                  "macro_sources": [], "news_sources": [], "context_status": "complete",
                    "context_limitations": "Fixture context only.",
-             }):
+             }), patch("report_engine.acquisition.collect_us_market_snapshot", return_value=FAKE_US_MARKET_SNAPSHOT):
             result = JobRunner(self.manager).run(job["job_id"])
         self.assertEqual(result["status"], "completed")
         artifact = result["result"]["artifact_path"]
@@ -194,7 +205,7 @@ class LocalEngineTests(unittest.TestCase):
                          "retrieved_at_utc": "2026-11-13T03:02:00Z", "matching_items": 0,
                          "feed_url": "https://www.federalreserve.gov/feeds/press_all.xml",
                      }],
-                 }):
+                 }), patch("report_engine.session_acquisition.collect_us_market_snapshot", return_value=FAKE_US_MARKET_SNAPSHOT):
                 result = JobRunner(self.manager).run(job["job_id"])
             self.assertEqual(result["status"], "completed", result)
             self.assertTrue(result["result"]["artifact_path"].startswith(expected_dir + "/"))
