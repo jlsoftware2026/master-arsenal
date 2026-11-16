@@ -10,6 +10,7 @@ from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from binance_data_engine.engine import analyze_candles
 from binance_data_engine.models import Candle
@@ -208,6 +209,13 @@ def audit_evidence_manifest(path: str | Path, workspace_root: str | Path) -> dic
                 raise ValueError("Local window timestamps must include UTC offsets.")
             if local_start.astimezone(timezone.utc) != start or local_cutoff.astimezone(timezone.utc) != end:
                 findings.append("Local and UTC report window boundaries do not match.")
+            expected_local_start = start.astimezone(ZoneInfo("America/Santo_Domingo"))
+            expected_local_cutoff = end.astimezone(ZoneInfo("America/Santo_Domingo"))
+            if (local_start.replace(tzinfo=None) != expected_local_start.replace(tzinfo=None)
+                    or local_start.utcoffset() != expected_local_start.utcoffset()
+                    or local_cutoff.replace(tzinfo=None) != expected_local_cutoff.replace(tzinfo=None)
+                    or local_cutoff.utcoffset() != expected_local_cutoff.utcoffset()):
+                findings.append("Local timestamps do not match the IANA America/Santo_Domingo rules.")
             if local_start.date() != report_date or local_start.time().isoformat() != "00:00:00":
                 findings.append("Local report start is not midnight on report_date_local.")
             partial = report.get("is_partial") is True
