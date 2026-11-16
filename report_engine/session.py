@@ -165,6 +165,8 @@ def _build_session_pdf(report: dict[str, Any], output_directory: Path | str, kin
     start, end, generated = _validate(report)
     if kind not in {"opening", "closing"}:
         raise ValueError("kind must be 'opening' or 'closing'")
+    if kind == "opening" and report.get("is_partial") is True:
+        raise ValueError("Opening reports must use the previous completed local calendar day")
     date_text = report["report_date_local"]
     filename = ("apertura-mercado_" if kind == "opening" else "cierre-mercado_") + date_text + ".pdf"
     title = "Market Opening Report" if kind == "opening" else "Market Closing Report"
