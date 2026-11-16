@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from tempfile import TemporaryDirectory
 import unittest
+from unittest.mock import patch
 
 from binance_data_engine.client import PaginationMetadata
 from binance_data_engine.models import Candle
