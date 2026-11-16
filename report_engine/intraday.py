@@ -60,6 +60,8 @@ def _label(value: Any) -> str:
         "explicit_utc_cutoff": "Hora de corte UTC explícita",
         "Binance public REST API": "API REST pública de Binance",
         "spot": "Spot", "usdm": "Futuros USDⓈ-M",
+        "premarket": "Premercado", "regular": "Sesión regular",
+        "postmarket": "Posmercado", "closed": "Mercado cerrado",
     }
     return labels.get(str(value), str(value) if value is not None else "No suministrado")
 
@@ -222,6 +224,10 @@ def build_intraday_snapshot_pdf(report: dict[str, Any], output_directory: Path |
             ("Intervalo", report.get("interval", "No especificado")),
             ("Estado de los datos", _label(report.get("data_status", "No certificado de forma independiente"))),
             ("Estado de la sesión bursátil estadounidense", _label(report.get("us_equity_session_state", "not_available"))),
+            ("Última sesión bursátil completada (ET)", (report.get("us_equity_calendar") or {}).get("last_completed_session_date", "No disponible")),
+            ("Próxima sesión bursátil (ET)", (report.get("us_equity_calendar") or {}).get("next_session_date", "No disponible")),
+            ("Apertura / cierre oficial (ET)", f"{(report.get('us_equity_calendar') or {}).get('session_open_et') or 'N/D'} / {(report.get('us_equity_calendar') or {}).get('session_close_et') or 'N/D'}"),
+            ("Cierre anticipado", _label((report.get("us_equity_calendar") or {}).get("early_close", "not_available"))),
             ("Base de comparación", report.get("comparison_basis", "Ventana del día local; el período móvil de 24 horas es distinto")),
         ], styles),
         Spacer(1, 4 * mm),
