@@ -755,11 +755,14 @@ class JobRunner:
             files = snapshot.get("files")
             if not isinstance(files, list) or len(files) != snapshot.get("file_count"):
                 return False
-            account_directory = self.manager.workspace.directory("data/account_exports")
-            csv_paths = sorted(
-                path for path in account_directory.iterdir()
-                if path.suffix.lower() == ".csv" and not path.is_symlink()
-            )
+            try:
+                account_directory = self.manager.workspace.directory("data/account_exports")
+                csv_paths = sorted(
+                    path for path in account_directory.iterdir()
+                    if path.suffix.lower() == ".csv" and not path.is_symlink()
+                )
+            except OSError:
+                return False
             if len(csv_paths) != snapshot.get("file_count"):
                 return False
             for item in files:
