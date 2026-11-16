@@ -6,7 +6,7 @@ Generate a detailed intraday PDF snapshot from Dominican local midnight through 
 ## Local Engine workflow
 - Job type: `market.intraday_snapshot`
 - Fixed output directory: `reports/intraday`
-- Filename: `snapshot-mercado-YYYY-MM-DD_HH-mm.pdf`
+- Filename: `snapshot-mercado_YYYY-MM-DD_HH-mm.pdf`
 - Optional `parameters.cutoff_local`; if omitted, resolve execution-time America/Santo_Domingo local time. Legacy `cutoff_utc` remains accepted. Preserve the exact cutoff and record the last fully closed candle boundary separately.
 - Optional `interval` and `market` parameters; defaults are 1h and spot.
 - The job must pass submit → validate → explicit approval → execute.
