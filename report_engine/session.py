@@ -357,8 +357,15 @@ def _build_session_pdf(report: dict[str, Any], output_directory: Path | str, kin
     if kind == "closing":
         scorecard = report.get("opening_forecast_scorecard") or {}
         story.append(section_heading("Evaluación de escenarios de apertura de la misma fecha", styles))
+        scorecard_window = (
+            "Parcial y provisional al corte " + str(scorecard.get("closing_cutoff_local", "declarado"))
+            if scorecard.get("closing_window_status") == "partial" else
+            "Completa" if scorecard.get("closing_window_status") == "complete" else
+            "No verificada"
+        )
         story.append(paragraph(
             f"Estado: {_label(report.get('opening_forecast_scorecard_status', scorecard.get('status', 'not_verified')))}. "
+            + f"Ventana de cierre: {scorecard_window}. "
             + _text(scorecard.get("reason") or scorecard.get("limitations") or
                     "No se suministró detalle adicional del scorecard."),
             styles["body"],
