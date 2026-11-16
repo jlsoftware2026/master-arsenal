@@ -748,7 +748,7 @@ class JobRunner:
                 account_start = datetime.fromisoformat(snapshot["window_start_utc"].replace("Z", "+00:00"))
                 account_end = datetime.fromisoformat(snapshot["window_end_utc"].replace("Z", "+00:00"))
                 report_start = datetime.fromisoformat(report["window_start_utc"].replace("Z", "+00:00"))
-                report_end = datetime.fromisoformat(report["window_end_utc"].replace("Z", "+00:00"))
+                report_end = datetime.fromisoformat(report["cutoff_utc"].replace("Z", "+00:00"))
             except (KeyError, TypeError, ValueError, AttributeError):
                 return findings + ["report/account UTC window is missing or invalid"]
             if (
