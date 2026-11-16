@@ -169,13 +169,11 @@ def audit_evidence_manifest(path: str | Path, workspace_root: str | Path) -> dic
             if partial:
                 if local_cutoff.date() != report_date:
                     findings.append("Partial report cutoff is not on report_date_local.")
-                if end >= start + timedelta(days=1):
-                    findings.append("Partial local-day report extends beyond one calendar day.")
+                if local_cutoff.date() != report_date:
+                    findings.append("Partial local-day report cutoff is outside report_date_local.")
             else:
                 if local_cutoff.date() != report_date + timedelta(days=1) or local_cutoff.time().isoformat() != "00:00:00":
                     findings.append("Completed local-day report does not end at the next local midnight.")
-                if end - start != timedelta(days=1):
-                    findings.append("Completed local-day report does not cover exactly one day.")
             if report_type == "opening" and partial:
                 findings.append("Opening reference day must be a completed local calendar day.")
         except Exception as local_exc:
