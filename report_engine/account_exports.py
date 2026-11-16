@@ -43,8 +43,11 @@ def _timestamp(value: str) -> tuple[datetime, bool]:
 
 
 def _decimal(value: str) -> Decimal:
+    raw = (value or "").strip()
+    if "," in raw and not re.fullmatch(r"[+-]?\\d{1,3}(,\\d{3})+(\\.\\d+)?", raw):
+        raise ValueError("Change uses an unsupported decimal separator")
     try:
-        amount = Decimal((value or "").strip().replace(",", ""))
+        amount = Decimal(raw.replace(",", ""))
     except (InvalidOperation, AttributeError) as exc:
         raise ValueError("Change is not a valid decimal") from exc
     if not amount.is_finite():
