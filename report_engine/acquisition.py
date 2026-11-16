@@ -13,6 +13,7 @@ from binance_data_engine.session import acquire_market_window
 from .intraday import build_intraday_snapshot_pdf
 from .context import collect_market_context
 from .evidence import write_evidence_manifest
+from .us_market_calendar import classify_us_equity_session
 from .timezone import (
     REPORT_TIMEZONE, LOCAL_TZ, current_local_report_date, local_day_window,
 )
@@ -84,11 +85,17 @@ def acquire_intraday_evidence(
         }
     report["binance_account_data_status"] = "unavailable"
     report["us_equity_market_data_status"] = "not_integrated"
-    report["us_equity_session_state"] = "not_available"
+    calendar_evidence = classify_us_equity_session(window.end_utc)
+    report["us_equity_calendar"] = calendar_evidence
+    report["us_equity_session_state"] = (
+        calendar_evidence["session_state"] if calendar_evidence["status"] == "ok"
+        else "not_available"
+    )
+    report["us_equity_calendar_reference"] = "exact_intraday_cutoff"
     report["comparison_basis"] = "Día calendario dominicano; el cambio del ticker móvil de 24 horas se muestra por separado."
     report["limitations"] = (
         "Los saldos, posiciones, comisiones, financiación y PnL ajustado por flujos de la cuenta privada de Binance no están disponibles. "
-         "La cobertura completa del mercado bursátil estadounidense, la clasificación premercado/regular/posmercado y la evidencia del calendario bursátil no están integradas ni verificadas. "
+         "La cobertura de precios del mercado bursátil estadounidense no está integrada; el calendario XNYS clasifica la sesión y sus feriados/horarios, pero no aporta precios. "
         + context["context_limitations"]
     )
     bullish, bearish = [], []
@@ -151,8 +158,13 @@ def acquire_intraday_evidence(
         "los titulares son contexto, no prueba de causalidad."
     )
     summary_points.append(
-        "Limitaciones: la cuenta privada de Binance y la cobertura completa del mercado bursátil estadounidense "
-        "no están integradas; la clasificación de sesión estadounidense no está verificada."
+        "Estado bursátil XNYS al corte: "
+        + (f"{calendar_evidence['session_state']} ({calendar_evidence['as_of_et']}); "
+           f"última sesión {calendar_evidence['last_completed_session_date']}; "
+           f"próxima sesión {calendar_evidence['next_session_date']}."
+           if calendar_evidence["status"] == "ok"
+           else "no disponible; no se infiere el estado.")
+        + " La cuenta privada Binance y los precios/indicadores del mercado bursátil estadounidense siguen sin integrarse."
     )
     report["executive_summary"] = summary_points
     return report
