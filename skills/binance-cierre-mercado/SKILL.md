@@ -1,7 +1,7 @@
 ---
 name: binance-cierre-mercado
 description: 'Informe de cierre y recapitulación diaria. Activar cuando el usuario diga “cierre de mercado”, “resumen de cierre” o solicite cómo terminó la sesión. Analiza el día de la fecha local de solicitud, tanto la sesión bursátil estadounidense como la actividad de la cuenta Binance.'
-version: 0.6.0
+version: 0.7.0
 last_reviewed: 2026-11-16
 ---
 
@@ -28,7 +28,7 @@ Generate a detailed PDF report for the current Dominican local calendar day, inc
 8. Same-date opening forecast scorecard when an opening report exists.
 9. Bullish/long and bearish/short scenarios, risks, source register, limitations, and conclusion.
 
-If account, U.S. market, or opening-scorecard evidence is unavailable, disclose it. Never call a partial Binance local day complete. The XNYS calendar now supplies session holidays, early closes, and DST-aware session-state classification. Best-effort Yahoo Finance quotes now cover major indices, VIX, futures, Treasury 10Y yield, DXY, WTI, gold, and sector ETFs with source URLs and observation timestamps. The feed may be delayed/incomplete and is not for execution; breadth, stock-level leaders/laggards, and private-account exports remain unavailable. Same-date opening-to-closing scenario reconciliation is implemented when an integrity-checked opening manifest exists; otherwise the report states that no opening forecast was available.
+If account, U.S. market, or opening-scorecard evidence is unavailable, disclose it. Never call a partial Binance local day complete. The XNYS calendar now supplies session holidays, early closes, and DST-aware session-state classification. Best-effort Yahoo Finance quotes now cover major indices, VIX, futures, Treasury 10Y yield, DXY, WTI, gold, and sector ETFs with source URLs and observation timestamps. The feed may be delayed/incomplete and is not for execution; breadth, stock-level leaders/laggards, and local transaction-statement CSV activity can be summarized when supplied; account equity, unrealized PnL, full cost basis, and flow-adjusted returns remain unavailable. Same-date opening-to-closing scenario reconciliation is implemented when an integrity-checked opening manifest exists; otherwise the report states that no opening forecast was available.
 
 ## Local Engine workflow
 - Job type: `market.closing_report`
@@ -51,7 +51,7 @@ The Local Engine may retain a source-linked raw-evidence manifest under `data/ma
 Disclose incomplete data and unavailable feeds. Headlines are candidate context only, not proof of market causation. Scenario levels are conditional references, not forecasts, targets, or probabilities. Never fabricate values, events, citations, or forecasts. Generate and independently inspect the PDF; if PDF generation or QA fails, fail the job and do not substitute another format.
 
 ## Status
-Adapted against the user-supplied original Claude skill package. U.S. market breadth, stock-level leaders/laggards, private-account analytics, and automated activation timing remain unavailable. Same-date opening-to-closing range scorecard is integrated when a valid same-date opening manifest exists; absence is marked not applicable. XNYS calendar/session classification and best-effort Yahoo quote snapshots are integrated.
+Adapted against the user-supplied original Claude skill package. U.S. market breadth, stock-level leaders/laggards, portfolio equity/PnL analytics and automated activation timing remain unavailable. Supported local transaction-statement CSV activity is summarized by event and asset. Same-date opening-to-closing range scorecard is integrated when a valid same-date opening manifest exists; absence is marked not applicable. XNYS calendar/session classification and best-effort Yahoo quote snapshots are integrated.
 
 ## Version history
 - 0.1.0 — 2026-11-16: Initial ChatGPT/MASTER ARSENAL adaptation; preserves the original skill identity and documents the Local Engine/PDF workflow and current implementation gaps.
@@ -64,4 +64,5 @@ The opening, closing, and intraday PDF composers and the audit PDF use Spanish l
 
 - 0.3.0 — 2026-11-16: Localized report headings, tables, scenario narratives, disclaimers, and audit output into Spanish; added independent language-marker QA.
 - 0.5.0 — 2026-11-16: Integrated XNYS holiday/early-close calendar and exact-cutoff session classification.
-- 0.6.0 — 2026-11-16: Added source-attributed Yahoo Finance quote snapshots; same-date range scorecard is integrated, while breadth, account ledger, and automation remain outstanding.
+- 0.6.0 — 2026-11-16: Added source-attributed Yahoo Finance quote snapshots.
+- 0.7.0 — 2026-11-16: Added read-only local transaction-statement CSV activity summaries; account equity/PnL and automated activation remain outstanding.
