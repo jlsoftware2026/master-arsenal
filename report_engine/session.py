@@ -203,6 +203,12 @@ def _source_rows(items: Any) -> list[list[str]]:
     return rows
 
 
+def _summary_flowables(value: Any, styles) -> list[Any]:
+    if isinstance(value, list):
+        return [paragraph(f"• {_text(item)}", styles["body"]) for item in value[:7]]
+    return [paragraph(_text(value or "No se suministró un resumen ejecutivo."), styles["body"])]
+
+
 def _build_session_pdf(report: dict[str, Any], output_directory: Path | str, kind: str) -> Path:
     start, end, generated = _validate(report)
     requested_date = date.fromisoformat(report["requested_report_date_local"])
@@ -258,7 +264,7 @@ def _build_session_pdf(report: dict[str, Any], output_directory: Path | str, kin
         paragraph(_label(report.get("us_equity_session_state", "not_available")), styles["body"]),
         Spacer(1, 3 * mm),
         section_heading("Resumen ejecutivo", styles),
-        paragraph(report.get("executive_summary", "No se suministró un resumen ejecutivo."), styles["body"]),
+        *_summary_flowables(report.get("executive_summary"), styles),
     ]
     for symbol in REQUIRED_SYMBOLS:
         item = report["symbols"][symbol]
