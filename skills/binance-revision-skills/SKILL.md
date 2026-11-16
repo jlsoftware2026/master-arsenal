@@ -43,7 +43,7 @@ The audit PDF records each case with status, severity, evidence, and corrective 
 9. Offline CI versus live API/feed verification; report exact evidence and limitations.
 10. PDF section, filename, chart, table, page, and provenance checks.
 
-Severity is Critical, High, Medium, or Low. The verdict is No aprobado when unresolved Critical/High findings remain; Aprobado con reservas when only Medium findings remain; and Aprobado only when no unresolved findings remain. Unavailable/not implemented checks must remain visible and must not be counted as passed.
+La severidad se clasifica como Crítico, Alto, Medio o Bajo. The verdict is No aprobado when unresolved Critical/High findings remain; Aprobado con reservas when only Medium findings remain; and Aprobado only when no unresolved findings remain. Unavailable/not implemented checks must remain visible and must not be counted as passed.
 
 ## Independence and integrity
 Do not certify a skill based solely on its own assertions. The current automated audit independently recalculates stored indicators from retained raw candles and compares overlapping report candles. It does not yet verify the factual accuracy of every news claim, certify scenario quality, or prove parity with the original Claude skill source. CI and live endpoint results must be attached separately; the local audit does not fetch or trust external CI status. Mark those areas NOT VERIFIED unless separate evidence is supplied. The audit itself must be a PDF; if PDF generation fails, report the blocker and do not substitute another format.
