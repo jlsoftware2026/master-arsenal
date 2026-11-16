@@ -152,12 +152,17 @@ def build_opening_forecast_scorecard(
         downside_breach = closing_low < reference_low
         close_above = closing_price > reference_high
         close_below = closing_price < reference_low
-        if close_above:
-            outcome = "Ruptura alcista confirmada por cierre sobre el máximo de referencia."
+        if upside_breach and downside_breach:
+            if close_above:
+                outcome = "Ambos extremos fueron superados intradía; el período cerró sobre el máximo de referencia."
+            elif close_below:
+                outcome = "Ambos extremos fueron superados intradía; el período cerró bajo el mínimo de referencia."
+            else:
+                outcome = "Ambos extremos fueron superados intradía; el cierre quedó dentro del rango."
+        elif close_above:
+            outcome = "Ruptura alcista confirmada por cierre del período sobre el máximo de referencia."
         elif close_below:
-            outcome = "Ruptura bajista confirmada por cierre bajo el mínimo de referencia."
-        elif upside_breach and downside_breach:
-            outcome = "Ambos extremos fueron superados intradía; el cierre quedó dentro del rango."
+            outcome = "Ruptura bajista confirmada por cierre del período bajo el mínimo de referencia."
         elif upside_breach:
             outcome = "Ruptura alcista intradía sin confirmación al cierre."
         elif downside_breach:
@@ -188,10 +193,13 @@ def build_opening_forecast_scorecard(
         "opening_generated_at_utc": opening.get("generated_at_utc"),
         "closing_generated_at_utc": closing_report.get("generated_at_utc"),
         "closing_report_date_local": closing_report.get("report_date_local"),
-        "comparison_basis": "Rango alto/bajo del día de referencia de apertura frente a máximo/mínimo/cierre del día local de cierre.",
+        "closing_window_status": "partial" if closing_report.get("is_partial") else "complete",
+        "closing_cutoff_local": closing_report.get("cutoff_local"),
+        "comparison_basis": "Rango alto/bajo del día de referencia de apertura frente a máximo/mínimo/cierre observados en el día local de cierre hasta el corte declarado.",
         "symbols": results,
         "limitations": (
-            "La evaluación identifica rupturas de rango y ubicación del cierre. No mide rentabilidad, "
-            "probabilidad, ejecución, deslizamiento ni calidad predictiva; no constituye un backtest."
+            "La evaluación identifica rupturas de rango y ubicación del cierre. Si la ventana de cierre es parcial, "
+            "los resultados son provisionales al corte declarado. No mide rentabilidad, probabilidad, ejecución, "
+            "deslizamiento ni calidad predictiva; no constituye un backtest."
         ),
     }
