@@ -930,6 +930,7 @@ class JobRunner:
             "intraday_cutoff_status": next((x["status"] for x in desk_checks if x["id"] == "INTRA-01"), "not_verified"),
             "language_parity_status": next((x["status"] for x in desk_checks if x["id"] == "LANG-01"), "not_verified"),
             "us_session_status": next((x["status"] for x in desk_checks if x["id"] == "US-02"), "not_verified"),
+            "us_holiday_status": next((x["status"] for x in desk_checks if x["id"] == "US-01"), "not_verified"),
             "audit_date_local": audit_date_local,
             "read_only": True,
         }
