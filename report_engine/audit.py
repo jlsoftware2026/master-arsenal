@@ -154,14 +154,16 @@ def build_skills_audit_pdf(report: dict[str, Any], output_directory: Path | str)
         source_rows = [[
             str(item.get("name", "N/A")),
             str(item.get("status", "not verified")),
+            str(item.get("adapted_version", "Not supplied")),
+            str(item.get("last_reviewed", "Not supplied")),
             str(item.get("archive_sha256", "Not supplied")),
             str(item.get("source_skill_sha256", "Not supplied")),
             str(item.get("adapted_skill_sha256", "Not supplied")),
         ] for item in source_packages if isinstance(item, dict)]
         if source_rows:
             story.append(data_table(
-                ["Package", "Status", "Original ZIP SHA-256", "Original SKILL SHA-256", "Adapted SKILL SHA-256"],
-                source_rows, styles, widths=[32*mm, 18*mm, 36*mm, 36*mm, 36*mm],
+                ["Package", "Source", "Version", "Reviewed", "Original ZIP SHA-256", "Original SKILL SHA-256", "Adapted SKILL SHA-256"],
+                source_rows, styles, widths=[26*mm, 17*mm, 14*mm, 20*mm, 27*mm, 27*mm, 27*mm],
             ))
     else:
         story.append(paragraph(
