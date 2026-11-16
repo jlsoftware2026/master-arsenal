@@ -3,6 +3,12 @@
 ## Purpose
 Generate a detailed intraday PDF snapshot from Dominican local midnight through an exact local cutoff, excluding any unfinished candle.
 
+## Activation
+- Activate on “momento específico del mercado”, “estado del mercado ahora”, “resumen a esta hora”, “snapshot intradía”, or equivalent wording.
+- If no hour is supplied, use execution-time America/Santo_Domingo local time. Never reuse a stale or guessed cutoff.
+- State whether U.S. equities are premarket, regular session, or postmarket only when reliable session-calendar evidence exists. Otherwise label the classification unavailable.
+- Distinguish the local-calendar-day move from the rolling 24-hour ticker change. Do not call the snapshot a closing report or extrapolate the remaining session as observed fact.
+
 ## Local Engine workflow
 - Job type: `market.intraday_snapshot`
 - Fixed output directory: `reports/intraday`
