@@ -19,7 +19,11 @@ from . import __version__
 from .protocol import JobValidationError, load_job, utc_now, validate_job
 
 from binance_data_engine.client import BinancePublicClient
-from report_engine import (\n    generate_closing_report_pdf, generate_intraday_snapshot_pdf,\n    generate_opening_report_pdf,\n)
+from report_engine import (
+    build_skills_audit_pdf, generate_closing_report_pdf,
+    generate_intraday_snapshot_pdf, generate_opening_report_pdf,
+    inspect_pdf_artifact,
+)
 
 DIRECTORIES = (
     "config", "jobs/inbox", "jobs/validated", "jobs/awaiting_approval", "jobs/running",
