@@ -12,7 +12,7 @@ The current implementation is a strong PDF/data-engine foundation, and the three
 
 | Area | Original Claude requirement | Current Phase 3 implementation | Required adaptation |
 |---|---|---|---|
-| Primary timezone | `America/Santo_Domingo`; show local timestamps and ET where relevant | Implemented: local-day boundaries drive acquisition, PDF validation, filenames, charts, and evidence manifests; local and UTC timestamps are shown | Final cross-platform regression verification remains pending; ET/U.S. session data is not yet integrated |
+| Primary timezone | `America/Santo_Domingo`; show local timestamps and ET where relevant | Implemented: local-day boundaries drive acquisition, PDF validation, filenames, charts, and evidence manifests; local, UTC, and relevant ET timestamps are shown | DST-aware ET/local scheduled cash-session times and generation/cutoff timestamps are displayed; a full U.S. exchange calendar and session-state feed remain unintegrated |
 | Opening Binance window | Previous local calendar day, 00:00–23:59:59 | Implemented: previous Dominican local calendar day is acquired via UTC-converted half-open boundaries | Verify on final CI head and preserve previous-local-date behavior |
 | Closing Binance window | Current local calendar day; partial until local midnight | Implemented: partial current local-day windows and historical completed local days are supported; exact cutoff is retained and unfinished candles are excluded | Verify partial closing regression and final CI head |
 | Intraday window | Local midnight through exact requested local cutoff; use current local time if omitted | Implemented: local cutoff is accepted; omission resolves execution-time local time; final incomplete candle is excluded | Verify explicit/omitted cutoff and cross-UTC-date regressions on final CI head |
@@ -72,7 +72,7 @@ The feature branch now contains the following timezone work:
 2. **Partial closing day:** closing supports a current local-day cutoff; the requested cutoff is retained and any unfinished final candle is excluded. Historical closing dates without a cutoff use the completed local day.
 3. **Intraday cutoff:** cutoff_local is supported, and an omitted cutoff resolves execution-time Dominican local time. A legacy UTC cutoff remains accepted for compatibility.
 4. **Evidence traceability:** evidence schema v2 stores local-window metadata, PDF SHA-256, and a canonical raw-candle/warm-up evidence SHA-256. The audit independently verifies these fields.
-5. **Regression coverage:** tests cover local-midnight conversion, previous-local-day opening, partial closing, optional intraday cutoff, cross-UTC-date windows, unfinished-candle exclusion, PDF marker validation, evidence cutoffs, and Windows line-ending behavior. The full four-job matrix passed in GitHub Actions run `43921585562` (Ubuntu/Windows × Python 3.11/3.12). A subsequent commit changed only this reconciliation document.
+5. **Regression coverage:** tests cover local-midnight conversion, previous-local-day opening, partial closing, optional intraday cutoff, cross-UTC-date windows, unfinished-candle exclusion, evidence-manifest filename binding, DST-aware ET/local session-time conversion, seven-point executive summaries, Spanish PDF marker validation, and Windows line-ending behavior. The final cross-platform matrix must be verified on the latest code head before the PR can be considered complete.
 
 Remaining source-derived blockers:
 - **U.S. market context/calendar:** full index, VIX, Treasury, DXY, WTI, gold, breadth/sectors, economic catalysts, exchange-calendar, holiday, and DST-aware session-state coverage is not integrated. Reports explicitly disclose this as unavailable/not verified.
@@ -90,5 +90,5 @@ This document records source-derived requirements and the observed code gap. It 
 
 ## Additional source-parity finding
 - The original three operational skills specify Spanish-language PDF reports. The opening, closing, and intraday composers and the audit PDF have been localized. LANG-01 requires all three operational PDF types to pass independent Spanish-marker QA; the PDF marker regression tests passed in run `43921585562`.
-- The original intraday filename is `snapshot-mercado_YYYY-MM-DD_HH-mm.pdf` (underscore after `mercado`); the implementation and tests have been corrected to this exact source contract.
+- The original intraday filename is `snapshot-mercado_YYYY-MM-DD_HH-mm.pdf` (underscore after `mercado`); the implementation and tests use this exact contract. Opening filenames use the local request date, while the report body and evidence manifest retain the previous local Binance reference date.
 - Original archive SHA-256 and extracted SKILL.md SHA-256 values are recorded in `docs/original-skills-source/manifest.json`. The ZIP payloads are not embedded in the repository, so runtime package-integrity status remains NOT VERIFIED.
