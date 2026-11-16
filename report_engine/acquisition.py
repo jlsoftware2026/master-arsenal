@@ -85,10 +85,10 @@ def acquire_intraday_evidence(
     report["binance_account_data_status"] = "unavailable"
     report["us_equity_market_data_status"] = "not_integrated"
     report["us_equity_session_state"] = "not_available"
-    report["comparison_basis"] = "Dominican local calendar day; rolling 24-hour ticker is shown separately."
+    report["comparison_basis"] = "Día calendario dominicano; el cambio del ticker móvil de 24 horas se muestra por separado."
     report["limitations"] = (
-        "Private Binance account balances, positions, fees, funding, and flow-adjusted PnL are unavailable. "
-         "Full U.S. equity-market coverage, premarket/regular/postmarket classification, and exchange-calendar evidence are not integrated or verified. "
+        "Los saldos, posiciones, comisiones, financiación y PnL ajustado por flujos de la cuenta privada de Binance no están disponibles. "
+         "La cobertura completa del mercado bursátil estadounidense, la clasificación premercado/regular/posmercado y la evidencia del calendario bursátil no están integradas ni verificadas. "
         + context["context_limitations"]
     )
     bullish, bearish = [], []
@@ -98,23 +98,23 @@ def acquire_intraday_evidence(
         low = min(Decimal(candle["low"]) for candle in candles)
         last = candles[-1]["close"]
         bullish.append(
-            f"{symbol}: continuation requires acceptance above observed high {format(high, 'f')}; "
-            f"invalidation reference below observed low {format(low, 'f')}. Last fully closed candle: {last}."
+            "f"{symbol}: la continuación requiere aceptación por encima del máximo observado {format(high, 'f')}; "
+            f"referencia de invalidación por debajo del mínimo observado {format(low, 'f')}. Última vela completamente cerrada: {last}."
         )
         bearish.append(
-            f"{symbol}: weakness requires acceptance below observed low {format(low, 'f')}; "
-            f"invalidation reference above observed high {format(high, 'f')}. Last fully closed candle: {last}."
+            "f"{symbol}: la debilidad requiere aceptación por debajo del mínimo observado {format(low, 'f')}; "
+            f"referencia de invalidación por encima del máximo observado {format(high, 'f')}. Última vela completamente cerrada: {last}."
         )
-    report["bullish_scenario"] = " ".join(bullish) + " Conditional levels only; no probability or target is inferred."
-    report["bearish_scenario"] = " ".join(bearish) + " Conditional levels only; no probability or target is inferred."
+    report["bullish_scenario"] = " ".join(bullish) + " Solo niveles condicionales; no se infieren probabilidades ni objetivos."
+    report["bearish_scenario"] = " ".join(bearish) + " Solo niveles condicionales; no se infieren probabilidades ni objetivos."
     report["risk_factors"] = (
-        "False breakouts, liquidity changes, volatility expansion, spread/slippage, and events "
-        "not represented in the configured feeds may invalidate these reference levels."
+        "Las rupturas falsas, los cambios de liquidez, la expansión de volatilidad, el spread/deslizamiento y los eventos "
+        "no representados en los feeds configurados pueden invalidar estos niveles de referencia."
     )
     report["executive_summary"] = (
-        f"Dominican local-day snapshot for {target_date.isoformat()} through {window.end_local.isoformat()}. "
-        "BTCUSDT and ETHUSDT fully closed candles were checked for window boundaries, pagination, "
-        "and data integrity. The last incomplete interval is excluded."
+        "Snapshot del día calendario dominicano {target_date.isoformat()} hasta {window.end_local.isoformat()}. "
+        "Se verificaron las velas completamente cerradas de BTCUSDT y ETHUSDT respecto a los límites de la ventana, la paginación "
+        "y la integridad de los datos. El último intervalo incompleto se excluye."
     )
     return report
 
