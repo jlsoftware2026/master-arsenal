@@ -138,6 +138,30 @@ def build_skills_audit_pdf(report: dict[str, Any], output_directory: Path | str)
             paragraph("No additional findings were supplied. Absence of findings is not proof that "
                       "the underlying market analysis is correct.", styles["body"]),
         ])
+    source_integrity = report.get("source_skill_integrity") or {}
+    story.append(section_heading("Original skill package integrity", styles))
+    source_packages = source_integrity.get("packages") or []
+    if source_packages:
+        source_rows = [[
+            str(item.get("name", "N/A")),
+            str(item.get("status", "not verified")),
+            str(item.get("archive_sha256", "Not supplied")),
+            str(item.get("source_skill_sha256", "Not supplied")),
+            str(item.get("adapted_skill_sha256", "Not supplied")),
+        ] for item in source_packages if isinstance(item, dict)]
+        if source_rows:
+            story.append(data_table(
+                ["Package", "Status", "Original ZIP SHA-256", "Original SKILL SHA-256", "Adapted SKILL SHA-256"],
+                source_rows, styles, widths=[32*mm, 18*mm, 36*mm, 36*mm, 36*mm],
+            ))
+    else:
+        story.append(paragraph(
+            "Original skill package hashes and internal ZIP structure were not verified.",
+            styles["body"],
+        ))
+    if source_integrity.get("findings"):
+        story.append(bullet_list([str(item) for item in source_integrity["findings"]], styles))
+
     desk_checks = report.get("desk_checks") or []
     story.append(section_heading("Original-skill desk-check matrix", styles))
     if desk_checks:
