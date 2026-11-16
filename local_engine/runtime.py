@@ -676,10 +676,14 @@ class JobRunner:
             for item in closing_reports
         )
         artifact_qa_ok = bool(artifacts) and all(item.get("status") == "passed" for item in artifacts)
+        passed_report_types = {item.get("report_type") for item in artifacts if item.get("status") == "passed"}
+        language_parity_ok = {"opening", "closing", "intraday"}.issubset(passed_report_types)
         desk_checks = [
-            check("LANG-01", "Idioma de los informes operativos", "not_implemented", "Alto",
-                  "Los compositores de informes operativos aún generan títulos y secciones en inglés; las Skills originales están redactadas en español.",
-                  "Localizar títulos, secciones, tablas, etiquetas de gráficos, avisos y contenido de los tres PDF operativos al español."),
+            check("LANG-01", "Idioma de los informes operativos",
+                  "passed" if language_parity_ok else "not_verified", "Alto",
+                  "Los tres tipos de informe (apertura, cierre e intradía) superaron la inspección independiente de marcadores en español."
+                  if language_parity_ok else "No hay evidencia de QA para los tres tipos de informe con marcadores de contenido en español.",
+                  "Generar y auditar de forma independiente los PDF de apertura, cierre e intradía; mantener títulos, secciones, tablas y avisos en español."),
             check("SKILL-01", "Metadatos y estructura ZIP de los paquetes originales",
                   "not_verified" if source_skill_integrity["status"] == "not_verified" else "failed", "Alto",
                   "Los hashes del archivo original y del SKILL.md están registrados, pero el contenido ZIP original no está almacenado en el repositorio.",
