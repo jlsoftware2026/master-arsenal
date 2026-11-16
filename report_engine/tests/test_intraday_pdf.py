@@ -66,7 +66,7 @@ class IntradayPdfTests(unittest.TestCase):
         data = fixture()
         data["window_start_utc"] = "2026-11-13T05:00:00Z"
         with TemporaryDirectory() as temp:
-            with self.assertRaisesRegex(ValueError, "local midnight"):
+            with self.assertRaisesRegex(ValueError, "Local and UTC"):
                 build_intraday_snapshot_pdf(data, temp)
 
     def test_rejects_candle_closing_after_exclusive_cutoff(self):
