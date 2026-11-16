@@ -1,6 +1,6 @@
 """MASTER ARSENAL shared PDF reporting infrastructure."""
 from .acquisition import acquire_intraday_evidence, generate_intraday_snapshot_pdf
-from .audit import build_skills_audit_pdf
+from .audit import audit_market_report_artifact, build_skills_audit_pdf
 from .charts import MarketChart
 from .intraday import build_intraday_snapshot_pdf
 from .qa import inspect_pdf_artifact
@@ -10,6 +10,7 @@ from .session_acquisition import generate_closing_report_pdf, generate_opening_r
 __all__ = [
     "MarketChart",
     "acquire_intraday_evidence",
+    "audit_market_report_artifact",
     "build_closing_report_pdf",
     "build_intraday_snapshot_pdf",
     "build_opening_report_pdf",
