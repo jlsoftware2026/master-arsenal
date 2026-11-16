@@ -79,6 +79,15 @@ class IntradayAcquisitionTests(unittest.TestCase):
             self.assertEqual(item["indicator_history"]["candle_count"], 250)
             self.assertIsNotNone(item["indicators"]["ema_200"])
 
+    def test_omitted_cutoff_uses_execution_time_in_dominican_timezone(self):
+        now = datetime(2026, 11, 12, 20, 15, tzinfo=timezone(timedelta(hours=-4)))
+        report = acquire_intraday_evidence(FakeClient(), now=now)
+        self.assertEqual(report["report_date_local"], "2026-11-12")
+        self.assertEqual(report["cutoff_local"], "2026-11-12T20:15:00-04:00")
+        self.assertEqual(report["cutoff_utc"], "2026-11-13T00:15:00Z")
+        self.assertEqual(report["data_cutoff_utc"], "2026-11-13T00:00:00Z")
+        self.assertTrue(report["is_partial"])
+
     def test_missing_candle_is_rejected(self):
         with self.assertRaisesRegex(ValueError, "expected 23 candles, received 22"):
             acquire_intraday_evidence(FakeClient(missing=True), CUTOFF, "1h")
