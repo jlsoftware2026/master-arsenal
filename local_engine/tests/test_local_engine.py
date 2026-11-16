@@ -186,6 +186,11 @@ class LocalEngineTests(unittest.TestCase):
                      "macro_context": "No macro items.", "news": "No news items.",
                      "macro_sources": [], "news_sources": [], "context_status": "complete",
                      "context_limitations": "Fixture context only.",
+                     "context_sources": [{
+                         "publisher": "Federal Reserve", "kind": "macro", "status": "ok",
+                         "retrieved_at_utc": "2026-11-13T03:02:00Z", "matching_items": 0,
+                         "feed_url": "https://www.federalreserve.gov/feeds/press_all.xml",
+                     }],
                  }):
                 result = JobRunner(self.manager).run(job["job_id"])
             self.assertEqual(result["status"], "completed", result)
@@ -194,6 +199,15 @@ class LocalEngineTests(unittest.TestCase):
             self.assertTrue(self.manager.workspace.directory(result["result"]["artifact_path"]).is_file())
             manifest = self.manager.workspace.directory(result["result"]["manifest_path"])
             self.assertTrue(manifest.is_file())
+
+        audit_job = self._approved_job("skills.audit")
+        audit_result = JobRunner(self.manager).run(audit_job["job_id"])
+        self.assertEqual(audit_result["status"], "completed", audit_result)
+        audit = audit_result["result"]
+        self.assertEqual(audit["artifacts_inspected"], 2)
+        self.assertEqual(audit["evidence_manifests_checked"], 2)
+        self.assertEqual(audit["cross_report_consistency_status"], "passed")
+        self.assertGreater(audit["overlapping_candles_checked"], 0)
 
     def test_intraday_snapshot_cannot_run_before_explicit_approval(self):
         job = new_job("market.intraday_snapshot", {
