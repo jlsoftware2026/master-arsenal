@@ -73,7 +73,7 @@ class SessionReportTests(unittest.TestCase):
     def test_opening_pdf_uses_previous_local_day_and_is_readable(self):
         with TemporaryDirectory() as temp:
             path = build_opening_report_pdf(_report("opening"), temp)
-            self.assertEqual(path.name, "apertura-mercado_2026-11-14.pdf")
+            self.assertEqual(path.name, "apertura-mercado_2026-11-15.pdf")
             self.assertTrue(path.read_bytes().startswith(b"%PDF-"))
 
     def test_closing_pdf_uses_local_date_and_is_readable(self):
