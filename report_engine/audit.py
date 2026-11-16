@@ -152,7 +152,7 @@ def audit_market_report_artifact(path: str | Path, report_type: str) -> dict[str
         raise ValueError("report_type must be opening, closing, or intraday")
     source = Path(path).resolve(strict=True)
     structural = inspect_pdf_artifact(source)
-    import fitz
+    import pymupdf as fitz
     with fitz.open(source) as document:
         extracted = "\\n".join(page.get_text("text") for page in document)
     normalized = extracted.casefold()
