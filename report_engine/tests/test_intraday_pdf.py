@@ -45,7 +45,7 @@ class IntradayPdfTests(unittest.TestCase):
     def test_creates_named_readable_pdf(self):
         with TemporaryDirectory() as temp:
             result = build_intraday_snapshot_pdf(fixture(), temp)
-            self.assertEqual(result.name, "snapshot-mercado-2026-11-13_12-30.pdf")
+            self.assertEqual(result.name, "snapshot-mercado_2026-11-13_12-30.pdf")
             payload = result.read_bytes()
             self.assertTrue(payload.startswith(b"%PDF-"))
             self.assertIn(b"%%EOF", payload[-2048:])
