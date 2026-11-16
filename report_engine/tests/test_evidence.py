@@ -37,6 +37,7 @@ def _report():
             "candles": [item.to_dict() for item in candles],
             "candle_count": len(candles),
             "expected_candle_count": 3,
+            "data_cutoff_utc": CUTOFF.isoformat().replace("+00:00", "Z"),
             "indicator_history": {
                 "candles": [item.to_dict() for item in history],
                 "candle_count": len(history),
