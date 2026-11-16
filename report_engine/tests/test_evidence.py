@@ -81,7 +81,7 @@ class EvidenceManifestTests(unittest.TestCase):
     def test_manifest_hash_and_indicator_recalculation_pass(self):
         with TemporaryDirectory() as temp:
             root = Path(temp)
-            _, manifest = self._write(root, "snapshot-mercado-2026-11-16_03-00", _report())
+            _, manifest = self._write(root, "snapshot-mercado_2026-11-16_03-00", _report())
             result = audit_evidence_manifest(manifest, root)
             self.assertEqual(result["status"], "passed", result["findings"])
             self.assertEqual(result["symbols_checked"], ["BTCUSDT", "ETHUSDT"])
@@ -94,7 +94,7 @@ class EvidenceManifestTests(unittest.TestCase):
     def test_raw_candle_evidence_hash_tampering_is_detected(self):
         with TemporaryDirectory() as temp:
             root = Path(temp)
-            _, manifest = self._write(root, "snapshot-mercado-2026-11-16_03-00", _report())
+            _, manifest = self._write(root, "snapshot-mercado_2026-11-16_03-00", _report())
             payload = json.loads(manifest.read_text(encoding="utf-8"))
             payload["report"]["symbols"]["BTCUSDT"]["candles"][0]["close"] = "999"
             manifest.write_text(json.dumps(payload), encoding="utf-8")
@@ -107,7 +107,7 @@ class EvidenceManifestTests(unittest.TestCase):
             root = Path(temp)
             report = _report()
             report["symbols"]["BTCUSDT"]["indicators"]["ema_200"] = 1
-            _, manifest = self._write(root, "snapshot-mercado-2026-11-16_03-00", report)
+            _, manifest = self._write(root, "snapshot-mercado_2026-11-16_03-00", report)
             result = audit_evidence_manifest(manifest, root)
             self.assertEqual(result["status"], "failed")
             self.assertTrue(any("indicators do not match" in item for item in result["findings"]))
@@ -115,19 +115,27 @@ class EvidenceManifestTests(unittest.TestCase):
     def test_cross_report_consistency_detects_mismatched_overlapping_candles(self):
         with TemporaryDirectory() as temp:
             root = Path(temp)
-            _, first = self._write(root, "snapshot-mercado-2026-11-16_03-00", _report())
+            _, first = self._write(root, "snapshot-mercado_2026-11-16_03-00", _report())
             report2 = _report()
             report2["symbols"]["BTCUSDT"]["candles"][0]["close"] = "999"
-            _, second = self._write(root, "snapshot-mercado-2026-11-16_04-00", report2)
+            _, second = self._write(root, "snapshot-mercado_2026-11-16_04-00", report2)
             result = audit_cross_report_consistency([first, second], root)
             self.assertEqual(result["status"], "failed")
             self.assertGreater(result["overlapping_candles_checked"], 0)
             self.assertTrue(result["mismatches"])
 
+    def test_manifest_rejects_pdf_filename_not_matching_local_date_and_cutoff(self):
+        with TemporaryDirectory() as temp:
+            root = Path(temp)
+            _, manifest = self._write(root, "snapshot-mercado-2026-11-16_03-00-extra", _report())
+            result = audit_evidence_manifest(manifest, root)
+            self.assertEqual(result["status"], "failed")
+            self.assertTrue(any("PDF filename does not match" in item for item in result["findings"]))
+
     def test_manifest_pdf_hash_mismatch_is_detected(self):
         with TemporaryDirectory() as temp:
             root = Path(temp)
-            pdf, manifest = self._write(root, "snapshot-mercado-2026-11-16_03-00", _report())
+            pdf, manifest = self._write(root, "snapshot-mercado_2026-11-16_03-00", _report())
             pdf.write_bytes(b"%PDF-1.4\nchanged\n%%EOF")
             result = audit_evidence_manifest(manifest, root)
             self.assertEqual(result["status"], "failed")
