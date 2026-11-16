@@ -259,6 +259,27 @@ class JobRunner:
             "implemented_job_types": sorted(self.handlers), "read_only": True,
         }
 
+    def _evidence_manifest_metadata(self, artifact: Path) -> dict[str, Any]:
+        directory = self.manager.workspace.directory("data/manifests")
+        manifest = (directory / f"{artifact.stem}.evidence.json").resolve(strict=True)
+        if not manifest.is_relative_to(directory) or not manifest.is_file():
+            raise ValueError("Report evidence manifest is missing or escaped its fixed directory")
+        raw = manifest.read_bytes()
+        if len(raw) > 50_000_000:
+            raise ValueError("Report evidence manifest exceeds the 50 MB safety limit")
+        payload = json.loads(raw.decode("utf-8"))
+        if payload.get("schema") != "ma.report-evidence/v1":
+            raise ValueError("Report evidence manifest schema is invalid")
+        if payload.get("pdf_filename") != artifact.name:
+            raise ValueError("Evidence manifest PDF filename does not match the generated artifact")
+        if payload.get("pdf_sha256") != hashlib.sha256(artifact.read_bytes()).hexdigest():
+            raise ValueError("Evidence manifest PDF digest does not match the generated artifact")
+        return {
+            "manifest_path": manifest.relative_to(self.manager.workspace.root).as_posix(),
+            "manifest_size_bytes": len(raw),
+            "manifest_sha256": hashlib.sha256(raw).hexdigest(),
+        }
+
     def _session_report(self, job: dict[str, Any], kind: str) -> dict[str, Any]:
         parameters = job["parameters"]
         allowed = {"session_date_utc", "interval", "market"}
@@ -302,6 +323,7 @@ class JobRunner:
         if len(payload) < 16 or not payload.startswith(b"%PDF-") or b"%%EOF" not in payload[-1024:]:
             raise ValueError(f"{kind.capitalize()} report failed PDF integrity checks")
         digest = hashlib.sha256(payload).hexdigest()
+        manifest_metadata = self._evidence_manifest_metadata(resolved)
         return {
             "report_type": expected_output,
             "format": "pdf",
@@ -309,6 +331,7 @@ class JobRunner:
             "filename": resolved.name,
             "size_bytes": len(payload),
             "sha256": digest,
+            **manifest_metadata,
             "session_date_utc": resolved.stem.rsplit("_", 1)[-1],
             "market": market,
             "interval": interval,
