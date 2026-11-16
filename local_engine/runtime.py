@@ -851,6 +851,7 @@ class JobRunner:
             "Añadido soporte para cierres parciales y hora de corte local predeterminada según el momento de ejecución para intradía.",
             "Añadido esquema de evidencia v2 con metadatos de ventana, hash del PDF y hash de velas originales/período de calentamiento.",
             "Integrado calendario bursátil XNYS con feriados, cierres anticipados, DST y clasificación de sesión; la auditoría recalcula la evidencia de calendario de forma independiente.",
+            "Añadido scorecard de escenarios de apertura/cierre para la misma fecha, vinculado a un manifiesto de apertura con integridad verificada; la ausencia de apertura se marca como no aplicable.",
             "Añadidas pruebas de escritorio, severidades/veredictos en español, fecha local de auditoría e historial de versiones/cambios.",
             "Localizados los tres PDF operativos y la auditoría; añadidos resúmenes ejecutivos de siete puntos y referencias horarias ET/local con reglas DST.",
             "Ajustada la nomenclatura del PDF de apertura para usar la fecha local de solicitud y reforzada la auditoría de nombres de archivo/manifiestos.",
@@ -877,7 +878,7 @@ class JobRunner:
         change_history = [
             {
                 "date": audit_date_local, "version": __version__,
-                "change": "Motor PDF de Fase 3 con días calendario dominicanos, horarios ET/local con DST, resúmenes de siete puntos y esquema de evidencia v2; los hashes de los archivos originales están registrados, pero falta verificar sus contenidos en el runtime.",
+                "change": "Motor PDF de Fase 3 con días calendario dominicanos, calendario bursátil XNYS, scorecard de escenarios de apertura/cierre, resúmenes de siete puntos y esquema de evidencia v2; los hashes de los ZIP originales están registrados, pero sus bytes no están incluidos en el runtime.",
             },
             {
                 "date": audit_date_local, "version": "original-skill-parity",
