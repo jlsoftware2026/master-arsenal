@@ -127,6 +127,22 @@ class SessionAcquisitionTests(unittest.TestCase):
             audit = audit_evidence_manifest(manifests[0], Path(temp))
             self.assertEqual(audit["status"], "passed", audit["findings"])
 
+    def test_opening_manifest_links_request_date_pdf_and_previous_day_evidence(self):
+        from report_engine.evidence import audit_evidence_manifest
+        with TemporaryDirectory() as temp:
+            artifact = generate_opening_report_pdf(
+                FakeClient(), Path(temp) / "reports" / "opening", date(2026, 11, 14),
+                manifest_directory=Path(temp) / "data" / "manifests",
+            )
+            self.assertEqual(artifact.name, "apertura-mercado_2026-11-14.pdf")
+            manifests = list((Path(temp) / "data" / "manifests").glob("*.evidence.json"))
+            self.assertEqual(len(manifests), 1)
+            payload = json.loads(manifests[0].read_text(encoding="utf-8"))
+            self.assertEqual(payload["report"]["requested_report_date_local"], "2026-11-14")
+            self.assertEqual(payload["report"]["report_date_local"], "2026-11-13")
+            audit = audit_evidence_manifest(manifests[0], Path(temp))
+            self.assertEqual(audit["status"], "passed", audit["findings"])
+
     def test_us_cash_session_clock_conversion_respects_eastern_dst(self):
         import pymupdf as fitz
         with TemporaryDirectory() as temp:
