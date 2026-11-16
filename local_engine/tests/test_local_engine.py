@@ -228,7 +228,8 @@ class LocalEngineTests(unittest.TestCase):
         self.assertEqual(audit["closing_window_status"], "passed")
         self.assertEqual(audit["intraday_cutoff_status"], "passed")
         self.assertEqual(audit["language_parity_status"], "passed")
-        self.assertEqual(audit["us_session_status"], "partial")
+        self.assertEqual(audit["us_session_status"], "passed")
+        self.assertEqual(audit["us_holiday_status"], "passed")
         self.assertGreater(audit["overlapping_candles_checked"], 0)
 
     def test_intraday_snapshot_cannot_run_before_explicit_approval(self):
