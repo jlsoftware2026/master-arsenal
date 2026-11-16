@@ -179,6 +179,8 @@ def build_intraday_snapshot_pdf(report: dict[str, Any], output_directory: Path |
             ("Last fully closed candle boundary UTC", report.get("data_cutoff_utc", "Not supplied")),
             ("Unfinished final interval excluded", (report.get("indicator_methodology") or {}).get("partial_final_interval_excluded", False)),
             ("Window status", "PARTIAL LOCAL DAY"),
+            ("Requested report date local", report.get("requested_report_date_local", report.get("report_date_local"))),
+            ("Cutoff resolution", report.get("cutoff_resolution", "not supplied")),
             ("Binance account analytics", report.get("binance_account_data_status", "unavailable")),
             ("U.S. equity-market coverage", report.get("us_equity_market_data_status", "not_integrated")),
             ("Generated at UTC", _iso_utc(generated)),
