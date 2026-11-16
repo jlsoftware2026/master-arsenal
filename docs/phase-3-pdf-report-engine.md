@@ -109,4 +109,4 @@ python -m unittest discover -s report_engine/tests -v
 
 
 ## Original-skill parity status
-The three original operational skills specify Spanish-language PDF output. The current PDF composers still render English headings and labels; this is tracked as high-severity LANG-01 and blocks merge until localization and regression tests are complete. The exact original intraday filename is `snapshot-mercado_YYYY-MM-DD_HH-mm.pdf`.
+The three original operational skills specify Spanish-language PDF output. The opening, closing, and intraday composers have been localized; LANG-01 remains unverified until all three PDF artifact types pass independent Spanish-marker QA on the final code head. The exact original intraday filename is `snapshot-mercado_YYYY-MM-DD_HH-mm.pdf`.
