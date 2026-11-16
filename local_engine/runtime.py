@@ -741,7 +741,7 @@ class JobRunner:
                   "Persistir los escenarios de apertura y compararlos con los resultados observados de esa misma fecha."),
             check("PKG-01", "Integridad de paquetes originales e historial de versiones",
                   source_skill_integrity["status"], "Alto",
-                  "All four adapted skill identities are present; original archive and source hashes are recorded but the ZIP payloads are not embedded."
+                  "Las cuatro Skills adaptadas tienen la identidad esperada; los hashes de los archivos originales están registrados, pero los ZIP no están incluidos."
                   if source_skill_integrity["status"] == "not_verified" else "; ".join(source_skill_integrity["findings"]),
                   "Incorporar los archivos .skill originales exactos o aportar un artefacto de origen verificable para recalcular sus hashes."),
             check("CI-01", "Evidencia CI multiplataforma del commit auditado", "not_verified", "Alto",
@@ -790,19 +790,19 @@ class JobRunner:
                 "status": "No aprobado",
             })
         executive_summary = [
-            "The three operational workflows now use America/Santo_Domingo local-calendar windows.",
-            "Opening uses the previous local day; closing supports partial local days; intraday supports explicit or execution-time cutoffs.",
-            "Unfinished candles are excluded and the last fully closed candle boundary is retained separately.",
-            "Evidence schema v2 records local/UTC windows and SHA-256 digests; PDF QA and audit desk checks are independent.",
-            "Original skill adaptation metadata is versioned; original archive hashes are recorded, but ZIP payload integrity is not verified in-repository.",
-            "U.S. exchange calendar/DST, private-account ledger, opening/closing scorecard, and final-head CI remain unresolved.",
+            "Los tres flujos operativos utilizan ventanas de calendario local America/Santo_Domingo.",
+            "Apertura utiliza el día local anterior; cierre admite días locales parciales; intradía admite una hora de corte explícita o la hora de ejecución.",
+            "Las velas sin completar se excluyen y se conserva por separado el límite de la última vela cerrada.",
+            "El esquema de evidencia v2 registra ventanas locales/UTC y hashes SHA-256; el QA de PDF y las pruebas de escritorio son independientes.",
+            "Los metadatos de las Skills adaptadas están versionados; los hashes de los archivos originales están registrados, pero el contenido ZIP no se verifica dentro del repositorio.",
+            "Siguen pendientes el calendario bursátil/DST de EE. UU., el libro mayor de la cuenta privada, la comparación apertura/cierre y el CI del commit final.",
         ]
         changes_applied = [
-            "Implemented Dominican local-day acquisition and PDF validation for opening, closing, and intraday reports.",
-            "Added partial closing-day support and execution-time local cutoff default for intraday.",
-            "Added evidence schema v2 with report-window metadata, PDF digest, and raw-candle/warm-up digest.",
-            "Added audit desk checks, Spanish severity/verdict rules, local audit date, and version/change history.",
-            "Added frontmatter versioning and original activation/report-section requirements to the four adapted skill instructions.",
+            "Implementación de adquisición por día local dominicano y validación PDF para apertura, cierre e intradía.",
+            "Añadido soporte para cierres parciales y hora de corte local predeterminada según el momento de ejecución para intradía.",
+            "Añadido esquema de evidencia v2 con metadatos de ventana, hash del PDF y hash de velas originales/período de calentamiento.",
+            "Añadidas pruebas de escritorio, severidades/veredictos en español, fecha local de auditoría e historial de versiones/cambios.",
+            "Añadidos versionado en frontmatter y requisitos originales de activación/secciones a las cuatro instrucciones adaptadas.",
         ]
         pending_items = [
             item["case"] + ": " + item["recommendation"]
