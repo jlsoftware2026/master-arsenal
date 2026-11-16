@@ -155,6 +155,7 @@ def acquire_intraday_day(
             "indicator_history": {
                 "candle_count": len(history),
                 "expected_candle_count": indicator_lookback,
+                "candles": [candle.to_dict() for candle in history],
                 "first_open_time_utc": _iso(history[0].open_time),
                 "last_close_time_utc": _iso(history[-1].close_time),
                 "pagination": history_pagination.to_dict(),
