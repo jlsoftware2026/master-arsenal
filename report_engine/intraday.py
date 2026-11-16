@@ -213,8 +213,6 @@ def build_intraday_snapshot_pdf(report: dict[str, Any], output_directory: Path |
             ("Estado de los datos", _label(report.get("data_status", "No certificado de forma independiente"))),
             ("Estado de la sesión bursátil estadounidense", _label(report.get("us_equity_session_state", "not_available"))),
             ("Base de comparación", report.get("comparison_basis", "Ventana del día local; el período móvil de 24 horas es distinto")),
-            ("Análisis de la cuenta Binance", report.get("binance_account_data_status", "unavailable")),
-            ("Cobertura del mercado bursátil estadounidense", report.get("us_equity_market_data_status", "not_integrated")),
         ], styles),
         Spacer(1, 4 * mm),
         section_heading("Resumen ejecutivo", styles),
