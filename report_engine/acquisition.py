@@ -11,6 +11,7 @@ from binance_data_engine.engine import CORE_SYMBOLS
 from binance_data_engine.session import acquire_market_window
 
 from .intraday import build_intraday_snapshot_pdf
+from .account_exports import collect_binance_account_exports
 from .context import collect_market_context
 from .evidence import write_evidence_manifest
 from .us_market_calendar import classify_us_equity_session
@@ -30,6 +31,7 @@ def acquire_intraday_evidence(
     cutoff_local: datetime | None = None,
     report_date_local=None,
     now: datetime | None = None,
+    account_export_directory: Path | str | None = None,
 ) -> dict[str, Any]:
     """Acquire Dominican midnight through the exact local cutoff.
 
@@ -84,7 +86,11 @@ def acquire_intraday_evidence(
         report["derivatives_context"] = {
             symbol: item.get("derivatives", {}) for symbol, item in report["symbols"].items()
         }
-    report["binance_account_data_status"] = "unavailable"
+    account_evidence = collect_binance_account_exports(
+        account_export_directory, window.start_utc, window.end_utc
+    )
+    report["binance_account_data"] = account_evidence
+    report["binance_account_data_status"] = account_evidence["status"]
     report["us_equity_market_data_status"] = "not_integrated"
     calendar_evidence = classify_us_equity_session(window.end_utc)
     market_evidence = collect_us_market_snapshot(window.end_utc)
@@ -98,9 +104,10 @@ def acquire_intraday_evidence(
     report["us_equity_calendar_reference"] = "exact_intraday_cutoff"
     report["comparison_basis"] = "Día calendario dominicano; el cambio del ticker móvil de 24 horas se muestra por separado."
     report["limitations"] = (
-        "Los saldos, posiciones, comisiones, financiación y PnL ajustado por flujos de la cuenta privada de Binance no están disponibles. "
+        "La actividad de cuenta se importa solo desde CSV de historial de transacciones con esquema admitido. Sin exportaciones válidas no hay datos privados; este módulo no calcula patrimonio, PnL no realizado, costo base completo ni rentabilidad ajustada por flujos. "
          "Las cotizaciones bursátiles son best-effort desde Yahoo Finance, pueden estar retrasadas o incompletas y no constituyen un feed de ejecución; amplitud y líderes/rezagados por acción no están incluidos. El calendario XNYS clasifica horarios/feriados, pero no aporta precios. "
         + market_evidence.get("limitations", "No se suministraron limitaciones del proveedor bursátil.") + " "
+        + account_evidence.get("limitations", "No se suministraron limitaciones de la exportación de cuenta.") + " "
         + context["context_limitations"]
     )
     bullish, bearish = [], []
@@ -191,7 +198,9 @@ def acquire_intraday_evidence(
            f"última sesión {calendar_evidence['last_completed_session_date']}; "
            f"próxima sesión {calendar_evidence['next_session_date']}."
            if calendar_evidence["status"] == "ok" else "calendario no disponible.")
-        + " Amplitud bursátil y líderes/rezagados por acción no disponibles; cuenta privada Binance no integrada."
+        + f" Actividad de cuenta Binance: {account_evidence['events_in_window']} eventos en "
+        f"{account_evidence['file_count']} archivos; estado {account_evidence['status']}. "
+        + " Amplitud bursátil y líderes/rezagados por acción no disponibles; no se infiere patrimonio ni rentabilidad de cartera."
     )
     report["executive_summary"] = summary_points
     return report
@@ -206,11 +215,12 @@ def generate_intraday_snapshot_pdf(
     manifest_directory: Path | str | None = None,
     *,
     cutoff_local: datetime | None = None,
+    account_export_directory: Path | str | None = None,
 ) -> Path:
     """Acquire, validate, and render a Dominican local-day intraday PDF."""
     evidence = acquire_intraday_evidence(
         client, cutoff_utc=cutoff_utc, interval=interval, market=market,
-        cutoff_local=cutoff_local,
+        cutoff_local=cutoff_local, account_export_directory=account_export_directory,
     )
     artifact = build_intraday_snapshot_pdf(evidence, output_directory)
     if manifest_directory is not None:
