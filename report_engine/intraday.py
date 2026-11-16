@@ -200,6 +200,25 @@ def build_intraday_snapshot_pdf(report: dict[str, Any], output_directory: Path |
             story.extend([section_heading(title, styles),
                           paragraph(_display(report[section_key]), styles["body"])])
 
+    for source_key, title in (("macro_sources", "Macroeconomic source register"),
+                               ("news_sources", "Digital-asset news source register")):
+        source_items = report.get(source_key) or []
+        rows = []
+        for item in source_items:
+            if isinstance(item, dict):
+                rows.append([
+                    str(item.get("title", "Untitled")),
+                    str(item.get("publisher", "Not supplied")),
+                    str(item.get("published_at_utc", "Not supplied")),
+                    str(item.get("url", "URL not supplied")),
+                ])
+        if rows:
+            story.extend([
+                section_heading(title, styles),
+                data_table(["Headline / release", "Publisher", "Published UTC", "Source URL"],
+                           rows, styles, widths=[55 * mm, 27 * mm, 34 * mm, 54 * mm]),
+            ])
+
     provenance = report.get("provenance") or []
     story.append(section_heading("Source and provenance notes", styles))
     if provenance:
