@@ -77,6 +77,8 @@ def build_skills_audit_pdf(report: dict[str, Any], output_directory: Path | str)
             ["Audit date UTC", audit_date],
             ["Generated at UTC", generated_at],
             ["Report engine version", str(report.get("report_engine_version", "Not supplied"))],
+            ["Adapted skill identity", str((report.get("source_skill_integrity") or {}).get("adaptation_status", "not verified"))],
+            ["Original archive payload", str((report.get("source_skill_integrity") or {}).get("status", "not verified"))],
             ["Artifacts discovered", str(len(artifacts))],
             ["Artifacts passing structural QA", str(verified)],
             ["Artifacts not verified / failing", str(unverified)],
