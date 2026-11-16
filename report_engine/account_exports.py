@@ -184,7 +184,7 @@ def collect_binance_account_exports(
     parse_errors: list[str] = []
     unsupported_files: list[str] = []
     assumptions: set[str] = set()
-    seen: set[tuple[str, str, str, str, str]] = set()
+    seen: set[tuple[str, ...]] = set()
     rows_scanned = events_in_window = duplicates = 0
     supported_files = 0
 
