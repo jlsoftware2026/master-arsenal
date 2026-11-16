@@ -15,6 +15,7 @@ def fixture():
         "window_start_local": "2026-11-13T00:00:00-04:00",
         "cutoff_local": "2026-11-13T12:30:00-04:00",
         "is_partial": True,
+        "window_semantics": "[start, cutoff)",
         "cutoff_utc": "2026-11-13T16:30:00Z",
         "generated_at_utc": "2026-11-13T16:31:00Z",
         "source": "Binance public REST API (fixture)",
