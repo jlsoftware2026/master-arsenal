@@ -358,11 +358,13 @@ def audit_market_report_artifact(path: str | Path, report_type: str) -> dict[str
             "Análisis de la cuenta Binance", "Cobertura del mercado bursátil estadounidense", "Horario de la sesión bursátil estadounidense", "Horario de activación",
         ),
         "closing": (
-            "BTCUSDT", "ETHUSDT", "Escenario alcista / largo", "Escenario bajista / corto",
+            "BTCUSDT", "ETHUSDT", "Indicador técnico", "Validación de datos",
+            "Escenario alcista / largo", "Escenario bajista / corto",
             "Contexto macroeconómico", "Noticias relevantes del mercado", "Procedencia de los datos",
             "Registro de consulta de fuentes macro/noticias", "Aviso importante",
             "America/Santo_Domingo", "Ventana de análisis local", "Análisis de la cuenta Binance",
-            "Cobertura del mercado bursátil estadounidense", "Horario de activación", "Comparación del pronóstico de apertura",
+            "Cobertura del mercado bursátil estadounidense", "Horario de la sesión bursátil estadounidense",
+            "Horario de activación", "Comparación del pronóstico de apertura",
         ),
         "intraday": (
             "BTCUSDT", "ETHUSDT", "Indicador técnico", "Validación de datos", "Contexto macroeconómico", "Noticias relevantes",
