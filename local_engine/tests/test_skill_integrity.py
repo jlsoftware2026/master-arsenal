@@ -27,7 +27,8 @@ class OriginalSkillIntegrityTests(unittest.TestCase):
                             root / "docs" / "original-skills-source")
             shutil.copytree(REPOSITORY_ROOT / "skills", root / "skills")
             adapted = root / "skills" / "binance-apertura-mercado" / "SKILL.md"
-            adapted.write_text("# wrong-skill-name\n", encoding="utf-8")
+            original = adapted.read_text(encoding="utf-8")
+            adapted.write_text(original.replace("# binance-apertura-mercado\n", "# wrong-skill-name\n", 1), encoding="utf-8")
             result = verify_original_skill_packages(root)
             self.assertEqual(result["status"], "failed")
             self.assertTrue(any("heading does not match" in item for item in result["findings"]))
