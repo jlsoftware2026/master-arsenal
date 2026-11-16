@@ -69,6 +69,7 @@ def acquire_intraday_evidence(
         window_metadata=window.as_dict(),
     )
     report["cutoff_resolution"] = cutoff_resolution
+    report["requested_report_date_local"] = target_date.isoformat()
     report["window_start_utc"] = window.start_utc.isoformat().replace("+00:00", "Z")
     report["cutoff_utc"] = window.end_utc.isoformat().replace("+00:00", "Z")
     if datetime.now(timezone.utc) < window.end_utc:
