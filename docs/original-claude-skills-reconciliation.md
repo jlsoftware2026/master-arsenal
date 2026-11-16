@@ -78,7 +78,7 @@ Remaining source-derived blockers:
 - **U.S. market context/calendar:** full index, VIX, Treasury, DXY, WTI, gold, breadth/sectors, economic catalysts, exchange-calendar, holiday, and DST-aware session-state coverage is not integrated. Reports explicitly disclose this as unavailable/not verified.
 - **Private Binance account section:** no private-account connector or user-export parser exists. Reports explicitly mark account analytics unavailable and never represent public candles as account data.
 - **Opening/closing timing and scorecard:** automated activation timing and same-date opening-forecast-to-close scorecard linkage are not implemented; reports disclose these gaps.
-- **Audit parity:** a desk-check matrix, severity taxonomy, Spanish verdict, and change-history section have been added. The weekend/holiday, U.S. DST, private-account/flow, package-integrity, and scorecard cases remain unresolved or explicitly not verified; full source-skill audit parity is not yet achieved.
+- **Audit parity:** a desk-check matrix, severity taxonomy, Spanish verdict, and change-history section have been added. Weekend/holiday, U.S. DST, private-account/flow, activation dispatch, and scorecard cases remain unresolved. The original archive and extracted-file hashes are recorded, but the original ZIP payloads are not embedded in the repository; package integrity therefore remains NOT VERIFIED. Full source-skill audit parity is not yet achieved.
 
 ## Merge gate
 
