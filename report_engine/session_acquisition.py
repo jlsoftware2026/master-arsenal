@@ -1,7 +1,7 @@
 """Acquisition-to-PDF adapters for completed UTC market-day reports."""
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -69,6 +69,7 @@ def acquire_session_report_evidence(
     end = datetime.fromisoformat(report["session_end_utc"].replace("Z", "+00:00"))
     context = collect_market_context(start, end)
     report.update(context)
+    report["generated_at_utc"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     report["limitations"] = (
         "RSS context is date-bounded but not exhaustive. Feed outages and missing publication "
         "timestamps are disclosed. Headlines are candidate context only; no causal attribution "
