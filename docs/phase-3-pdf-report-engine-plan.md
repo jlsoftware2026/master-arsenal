@@ -2,7 +2,7 @@
 
 ## Status
 
-Phase 3 kickoff and design baseline. This document does not claim that PDF generation is implemented.
+Historical Phase 3 kickoff and design baseline. The initial statement below records the state at plan creation only; implementation status and current limitations are maintained in [phase-3-pdf-report-engine.md](phase-3-pdf-report-engine.md).
 
 Base branch: `develop`  
 Working branch: `feature/phase-3-pdf-report-engine`  
