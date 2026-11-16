@@ -64,7 +64,7 @@ def build_skills_audit_pdf(report: dict[str, Any], output_directory: Path | str)
         raise ValueError("audit_verdict must be one of the three original-skill verdicts")
     desk_checks_input = report.get("desk_checks") or []
     for item in desk_checks_input:
-        if not isinstance(item, dict) or item.get("severity") not in {"Critical", "High", "Medium", "Low", "critical", "high", "medium", "low"}:
+        if not isinstance(item, dict) or item.get("severity") not in {"Crítico", "Alto", "Medio", "Bajo", "Critical", "High", "Medium", "Low", "critical", "high", "medium", "low"}:
             raise ValueError("Every desk check must declare a recognized severity")
 
     artifacts = report.get("artifacts", [])
