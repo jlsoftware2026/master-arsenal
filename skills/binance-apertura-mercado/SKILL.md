@@ -1,7 +1,7 @@
 ---
 name: binance-apertura-mercado
 description: 'Informe de apertura/premercado. Activar cuando el usuario diga “apertura de mercado”, “brief de apertura” o solicite el panorama antes de la apertura. Analiza la sesión bursátil estadounidense que abrirá hoy y el comportamiento de la cuenta Binance durante la sesión/día anterior. El día de referencia de la cuenta es el día calendario anterior a la fecha local de solicitud.'
-version: 0.6.0
+version: 0.7.0
 last_reviewed: 2026-11-16
 ---
 
@@ -27,7 +27,7 @@ Generate a detailed PDF report using the previous completed America/Santo_Doming
 8. Bullish/long and bearish/short scenarios with triggers and invalidation.
 9. Risk management, assumptions, source register, limitations, and conclusion.
 
-If U.S. market or account data is unavailable, state that explicitly. Never infer portfolio performance from public candles. The XNYS exchange calendar supplies U.S. cash-session holidays, early closes, DST-aware session times, and session classification. A best-effort Yahoo Finance snapshot now covers major indices, VIX, index futures, Treasury 10Y yield, DXY, WTI, gold, and sector ETFs with source URLs and observation timestamps. It is not a licensed execution feed; breadth, stock-level leaders/laggards, and private-account exports remain unavailable and must be disclosed.
+If U.S. market or account data is unavailable, state that explicitly. Never infer portfolio performance from public candles. The XNYS exchange calendar supplies U.S. cash-session holidays, early closes, DST-aware session times, and session classification. A best-effort Yahoo Finance snapshot now covers major indices, VIX, index futures, Treasury 10Y yield, DXY, WTI, gold, and sector ETFs with source URLs and observation timestamps. It is not a licensed execution feed; breadth and stock-level leaders/laggards remain unavailable. If a supported Binance transaction-statement CSV is present in data/account_exports, summarize balance-change activity by event type and asset; otherwise mark account activity unavailable. Never infer equity or returns from this CSV.
 
 ## Local Engine workflow
 - Job type: `market.opening_report`
@@ -50,7 +50,7 @@ The Local Engine may retain a source-linked raw-evidence manifest under `data/ma
 Disclose unavailable data and RSS feeds. Headlines are candidate context only, not proof of market causation. Scenario levels are conditional references, not forecasts, targets, or probabilities. Never fabricate values, events, citations, or analysis. Generate and independently inspect the PDF; if PDF generation or QA fails, fail the job and do not substitute another format.
 
 ## Status
-Adapted against the user-supplied original Claude skill package. The XNYS calendar and best-effort Yahoo Finance quote snapshot are integrated. Breadth, stock-level leaders/laggards, and private-account evidence remain unavailable.
+Adapted against the user-supplied original Claude skill package. The XNYS calendar and best-effort Yahoo Finance quote snapshot are integrated. Breadth and stock-level leaders/laggards remain unavailable. Transaction-statement CSV activity can be summarized, but account equity, unrealized PnL and flow-adjusted returns remain unavailable.
 
 ## Version history
 - 0.1.0 — 2026-11-16: Initial ChatGPT/MASTER ARSENAL adaptation; preserves the original skill identity and documents the Local Engine/PDF workflow and current implementation gaps.
@@ -63,4 +63,5 @@ The opening, closing, and intraday PDF composers and the audit PDF use Spanish l
 
 - 0.3.0 — 2026-11-16: Localized report headings, tables, scenario narratives, disclaimers, and audit output into Spanish; added independent language-marker QA.
 - 0.5.0 — 2026-11-16: Integrated XNYS holiday/early-close calendar and a 09:10 ET premarket reference.
-- 0.6.0 — 2026-11-16: Added source-attributed Yahoo Finance quotes for major U.S. indices, VIX, futures, rates, dollar, commodities, and sector ETFs; breadth and private-account data remain unavailable.
+- 0.6.0 — 2026-11-16: Added source-attributed Yahoo Finance quotes for major U.S. indices, VIX, futures, rates, dollar, commodities, and sector ETFs.
+- 0.7.0 — 2026-11-16: Added read-only local Binance transaction-statement CSV activity summaries; portfolio equity and flow-adjusted returns remain unavailable.
