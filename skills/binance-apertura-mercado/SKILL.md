@@ -1,7 +1,7 @@
 ---
 name: binance-apertura-mercado
 description: 'Informe de apertura/premercado. Activar cuando el usuario diga “apertura de mercado”, “brief de apertura” o solicite el panorama antes de la apertura. Analiza la sesión bursátil estadounidense que abrirá hoy y el comportamiento de la cuenta Binance durante la sesión/día anterior. El día de referencia de la cuenta es el día calendario anterior a la fecha local de solicitud.'
-version: 0.2.0
+version: 0.3.0
 last_reviewed: 2026-11-16
 ---
 
@@ -57,6 +57,8 @@ Adapted against the user-supplied original Claude skill package. U.S. market dat
 
 
 ## Language parity status
-The original Claude skill specifies Spanish-language report content. The current PDF composer still renders English headings and labels; this remains a high-severity parity gap and must be localized before the workflow can be certified as equivalent to the original.
+The report composers have been localized to Spanish. Language parity is not certified until opening, closing, and intraday PDFs all pass independent Spanish-marker QA on the same code head.
 
 - 0.2.0 — 2026-11-16: Reconciled activation phrases, Dominican local-day semantics, PDF-only delivery, explicit limitations, and source-derived report requirements. Outstanding parity gaps remain disclosed.
+
+- 0.3.0 — 2026-11-16: Localized report headings, tables, scenario narratives, disclaimers, and audit output into Spanish; added independent language-marker QA.
