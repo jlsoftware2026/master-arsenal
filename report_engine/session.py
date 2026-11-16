@@ -70,11 +70,8 @@ def _validate(report: dict[str, Any]):
     if end <= start:
         raise ValueError("Report window cutoff must be later than its start")
     is_partial = report.get("is_partial") is True
-    if is_partial:
-        if end >= start + timedelta(days=1):
-            raise ValueError("A partial local-day report cannot extend beyond the next local midnight")
-    elif end - start != timedelta(days=1):
-        raise ValueError("A completed local-day report must cover exactly one calendar day")
+    if is_partial and local_end.date() != report_date:
+        raise ValueError("A partial local-day report must end on report_date_local")
     if generated < end:
         raise ValueError("generated_at_utc cannot precede the report cutoff")
     symbols = report["symbols"]
