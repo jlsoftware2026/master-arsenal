@@ -34,8 +34,6 @@ class AuditReportTests(unittest.TestCase):
             "report_date_local": "2026-11-15",
             "requested_report_date_local": "2026-11-16",
             "cutoff_resolution": "previous_local_calendar_day",
-            "requested_report_date_local": "2026-11-16",
-            "cutoff_resolution": "previous_local_calendar_day",
             "window_start_local": "2026-11-15T00:00:00-04:00",
             "cutoff_local": "2026-11-16T00:00:00-04:00",
             "window_semantics": "[start, cutoff)",
@@ -76,6 +74,8 @@ class AuditReportTests(unittest.TestCase):
     def test_empty_artifact_set_is_allowed_but_reported_as_insufficient(self):
         report = {
             "audit_date_utc": "2026-11-16",
+            "audit_date_local": "2026-11-16",
+            "report_timezone": "America/Santo_Domingo",
             "generated_at_utc": "2026-11-16T12:00:00Z",
             "artifacts": [], "findings": [],
         }
@@ -86,6 +86,8 @@ class AuditReportTests(unittest.TestCase):
     def test_audit_timestamp_must_match_audit_date(self):
         report = {
             "audit_date_utc": "2026-11-16",
+            "audit_date_local": "2026-11-16",
+            "report_timezone": "America/Santo_Domingo",
             "generated_at_utc": "2026-11-15T23:59:00Z",
             "artifacts": [], "findings": [],
         }
