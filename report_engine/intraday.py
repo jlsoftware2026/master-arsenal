@@ -194,7 +194,7 @@ def build_intraday_snapshot_pdf(report: dict[str, Any], output_directory: Path |
         ("bullish_scenario", "Bullish / long scenario"),
         ("bearish_scenario", "Bearish / short scenario"),
         ("risk_factors", "Risk factors and invalidation"),
-        ("methodology_limitations", "Methodology and limitations"),
+        ("limitations", "Methodology and limitations"),\n        ("methodology_limitations", "Additional methodology notes"),
     ):
         if section_key in report:
             story.extend([section_heading(title, styles),
