@@ -177,7 +177,7 @@ class LocalEngineTests(unittest.TestCase):
 
     def test_opening_and_closing_jobs_generate_pdf_after_approval(self):
         for job_type, expected_dir, expected_name, report_date in (
-            ("market.opening_report", "reports/opening", "apertura-mercado_2026-11-11.pdf", "2026-11-12"),
+            ("market.opening_report", "reports/opening", "apertura-mercado_2026-11-12.pdf", "2026-11-12"),
             ("market.closing_report", "reports/closing", "cierre-mercado_2026-11-11.pdf", "2026-11-11"),
         ):
             job = self._approved_job(job_type, {
