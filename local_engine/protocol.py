@@ -14,6 +14,12 @@ JOB_TYPES = frozenset({
     "skills.audit", "engine.health_check", "engine.validate_data",
 })
 REQUESTERS = frozenset({"chatgpt", "claude", "user"})
+JOB_OUTPUTS = {
+    "market.opening_report": {"format": "pdf", "directory": "reports/opening"},
+    "market.closing_report": {"format": "pdf", "directory": "reports/closing"},
+    "market.intraday_snapshot": {"format": "pdf", "directory": "reports/intraday"},
+    "skills.audit": {"format": "pdf", "directory": "reports/audit"},
+}
 UUID_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$", re.I)
 
 
@@ -27,10 +33,8 @@ def utc_now() -> str:
 
 def new_job(job_type: str, parameters: dict[str, Any] | None = None,
             requested_by: str = "user") -> dict[str, Any]:
-    default_output = (
-        {"format": "pdf", "directory": "reports/intraday"}
-        if job_type == "market.intraday_snapshot"
-        else {"format": "json", "directory": "reports"}
+    default_output = JOB_OUTPUTS.get(
+        job_type, {"format": "json", "directory": "reports"}
     )
     job = {
         "schema": SCHEMA_VERSION, "job_id": str(uuid4()), "created_at_utc": utc_now(),
@@ -84,6 +88,12 @@ def validate_job(job: Any) -> dict[str, Any]:
     if (not isinstance(directory, str) or not directory or posix_path.is_absolute()
             or win_path.is_absolute() or ".." in posix_path.parts or ".." in win_path.parts):
         raise JobValidationError("output.directory must be relative and must not traverse parent directories")
+    expected_output = JOB_OUTPUTS.get(job["job_type"])
+    if expected_output is not None and output != expected_output:
+        raise JobValidationError(
+            f"{job['job_type']} output is fixed to {expected_output['format'].upper()} "
+            f"in {expected_output['directory']}"
+        )
     approval = job["approval"]
     if not isinstance(approval, dict) or set(approval) != {"required", "granted"}:
         raise JobValidationError("approval must contain exactly required and granted")
