@@ -57,6 +57,7 @@ def _report():
         "is_partial": True,
         "window_semantics": "[start, cutoff)",
         "cutoff_utc": CUTOFF.isoformat().replace("+00:00", "Z"),
+        "data_cutoff_utc": CUTOFF.isoformat().replace("+00:00", "Z"),
         "generated_at_utc": (CUTOFF + timedelta(minutes=1)).isoformat().replace("+00:00", "Z"),
         "interval": "1h",
         "source": "Binance public REST API",
