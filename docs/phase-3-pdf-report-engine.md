@@ -34,7 +34,7 @@ Phase 3 now contains the shared PDF foundation and end-to-end acquisition/compos
 
 - The report window is `[00:00 UTC, cutoff_utc)` with an explicit UTC cutoff aligned to the selected interval.
 - BTCUSDT and ETHUSDT are mandatory.
-- The exact report-window candle count and each open/close boundary are validated; no interpolation or synthetic candles are used.
+- The exact report-window candle count and each open/close boundary are validated; no interpolation or synthetic candles are used. Report intervals are bounded to one minute or higher to avoid unbounded per-second report artifacts.
 - The output includes source-attributed market context, technical indicator tables, session-only charts, conditional range scenarios, risk notes, and provenance when evidence is available. With `market=usdm`, it also attempts premium index, funding history, open interest, global long/short account ratio, basis, mark-price klines, and index-price klines; each unavailable endpoint is disclosed rather than silently omitted.
 - Output: `snapshot-mercado-YYYY-MM-DD_HH-mm.pdf`, based on UTC cutoff.
 
