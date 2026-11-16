@@ -52,7 +52,7 @@ Only items with publisher timestamps inside the report's UTC window are included
 
 - `report_engine.audit.build_skills_audit_pdf` creates `auditoria-skills-binance_YYYY-MM-DD.pdf`.
 - The Local Engine audit handler scans the fixed opening, closing, and intraday report directories, computes SHA-256 digests, and independently parses/renders every discovered PDF.
-- Missing artifacts and QA failures become explicit findings. No artifacts means insufficient evidence, not a pass.
+- Missing artifacts and QA failures become explicit findings. No artifacts means insufficient evidence, not a pass.\n- The audit PDF now records a source-skill desk-check matrix, Critical/High/Medium/Low severity, Spanish verdict (No aprobado / Aprobado con reservas / Aprobado), and a version/change-history section. U.S. calendar/DST, account-ledger, source-package integrity, and scorecard cases remain unresolved and are not marked as passed.
 - Every Local Engine market report also stores an internal `ma.report-evidence/v2` JSON manifest under `data/manifests`. This is internal audit evidence, not an alternate user-facing report format. It contains raw report-window candles and separate warm-up candles, bound to the PDF by SHA-256.
 - The audit checks artifact structure/readability, expected filename prefixes, mandatory BTC/ETH and required sections; verifies manifest/PDF digests; revalidates raw candle windows; independently recalculates technical indicators; and compares overlapping OHLCV evidence across reports.
 - The audit does not verify the factual accuracy of every news claim, certify scenario quality, or prove parity with the original Claude skill source files. CI/live endpoint evidence must be attached separately; the local audit does not query GitHub Actions.
