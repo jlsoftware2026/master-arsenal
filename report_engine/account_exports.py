@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any
 
 MAX_FILE_BYTES = 20_000_000
+MAX_TOTAL_BYTES = 100_000_000
 MAX_ROWS_PER_FILE = 100_000
 MAX_FILES = 100
 REQUIRED_HEADERS = {"userid", "utctime", "account", "operation", "coin", "change", "remark"}
@@ -137,6 +138,26 @@ def collect_binance_account_exports(
             "unsupported_files": [], "aggregates_by_event_and_asset": empty_aggregates,
             "event_counts": {event: 0 for event in EVENT_TYPES},
             "assumptions": [], "limitations": "Import limit exceeded.",
+            "portfolio_equity_status": "not_available",
+            "flow_adjusted_return_status": "not_available",
+        }
+    try:
+        total_bytes = sum(path.stat().st_size for path in files)
+    except OSError as exc:
+        total_bytes = MAX_TOTAL_BYTES + 1
+        total_size_error = f"Cannot inspect account export sizes: {type(exc).__name__}"
+    else:
+        total_size_error = None
+    if total_bytes > MAX_TOTAL_BYTES:
+        return {
+            "status": "failed", "source": "local Binance CSV exports",
+            "window_start_utc": start.isoformat().replace("+00:00", "Z"),
+            "window_end_utc": end.isoformat().replace("+00:00", "Z"),
+            "files": [], "file_count": len(files), "rows_scanned": 0, "events_in_window": 0,
+            "duplicate_rows": 0, "parse_errors": [total_size_error or "Total CSV import size exceeds the 100 MB limit."],
+            "unsupported_files": [], "aggregates_by_event_and_asset": empty_aggregates,
+            "event_counts": {event: 0 for event in EVENT_TYPES},
+            "assumptions": [], "limitations": "Import total-size limit exceeded.",
             "portfolio_equity_status": "not_available",
             "flow_adjusted_return_status": "not_available",
         }
