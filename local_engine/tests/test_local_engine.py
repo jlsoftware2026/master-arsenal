@@ -452,7 +452,7 @@ class OriginalSkillIntegrityTests(unittest.TestCase):
             adapted = root / "skills" / "binance-apertura-mercado" / "SKILL.md"
             original = adapted.read_text(encoding="utf-8")
             adapted.write_text(original.replace(
-                "# binance-apertura-mercado\\n", "# wrong-skill-name\\n", 1
+                "# binance-apertura-mercado\n", "# wrong-skill-name\n", 1
             ), encoding="utf-8")
             result = verify_original_skill_packages(root)
             self.assertEqual(result["status"], "failed")
