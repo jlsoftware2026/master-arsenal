@@ -429,6 +429,7 @@ class JobRunner:
             BinancePublicClient(), output_directory, session_date=session_date,
             interval=interval, market=market,
             manifest_directory=self.manager.workspace.directory("data/manifests"),
+            account_export_directory=self.manager.workspace.directory("data/account_exports"),
             **({"cutoff_local": cutoff_local} if kind == "closing" and cutoff_local is not None else {}),
         )
         resolved = artifact.resolve(strict=True)
@@ -1060,6 +1061,7 @@ class JobRunner:
             interval=interval, market=market,
             manifest_directory=self.manager.workspace.directory("data/manifests"),
             cutoff_local=cutoff_local,
+            account_export_directory=self.manager.workspace.directory("data/account_exports"),
         )
         resolved_artifact = artifact.resolve(strict=True)
         if not resolved_artifact.is_relative_to(output_directory):
