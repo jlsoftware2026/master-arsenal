@@ -174,6 +174,8 @@ def audit_evidence_manifest(path: str | Path, workspace_root: str | Path) -> dic
                     findings.append("Completed local-day report does not end at the next local midnight.")
             if report_type == "opening" and partial:
                 findings.append("Opening reference day must be a completed local calendar day.")
+            if report_type == "intraday" and not partial:
+                findings.append("Intraday snapshot must be a partial local-day window.")
         except Exception as local_exc:
             findings.append(f"Invalid Dominican local-window metadata: {type(local_exc).__name__}: {local_exc}")
         generated_at = _strict_utc(report.get("generated_at_utc"))
