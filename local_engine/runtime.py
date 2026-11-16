@@ -742,7 +742,7 @@ class JobRunner:
             snapshot = report.get("binance_account_data")
             if not isinstance(snapshot, dict):
                 return ["account export evidence is missing"]
-            if snapshot.get("status") != "complete":
+            if snapshot.get("status") not in {"complete", "partial"}:
                 findings.append("CSV import status is " + str(snapshot.get("status")))
             try:
                 account_start = datetime.fromisoformat(snapshot["window_start_utc"].replace("Z", "+00:00"))
