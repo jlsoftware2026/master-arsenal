@@ -75,6 +75,7 @@ def acquire_session_report_evidence(
     report["report_timezone"] = REPORT_TIMEZONE
     report["binance_account_data_status"] = "unavailable"
     report["us_equity_market_data_status"] = "not_integrated"
+    report["us_equity_session_state"] = "not_available"
     report["opening_forecast_scorecard_status"] = (
         "not_implemented" if report_kind == "closing" else "not_applicable"
     )
