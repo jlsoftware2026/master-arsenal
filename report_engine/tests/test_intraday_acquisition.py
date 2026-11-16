@@ -1,6 +1,7 @@
 """Offline tests for completed-candle UTC acquisition."""
 from datetime import datetime, timedelta, timezone
 import unittest
+from unittest.mock import patch
 from tempfile import TemporaryDirectory
 
 
