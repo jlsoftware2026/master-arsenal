@@ -98,11 +98,11 @@ def acquire_intraday_evidence(
         low = min(Decimal(candle["low"]) for candle in candles)
         last = candles[-1]["close"]
         bullish.append(
-            "f"{symbol}: la continuación requiere aceptación por encima del máximo observado {format(high, 'f')}; "
+            f"{symbol}: la continuación requiere aceptación por encima del máximo observado {format(high, 'f')}; "
             f"referencia de invalidación por debajo del mínimo observado {format(low, 'f')}. Última vela completamente cerrada: {last}."
         )
         bearish.append(
-            "f"{symbol}: la debilidad requiere aceptación por debajo del mínimo observado {format(low, 'f')}; "
+            f"{symbol}: la debilidad requiere aceptación por debajo del mínimo observado {format(low, 'f')}; "
             f"referencia de invalidación por encima del máximo observado {format(high, 'f')}. Última vela completamente cerrada: {last}."
         )
     report["bullish_scenario"] = " ".join(bullish) + " Solo niveles condicionales; no se infieren probabilidades ni objetivos."
