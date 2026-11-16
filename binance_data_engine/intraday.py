@@ -125,8 +125,10 @@ def acquire_intraday_day(
         history, history_pagination = client.get_historical_klines(
             symbol, interval, history_start, start, market=market
         )
-        if not history_pagination.complete or history_pagination.returned != len(history):
+        if not history_pagination.complete:
             raise ValueError(f"{symbol}: indicator-history pagination did not complete")
+        if history_pagination.returned != len(history):
+            raise ValueError(f"{symbol}: indicator-history pagination metadata count does not match returned candles")
         _validate_series(history, symbol, interval, history_start, start,
                          indicator_lookback, "indicator-history")
         history_metadata = dict(client.last_response_metadata)
