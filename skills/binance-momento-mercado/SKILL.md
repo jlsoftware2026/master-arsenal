@@ -9,6 +9,17 @@ Generate a detailed intraday PDF snapshot from Dominican local midnight through 
 - State whether U.S. equities are premarket, regular session, or postmarket only when reliable session-calendar evidence exists. Otherwise label the classification unavailable.
 - Distinguish the local-calendar-day move from the rolling 24-hour ticker change. Do not call the snapshot a closing report or extrapolate the remaining session as observed fact.
 
+## Required PDF sections
+1. Executive snapshot with exact Dominican local cutoff and generation time.
+2. U.S. market state (premarket, regular, postmarket) only when supported by a reliable calendar.
+3. BTCUSDT and ETHUSDT local-day performance from local midnight to cutoff.
+4. Rolling 24-hour ticker change shown separately from local-day performance.
+5. Technical indicators, momentum, volume, support/resistance, and derivatives evidence when available.
+6. Macro/news catalysts with source timestamps.
+7. Bullish/long and bearish/short conditional scenarios, invalidation levels, risk, limitations, and source register.
+
+Do not predict the rest of the session unless the user explicitly requests a clearly labeled scenario. Private-account analytics and full U.S. session/calendar coverage must be disclosed as unavailable until implemented.
+
 ## Local Engine workflow
 - Job type: `market.intraday_snapshot`
 - Fixed output directory: `reports/intraday`
