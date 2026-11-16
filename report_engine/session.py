@@ -80,6 +80,27 @@ def _validate(report: dict[str, Any]):
     return start, end, generated
 
 
+def _derivatives_summary(value: Any) -> str:
+    if not isinstance(value, dict) or not value:
+        return "Not supplied"
+    rows = []
+    display_keys = ("lastFundingRate", "markPrice", "indexPrice", "openInterest",
+                    "sumOpenInterest", "longShortRatio", "basis")
+    for name, result in value.items():
+        if not isinstance(result, dict):
+            rows.append(f"{name}: unavailable")
+            continue
+        status = result.get("status", "not verified")
+        data = result.get("data")
+        if isinstance(data, list):
+            data = data[-1] if data else None
+        selected = []
+        if isinstance(data, dict):
+            selected = [f"{key}={data[key]}" for key in display_keys if key in data]
+        suffix = ", ".join(selected) if selected else "latest value not available"
+        rows.append(f"{name}: {status} ({suffix})")
+    return "; ".join(rows)
+
 def _source_rows(items: Any) -> list[list[str]]:
     if not isinstance(items, list):
         return []
@@ -133,7 +154,7 @@ def _build_session_pdf(report: dict[str, Any], output_directory: Path | str, kin
                 ("Price performance", _text(item.get("performance"))),
                 ("24h ticker", _text(item.get("ticker_24h"))),
                 ("Technical indicators", _text(item.get("indicators"))),
-                ("Derivatives context", _text(item.get("derivatives"))),
+                ("Derivatives context", _derivatives_summary(item.get("derivatives"))),
             ], styles),
         ])
         candles = item.get("candles") or []
