@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any
@@ -70,11 +71,30 @@ def build_opening_forecast_scorecard(
 
     payload = json.loads(opening_path.read_text(encoding="utf-8"))
     opening = payload.get("report")
+    try:
+        expected_reference_date = (date.fromisoformat(report_date) - timedelta(days=1)).isoformat()
+        opening_generated = datetime.fromisoformat(opening["generated_at_utc"].replace("Z", "+00:00"))
+        closing_generated = datetime.fromisoformat(closing_report["generated_at_utc"].replace("Z", "+00:00"))
+    except (KeyError, TypeError, ValueError, AttributeError):
+        return {
+            "status": "failed", "report_date_local": report_date,
+            "opening_manifest": opening_path.name,
+            "reason": "Opening/closing report dates or generation timestamps are missing or invalid.",
+        }
     if (
         payload.get("report_type") != "opening"
         or not isinstance(opening, dict)
         or opening.get("requested_report_date_local") != report_date
+        or opening.get("report_timezone") != "America/Santo_Domingo"
+        or opening.get("report_date_local") != expected_reference_date
+        or opening.get("cutoff_resolution") != "previous_local_calendar_day"
         or opening.get("is_partial") is not False
+        or closing_report.get("report_date_local") != report_date
+        or opening_generated.tzinfo is None
+        or opening_generated.utcoffset() != timedelta(0)
+        or closing_generated.tzinfo is None
+        or closing_generated.utcoffset() != timedelta(0)
+        or opening_generated.astimezone(timezone.utc) > closing_generated.astimezone(timezone.utc)
     ):
         return {
             "status": "failed", "report_date_local": report_date,
@@ -165,6 +185,8 @@ def build_opening_forecast_scorecard(
         "opening_pdf_filename": payload.get("pdf_filename"),
         "opening_pdf_sha256": payload.get("pdf_sha256"),
         "opening_reference_date_local": opening.get("report_date_local"),
+        "opening_generated_at_utc": opening.get("generated_at_utc"),
+        "closing_generated_at_utc": closing_report.get("generated_at_utc"),
         "closing_report_date_local": closing_report.get("report_date_local"),
         "comparison_basis": "Rango alto/bajo del día de referencia de apertura frente a máximo/mínimo/cierre del día local de cierre.",
         "symbols": results,
