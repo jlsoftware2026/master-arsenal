@@ -68,7 +68,10 @@ class FakeClient:
 
 class IntradayAcquisitionTests(unittest.TestCase):
     def acquire(self, client=None, cutoff=CUTOFF, symbols=("BTCUSDT", "ETHUSDT")):
-        return acquire_intraday_evidence(client or FakeClient(), cutoff, "1h", "spot", symbols)
+        context = {"macro_context": "No macro items.", "news": "No news items.",
+                   "macro_sources": [], "news_sources": [], "context_status": "complete"}
+        with patch("report_engine.acquisition.collect_market_context", return_value=context):
+            return acquire_intraday_evidence(client or FakeClient(), cutoff, "1h", "spot", symbols)
 
     def test_complete_window_and_provenance(self):
         report = self.acquire()
