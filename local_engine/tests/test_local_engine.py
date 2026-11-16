@@ -223,7 +223,7 @@ class LocalEngineTests(unittest.TestCase):
                 "macro_sources": [], "news_sources": [], "context_status": "complete",
                 "context_limitations": "Fixture context only.",
             }
-        ):
+        ), patch("report_engine.acquisition.collect_us_market_snapshot", return_value=FAKE_US_MARKET_SNAPSHOT):
             intraday_result = JobRunner(self.manager).run(intraday_job["job_id"])
         self.assertEqual(intraday_result["status"], "completed", intraday_result)
         self.assertTrue(intraday_result["result"]["filename"].startswith("snapshot-mercado_"))
