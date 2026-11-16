@@ -243,6 +243,7 @@ class JobRunner:
             "market.opening_report": self._opening_report,
             "market.closing_report": self._closing_report,
             "market.intraday_snapshot": self._intraday_snapshot,
+            "skills.audit": self._skills_audit,
         }
 
     def _health_check(self, job: dict[str, Any]) -> dict[str, Any]:
@@ -315,6 +316,83 @@ class JobRunner:
 
     def _closing_report(self, job: dict[str, Any]) -> dict[str, Any]:
         return self._session_report(job, "closing")
+
+    def _skills_audit(self, job: dict[str, Any]) -> dict[str, Any]:
+        if job["parameters"]:
+            raise ValueError("skills.audit does not accept caller-supplied parameters")
+        if (job["output"]["format"] != "pdf"
+                or job["output"]["directory"] != "reports/audit"):
+            raise ValueError("skills.audit output is fixed to PDF in reports/audit")
+        generated = datetime.now(timezone.utc)
+        audit_date = generated.date().isoformat()
+        artifacts = []
+        findings = []
+        for report_type, relative_directory in (
+            ("opening", "reports/opening"),
+            ("closing", "reports/closing"),
+            ("intraday", "reports/intraday"),
+        ):
+            directory = self.manager.workspace.directory(relative_directory)
+            for candidate in sorted(directory.glob("*.pdf")):
+                resolved = candidate.resolve(strict=True)
+                if not resolved.is_relative_to(directory):
+                    findings.append({
+                        "severity": "critical", "title": "Artifact escaped report directory",
+                        "evidence": str(candidate), "recommendation": "Quarantine and investigate the path.",
+                    })
+                    continue
+                payload = resolved.read_bytes()
+                item = {
+                    "filename": resolved.name, "report_type": report_type,
+                    "size_bytes": len(payload),
+                    "sha256": hashlib.sha256(payload).hexdigest(),
+                }
+                try:
+                    qa = inspect_pdf_artifact(resolved)
+                    item.update({
+                        "qa_status": "passed", "page_count": qa["page_count"],
+                        "issues": "No structural or rendered-page QA issue detected.",
+                    })
+                except Exception as exc:
+                    item.update({
+                        "qa_status": "failed", "page_count": "Unknown",
+                        "issues": f"{type(exc).__name__}: {exc}",
+                    })
+                    findings.append({
+                        "severity": "high", "title": f"PDF structural QA failed: {resolved.name}",
+                        "evidence": item["issues"],
+                        "recommendation": "Regenerate the artifact and inspect the source evidence.",
+                    })
+                artifacts.append(item)
+        if not artifacts:
+            findings.append({
+                "severity": "warning", "title": "No market report artifacts available",
+                "evidence": "No opening, closing, or intraday PDF files were found in the workspace.",
+                "recommendation": "Generate reports before attempting a full cross-report audit.",
+            })
+        report = {
+            "audit_date_utc": audit_date,
+            "generated_at_utc": generated.isoformat().replace("+00:00", "Z"),
+            "artifacts": artifacts,
+            "findings": findings,
+        }
+        output_directory = self.manager.workspace.directory("reports/audit")
+        artifact = build_skills_audit_pdf(report, output_directory)
+        resolved = artifact.resolve(strict=True)
+        if not resolved.is_relative_to(output_directory):
+            raise ValueError("Generated audit escaped reports/audit")
+        payload = resolved.read_bytes()
+        if not payload.startswith(b"%PDF-") or b"%%EOF" not in payload[-1024:]:
+            raise ValueError("Skills audit failed PDF integrity checks")
+        return {
+            "report_type": "skills.audit", "format": "pdf",
+            "artifact_path": resolved.relative_to(self.manager.workspace.root).as_posix(),
+            "filename": resolved.name, "size_bytes": len(payload),
+            "sha256": hashlib.sha256(payload).hexdigest(),
+            "artifacts_inspected": len(artifacts),
+            "findings_count": len(findings),
+            "read_only": True,
+        }
 
     def _intraday_snapshot(self, job: dict[str, Any]) -> dict[str, Any]:
         parameters = job["parameters"]
