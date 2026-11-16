@@ -202,12 +202,26 @@ class LocalEngineTests(unittest.TestCase):
             manifest = self.manager.workspace.directory(result["result"]["manifest_path"])
             self.assertTrue(manifest.is_file())
 
+        intraday_job = self._approved_job("market.intraday_snapshot", {
+            "cutoff_local": "2026-11-12T12:00:00-04:00", "interval": "1h", "market": "spot"
+        })
+        with patch("local_engine.runtime.BinancePublicClient", return_value=FakeBinanceClient()), patch(
+            "report_engine.acquisition.collect_market_context", return_value={
+                "macro_context": "No macro items.", "news_context": "No news items.",
+                "macro_sources": [], "news_sources": [], "context_status": "complete",
+                "context_limitations": "Fixture context only.",
+            }
+        ):
+            intraday_result = JobRunner(self.manager).run(intraday_job["job_id"])
+        self.assertEqual(intraday_result["status"], "completed", intraday_result)
+        self.assertEqual(intraday_result["result"]["filename"], "snapshot-mercado_2026-11-12_12-00.pdf")
+
         audit_job = self._approved_job("skills.audit")
         audit_result = JobRunner(self.manager).run(audit_job["job_id"])
         self.assertEqual(audit_result["status"], "completed", audit_result)
         audit = audit_result["result"]
-        self.assertEqual(audit["artifacts_inspected"], 2)
-        self.assertEqual(audit["evidence_manifests_checked"], 2)
+        self.assertEqual(audit["artifacts_inspected"], 3)
+        self.assertEqual(audit["evidence_manifests_checked"], 3)
         self.assertEqual(audit["cross_report_consistency_status"], "passed")
         self.assertGreater(audit["overlapping_candles_checked"], 0)
 
