@@ -184,6 +184,44 @@ def _validate_input(report: dict[str, Any]):
     return start, cutoff, generated
 
 
+def _us_market_rows(snapshot: Any) -> tuple[list[list[str]], list[str]]:
+    if not isinstance(snapshot, dict):
+        return [], []
+    labels = {
+        "indices": "Índices", "volatility": "Volatilidad", "futures": "Futuros",
+        "rates": "Tasas", "dollar": "Dólar", "commodities": "Materias primas",
+        "sectors": "Sectores",
+    }
+    rows, unavailable = [], []
+    groups = snapshot.get("groups") or {}
+    if not isinstance(groups, dict):
+        return [], []
+    for category, items in groups.items():
+        if not isinstance(items, list):
+            continue
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            if item.get("status") != "ok":
+                unavailable.append(str(item.get("symbol", "símbolo desconocido")))
+                continue
+            change = (
+                f"{item['change_basis_points']:+.1f} pb"
+                if item.get("unit") == "yield_percent" and item.get("change_basis_points") is not None
+                else f"{item['change_percent']:+.2f}%"
+                if item.get("change_percent") is not None else "N/D"
+            )
+            rows.append([
+                labels.get(category, category),
+                str(item.get("name", "Instrumento")),
+                str(item.get("symbol", "N/D")),
+                f"{item['last_price']:.6g}",
+                change,
+                str(item.get("observed_at_et", "N/D")),
+            ])
+    return rows, unavailable
+
+
 def _summary_flowables(value: Any, styles) -> list[Any]:
     if isinstance(value, list):
         return [paragraph(f"• {_display(item)}", styles["body"]) for item in value[:7]]
@@ -234,6 +272,22 @@ def build_intraday_snapshot_pdf(report: dict[str, Any], output_directory: Path |
         section_heading("Resumen ejecutivo", styles),
         *_summary_flowables(report.get("executive_summary"), styles),
     ]
+    market_rows, unavailable_market_symbols = _us_market_rows(report.get("us_equity_market_data"))
+    story.append(section_heading("Mercado bursátil estadounidense", styles))
+    if market_rows:
+        story.append(data_table(
+            ["Grupo", "Instrumento", "Ticker", "Último", "Cambio", "Observado (ET)"],
+            market_rows, styles, widths=[20*mm, 43*mm, 20*mm, 22*mm, 20*mm, 47*mm],
+        ))
+    else:
+        story.append(paragraph("No se obtuvieron cotizaciones bursátiles verificables para este corte.", styles["body"]))
+    if unavailable_market_symbols:
+        story.append(paragraph("Símbolos no disponibles: " + ", ".join(unavailable_market_symbols), styles["small"]))
+    story.append(paragraph(
+        "Fuente: Yahoo Finance (endpoint público best-effort); las marcas de observación y URLs exactas se conservan "
+        "en el manifiesto. Las cotizaciones pueden estar retrasadas y no son un feed de ejecución.",
+        styles["small"],
+    ))
 
     for symbol in REQUIRED_SYMBOLS:
         item = report["symbols"][symbol]
