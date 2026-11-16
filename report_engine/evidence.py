@@ -168,8 +168,6 @@ def audit_evidence_manifest(path: str | Path, workspace_root: str | Path) -> dic
             partial = report.get("is_partial") is True
             if partial:
                 if local_cutoff.date() != report_date:
-                    findings.append("Partial report cutoff is not on report_date_local.")
-                if local_cutoff.date() != report_date:
                     findings.append("Partial local-day report cutoff is outside report_date_local.")
             else:
                 if local_cutoff.date() != report_date + timedelta(days=1) or local_cutoff.time().isoformat() != "00:00:00":
