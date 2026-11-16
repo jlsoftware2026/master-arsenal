@@ -54,6 +54,8 @@ def _label(value: Any) -> str:
         "completed_historical_local_day": "Día local histórico completado",
         "Binance public REST API": "API REST pública de Binance",
         "spot": "Spot", "usdm": "Futuros USDⓈ-M",
+        "premarket": "Premercado", "regular": "Sesión regular",
+        "postmarket": "Posmercado", "closed": "Mercado cerrado",
     }
     return labels.get(str(value), str(value) if value is not None else "No suministrado")
 
@@ -265,6 +267,10 @@ def _build_session_pdf(report: dict[str, Any], output_directory: Path | str, kin
             ("Análisis de la cuenta Binance", _label(report.get("binance_account_data_status", "unavailable"))),
             ("Cobertura del mercado bursátil estadounidense", _label(report.get("us_equity_market_data_status", "not_integrated"))),
             ("Horario de la sesión bursátil estadounidense", _label(report.get("us_equity_session_state", "not_available"))),
+            ("Última sesión bursátil completada (ET)", (report.get("us_equity_calendar") or {}).get("last_completed_session_date", "No disponible")),
+            ("Próxima sesión bursátil (ET)", (report.get("us_equity_calendar") or {}).get("next_session_date", "No disponible")),
+            ("Apertura / cierre oficial (ET)", f"{(report.get('us_equity_calendar') or {}).get('session_open_et') or 'N/D'} / {(report.get('us_equity_calendar') or {}).get('session_close_et') or 'N/D'}"),
+            ("Cierre anticipado", _label((report.get("us_equity_calendar") or {}).get("early_close", "not_available"))),
             ("Comparación del pronóstico de apertura", _label(report.get("opening_forecast_scorecard_status", "not_available"))),
             ("Horario de activación", _label(report.get("activation_timing_status", "not_automated"))),
             ("Perspectiva del informe", "Día calendario dominicano anterior a la próxima sesión estadounidense" if kind == "opening"
