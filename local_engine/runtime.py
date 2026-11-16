@@ -20,6 +20,7 @@ from .protocol import JobValidationError, load_job, utc_now, validate_job
 
 from binance_data_engine.client import BinancePublicClient
 from report_engine.timezone import REPORT_TIMEZONE, current_local_report_date
+from report_engine.us_market_calendar import classify_us_equity_session
 
 from report_engine import (
     build_skills_audit_pdf, generate_closing_report_pdf,
@@ -643,6 +644,33 @@ class JobRunner:
         closing_reports = [x["report"] for x in manifest_reports if x["report_type"] == "closing"]
         intraday_reports = [x["report"] for x in manifest_reports if x["report_type"] == "intraday"]
         all_reports = [x["report"] for x in manifest_reports]
+        def calendar_evidence_reconciles(report):
+            evidence = report.get("us_equity_calendar")
+            if not isinstance(evidence, dict) or evidence.get("status") != "ok":
+                return False
+            try:
+                as_of = datetime.fromisoformat(evidence["as_of_utc"].replace("Z", "+00:00"))
+                recomputed = classify_us_equity_session(as_of)
+            except (KeyError, TypeError, ValueError):
+                return False
+            if recomputed.get("status") != "ok":
+                return False
+            fields = (
+                "session_state", "is_session_date", "session_date_et",
+                "session_open_utc", "session_close_utc", "early_close",
+                "last_completed_session_date", "last_completed_session_close_utc",
+                "next_session_date", "next_session_open_utc",
+            )
+            return all(evidence.get(field) == recomputed.get(field) for field in fields)
+        us_calendar_ok = bool(all_reports) and all(
+            calendar_evidence_reconciles(item) for item in all_reports
+        )
+        us_calendar_failed = any(
+            isinstance(item.get("us_equity_calendar"), dict)
+            and item["us_equity_calendar"].get("status") == "ok"
+            and not calendar_evidence_reconciles(item)
+            for item in all_reports
+        )
         local_windows_ok = bool(all_reports) and len(evidence_manifests) == len(manifest_paths) and all(
             item.get("status") == "passed" for item in evidence_manifests
         ) and all(
@@ -730,12 +758,16 @@ class JobRunner:
                       x.get("cutoff_resolution") == "execution_time_local_default" for x in intraday_reports
                   ) else "No hay un informe intradía conservado que demuestre la ruta sin hora de corte explícita.",
                   "Ejecutar un trabajo intradía sin parámetro de hora de corte."),
-            check("US-01", "Fines de semana y festivos bursátiles de EE. UU.", "not_implemented", "Alto",
-                  "No hay un adaptador de calendario bursátil integrado.",
-                  "Implementar y probar de forma independiente la selección de la última sesión en fines de semana y festivos."),
-            check("US-02", "Horario bursátil y cambio horario de EE. UU.", "partial", "Medio",
-                  "Los horarios programados de apertura/cierre y los timestamps ET/local se convierten con reglas DST; la clasificación premercado/regular/posmercado y el calendario bursátil aún no están integrados.",
-                  "Añadir un calendario bursátil autorizado para completar la clasificación de sesión y la selección de sesiones en días hábiles, fines de semana y festivos."),
+            check("US-01", "Fines de semana y festivos bursátiles de EE. UU.",
+                  "passed" if us_calendar_ok else "failed" if us_calendar_failed else "not_verified", "Alto",
+                  "La evidencia XNYS de cada informe se recalculó de forma independiente y coincide con la última sesión completada y la siguiente sesión."
+                  if us_calendar_ok else "La evidencia del calendario XNYS está ausente, no disponible o no coincide con una recalculación independiente.",
+                  "Conservar manifiestos de apertura, cierre e intradía y corregir cualquier discrepancia de calendario."),
+            check("US-02", "Horario bursátil y cambio horario de EE. UU.",
+                  "passed" if us_calendar_ok else "failed" if us_calendar_failed else "not_verified", "Medio",
+                  "La clasificación premercado/regular/posmercado, los horarios ET/local y cierres anticipados coinciden con el calendario XNYS recalculado."
+                  if us_calendar_ok else "La clasificación de sesión y los límites ET/DST no se pudieron reconciliar de forma independiente.",
+                  "Regenerar los informes con evidencia XNYS verificable y volver a ejecutar la auditoría."),
             check("ACCT-01", "Ausencia de acceso a cuenta privada de Binance", "disclosed" if account_disclosed else "not_verified",
                   "Medio", "Los informes indican expresamente que el análisis de la cuenta privada no está disponible." if account_disclosed
                   else "Ningún informe conservado demuestra que se declare la falta de datos de cuenta.",
@@ -806,12 +838,13 @@ class JobRunner:
             "Las velas sin completar se excluyen y se conserva por separado el límite de la última vela cerrada.",
             "El esquema de evidencia v2 registra ventanas locales/UTC y hashes SHA-256; el QA de PDF y las pruebas de escritorio son independientes.",
             "Los metadatos de las Skills adaptadas están versionados; los hashes de los archivos originales están registrados, pero el contenido ZIP no se verifica dentro del repositorio.",
-            "Siguen pendientes el calendario bursátil completo de EE. UU., el libro mayor de la cuenta privada y la comparación apertura/cierre. El manifiesto de CI no está adjunto a esta auditoría local, por lo que su estado queda NO VERIFICADO en este documento.",
+            "El calendario XNYS y la clasificación de sesión se recalculan desde la marca temporal de referencia; siguen pendientes los precios del mercado bursátil estadounidense, el libro mayor privado de Binance y la comparación apertura/cierre. El manifiesto de CI no está adjunto a esta auditoría local y queda NO VERIFICADO.",
         ]
         changes_applied = [
             "Implementación de adquisición por día local dominicano y validación PDF para apertura, cierre e intradía.",
             "Añadido soporte para cierres parciales y hora de corte local predeterminada según el momento de ejecución para intradía.",
             "Añadido esquema de evidencia v2 con metadatos de ventana, hash del PDF y hash de velas originales/período de calentamiento.",
+            "Integrado calendario bursátil XNYS con feriados, cierres anticipados, DST y clasificación de sesión; la auditoría recalcula la evidencia de calendario de forma independiente.",
             "Añadidas pruebas de escritorio, severidades/veredictos en español, fecha local de auditoría e historial de versiones/cambios.",
             "Localizados los tres PDF operativos y la auditoría; añadidos resúmenes ejecutivos de siete puntos y referencias horarias ET/local con reglas DST.",
             "Ajustada la nomenclatura del PDF de apertura para usar la fecha local de solicitud y reforzada la auditoría de nombres de archivo/manifiestos.",
@@ -842,7 +875,7 @@ class JobRunner:
             },
             {
                 "date": audit_date_local, "version": "original-skill-parity",
-                "change": "La cobertura completa del calendario/mercado estadounidense, la cuenta privada, el scorecard y la paridad total de la matriz de auditoría siguen incompletos.",
+                "change": "La cobertura de precios del mercado estadounidense, la cuenta privada, el scorecard y la paridad total de la matriz de auditoría siguen incompletos; el calendario XNYS ya está integrado.",
             },
         ]
         report = {
