@@ -517,7 +517,9 @@ class JobRunner:
         closing_reports = [x["report"] for x in manifest_reports if x["report_type"] == "closing"]
         intraday_reports = [x["report"] for x in manifest_reports if x["report_type"] == "intraday"]
         all_reports = [x["report"] for x in manifest_reports]
-        local_windows_ok = bool(all_reports) and all(
+        local_windows_ok = bool(all_reports) and len(evidence_manifests) == len(manifest_paths) and all(
+            item.get("status") == "passed" for item in evidence_manifests
+        ) and all(
             item.get("report_timezone") == REPORT_TIMEZONE
             and item.get("window_semantics") == "[start, cutoff)"
             and isinstance(item.get("is_partial"), bool)
@@ -532,7 +534,9 @@ class JobRunner:
             ).isoformat()
             for item in opening_reports
         )
-        closing_windows_ok = bool(closing_reports) and all(
+        closing_windows_ok = bool(closing_reports) and any(
+            item.get("is_partial") is True for item in closing_reports
+        ) and all(
             item.get("cutoff_resolution") in {
                 "explicit_local_cutoff", "execution_time_local_default", "completed_historical_local_day"
             }
@@ -656,6 +660,9 @@ class JobRunner:
             "cross_report_consistency_status": cross_report["status"],
             "overlapping_candles_checked": cross_report["overlapping_candles_checked"],
             "findings_count": len(findings),
+            "desk_checks_count": len(desk_checks),
+            "audit_verdict": audit_verdict,
+            "audit_date_local": audit_date_local,
             "read_only": True,
         }
 
