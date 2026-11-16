@@ -301,11 +301,20 @@ def audit_evidence_manifest(path: str | Path, workspace_root: str | Path) -> dic
                 findings.append(f"{symbol}: unsupported interval in evidence.")
             else:
                 elapsed_ms = int((end - start).total_seconds() * 1000)
-                if elapsed_ms % interval_ms:
-                    findings.append(f"{symbol}: report window is not aligned to the candle interval.")
                 expected_window = elapsed_ms // interval_ms
+                has_partial_final_interval = elapsed_ms % interval_ms != 0
+                if (has_partial_final_interval
+                        and methodology.get("partial_final_interval_excluded") is not True):
+                    findings.append(f"{symbol}: unfinished final interval was not explicitly excluded.")
                 if len(report_candles) != expected_window:
-                    findings.append(f"{symbol}: report window is missing expected candles.")
+                    findings.append(f"{symbol}: report window is missing expected fully closed candles.")
+                expected_data_cutoff = start + timedelta(milliseconds=expected_window * interval_ms)
+                try:
+                    data_cutoff = _strict_utc(report.get("data_cutoff_utc"))
+                    if data_cutoff != expected_data_cutoff or data_cutoff > end:
+                        findings.append(f"{symbol}: data_cutoff_utc does not match the last fully closed interval boundary.")
+                except Exception:
+                    findings.append(f"{symbol}: data_cutoff_utc is missing or invalid.")
                 if report_candles and report_candles[0].open_time != start:
                     findings.append(f"{symbol}: first report candle does not start at the declared window start.")
                 if report_candles and report_candles[-1].close_time != end - timedelta(milliseconds=1):
