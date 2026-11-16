@@ -207,6 +207,13 @@ class LocalEngineTests(unittest.TestCase):
 
 
     def test_opening_and_closing_jobs_generate_pdf_after_approval(self):
+        account_export_directory = self.manager.workspace.directory("data/account_exports")
+        (account_export_directory / "transaction-history.csv").write_text(
+            "User_ID,UTC_Time,Account,Operation,Coin,Change,Remark\\n"
+            "private-user-123,2026-11-11T14:00:00Z,Spot,Deposit,USDT,100,private note\\n"
+            "private-user-123,2026-11-16T14:00:00Z,USD-M Futures,Funding Fee,USDT,-0.5,private note\\n",
+            encoding="utf-8",
+        )
         for job_type, expected_dir, expected_name, report_date in (
             ("market.opening_report", "reports/opening", "apertura-mercado_2026-11-12.pdf", "2026-11-12"),
             ("market.closing_report", "reports/closing", "cierre-mercado_2026-11-11.pdf", "2026-11-11"),
@@ -233,6 +240,10 @@ class LocalEngineTests(unittest.TestCase):
             self.assertTrue(self.manager.workspace.directory(result["result"]["artifact_path"]).is_file())
             manifest = self.manager.workspace.directory(result["result"]["manifest_path"])
             self.assertTrue(manifest.is_file())
+            if job_type == "market.closing_report":
+                manifest_text = manifest.read_text(encoding="utf-8")
+                self.assertNotIn("private-user-123", manifest_text)
+                self.assertNotIn("private note", manifest_text)
 
         intraday_job = self._approved_job("market.intraday_snapshot", {
             "interval": "1h", "market": "spot"
@@ -262,6 +273,7 @@ class LocalEngineTests(unittest.TestCase):
         self.assertEqual(audit["us_session_status"], "passed")
         self.assertEqual(audit["us_holiday_status"], "passed")
         self.assertEqual(audit["us_market_data_provenance_status"], "passed")
+        self.assertEqual(audit["account_export_status"], "passed")
         self.assertEqual(audit["scorecard_status"], "passed")
         self.assertGreater(audit["overlapping_candles_checked"], 0)
 
