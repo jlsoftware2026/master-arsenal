@@ -211,11 +211,23 @@ def _us_market_rows(snapshot: Any) -> tuple[list[list[str]], list[str]]:
                 else f"{item['change_percent']:+.2f}%"
                 if item.get("change_percent") is not None else "N/D"
             )
+            unit = item.get("unit")
+            value = item["last_price"]
+            if unit == "yield_percent":
+                price_label = f"{value:.3f}%"
+            elif unit == "USD_per_barrel":
+                price_label = f"${value:.2f}/bbl"
+            elif unit == "USD_per_troy_ounce":
+                price_label = f"${value:.2f}/oz"
+            elif unit == "ETF_USD":
+                price_label = f"${value:.2f}"
+            else:
+                price_label = f"{value:.2f} pts"
             rows.append([
                 labels.get(category, category),
                 str(item.get("name", "Instrumento")),
                 str(item.get("symbol", "N/D")),
-                f"{item['last_price']:.6g}",
+                price_label,
                 change,
                 str(item.get("observed_at_et", "N/D")),
             ])
