@@ -251,28 +251,28 @@ def _build_session_pdf(report: dict[str, Any], output_directory: Path | str, kin
                 ("Variación del precio", _text(item.get("performance"))),
                 ("Ticker de 24 horas", _ticker_summary(item.get("ticker_24h"))),
                 ("Velas de calentamiento de indicadores", (item.get("indicator_history") or {}).get("candle_count", "No suministrado")),
-                ("Paginación de velas", "completa" if (item.get("pagination") or {}).get("completa") else "no verificada"),
+                ("Paginación de velas", "completa" if (item.get("pagination") or {}).get("complete") else "no verificada"),
                 ("Contexto de derivados", _derivatives_summary(item.get("derivatives"))),
             ], styles),
-            data_table(["Technical indicator", "Value"], _indicator_rows(item.get("indicators")), styles,
+            data_table(["Indicador técnico", "Valor"], _indicator_rows(item.get("indicators")), styles,
                        widths=[45*mm, 120*mm]),
         ])
         issues = item.get("validation") or []
         if issues:
             issue_rows = [[
-                str(issue.get("code", "unknown")),
-                str(issue.get("severity", "warning")),
+                str(issue.get("code", "desconocido")),
+                str(issue.get("severity", "advertencia")),
                 str(issue.get("message", "")),
             ] for issue in issues if isinstance(issue, dict)]
             if issue_rows:
                 story.extend([
-                    section_heading(f"{symbol} data validation issues", styles),
-                    data_table(["Issue", "Severidad", "Details"], issue_rows, styles,
+                    section_heading(f"{symbol}: problemas de validación de datos", styles),
+                    data_table(["Incidencia", "Severidad", "Detalles"], issue_rows, styles,
                                widths=[28*mm, 22*mm, 115*mm]),
                 ])
         else:
             story.append(paragraph(
-                f"{symbol}: no validation issues were supplied; this is not proof of live data completeness.",
+                f"{symbol}: no se suministraron incidencias de validación; esto no demuestra que los datos en vivo estén completos.",
                 styles["small"],
             ))
         candles = item.get("candles") or []
@@ -281,9 +281,9 @@ def _build_session_pdf(report: dict[str, Any], output_directory: Path | str, kin
             closes = [c["close"] for c in candles]
             volumes = [c["volume"] for c in candles]
             story.extend([
-                MarketChart(f"{symbol} close price — session only", closes, labels, "line"),
+                MarketChart(f"{symbol}: precio de cierre — solo sesión", closes, labels, "line"),
                 Spacer(1, 2 * mm),
-                MarketChart(f"{symbol} base-asset volume — session only", volumes, labels, "bar"),
+                MarketChart(f"{symbol}: volumen del activo base — solo sesión", volumes, labels, "bar"),
             ])
     for heading, key in (
         ("Estructura del mercado e interpretación técnica", "technical_analysis"),
@@ -306,7 +306,7 @@ def _build_session_pdf(report: dict[str, Any], output_directory: Path | str, kin
         if rows:
             story.extend([
                 section_heading(heading, styles),
-                data_table(["Title", "Editor", "Published UTC", "Source URL", "Relevance"],
+                data_table(["Título", "Editor", "Publicado en UTC", "URL de origen", "Relevancia"],
                            rows, styles, widths=[32*mm, 22*mm, 24*mm, 42*mm, 45*mm]),
             ])
     context_sources = report.get("context_sources") or []
@@ -322,7 +322,7 @@ def _build_session_pdf(report: dict[str, Any], output_directory: Path | str, kin
         if context_rows:
             story.extend([
                 section_heading("Registro de consulta de fuentes macro/noticias", styles),
-                data_table(["Editor", "Tipo", "Estado", "Retrieved UTC", "Items / error", "URL del feed"],
+                data_table(["Editor", "Tipo", "Estado", "Consultado en UTC", "Elementos / error", "URL del feed"],
                            context_rows, styles, widths=[25*mm, 15*mm, 18*mm, 30*mm, 40*mm, 37*mm]),
             ])
     provenance = report.get("provenance")
@@ -331,8 +331,8 @@ def _build_session_pdf(report: dict[str, Any], output_directory: Path | str, kin
     story.extend([
         section_heading("Aviso importante", styles),
         paragraph(
-            "This report is informational and is not investment advice. Market scenarios are conditional, "
-            "uncertain interpretations rather than guarantees. Verify source data and risk independently.",
+            "Este informe es informativo y no constituye asesoramiento de inversión. Los escenarios de mercado son interpretaciones condicionales e inciertas, "
+            "no garantías. Verifique de forma independiente los datos de origen y los riesgos.",
             styles["small"],
         ),
     ])
