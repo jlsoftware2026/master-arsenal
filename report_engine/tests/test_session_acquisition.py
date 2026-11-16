@@ -65,6 +65,11 @@ class SessionAcquisitionTests(unittest.TestCase):
         report = acquire_session_report_evidence(FakeClient(), START.date())
         self.assertEqual(report["session_start_utc"], "2026-11-14T04:00:00Z")
         self.assertEqual(report["session_end_utc"], "2026-11-15T04:00:00Z")
+        self.assertIn("2026-11-14", report["executive_summary"])
+        self.assertIn("día calendario local completado", report["executive_summary"])
+        opening = acquire_session_report_evidence(FakeClient(), START.date(), report_kind="opening")
+        self.assertIn("2026-11-13", opening["executive_summary"])
+        self.assertIn("día calendario local anterior", opening["executive_summary"])
         for symbol in ("BTCUSDT", "ETHUSDT"):
             item = report["symbols"][symbol]
             self.assertEqual(item["candle_count"], 24)
