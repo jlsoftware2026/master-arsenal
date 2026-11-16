@@ -80,6 +80,16 @@ class AccountExportTests(unittest.TestCase):
             self.assertEqual(result["status"], "partial")
             self.assertEqual(result["unsupported_files"], ["account_export_001"])
 
+    def test_ambiguous_comma_decimal_is_rejected_not_misread(self):
+        with TemporaryDirectory() as temp:
+            self.write_csv(
+                Path(temp) / "statement.csv",
+                "uid,2026-11-16T10:00:00Z,Spot,Deposit,USDT,1,23,\n",
+            )
+            result = collect_binance_account_exports(temp, START, END)
+            self.assertEqual(result["status"], "partial")
+            self.assertTrue(any("decimal separator" in item for item in result["parse_errors"]))
+
     def test_missing_directory_is_unavailable_and_does_not_infer_account_data(self):
         with TemporaryDirectory() as temp:
             result = collect_binance_account_exports(Path(temp) / "missing", START, END)
