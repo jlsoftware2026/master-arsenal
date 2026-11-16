@@ -40,19 +40,38 @@ def _text(value: Any) -> str:
 def _validate(report: dict[str, Any]):
     if not isinstance(report, dict):
         raise ValueError("Report input must be an object")
-    required = {"session_start_utc", "session_end_utc", "generated_at_utc", "symbols"}
+    required = {"session_start_utc", "session_end_utc", "generated_at_utc", "symbols",
+                "report_timezone", "report_date_local", "window_start_local", "cutoff_local"}
     missing = required - set(report)
     if missing:
         raise ValueError(f"Missing required report fields: {sorted(missing)}")
     start = _utc(report["session_start_utc"], "session_start_utc")
     end = _utc(report["session_end_utc"], "session_end_utc")
     generated = _utc(report["generated_at_utc"], "generated_at_utc")
-    if start.hour or start.minute or start.second or start.microsecond:
-        raise ValueError("Completed market-day session must begin at 00:00 UTC")
-    if end != start + timedelta(days=1):
-        raise ValueError("Completed market-day session must cover exactly one UTC day")
+    if report["report_timezone"] != "America/Santo_Domingo":
+        raise ValueError("Report timezone must be America/Santo_Domingo")
+    try:
+        local_start = datetime.fromisoformat(report["window_start_local"])
+        local_end = datetime.fromisoformat(report["cutoff_local"])
+        report_date = datetime.fromisoformat(report["report_date_local"]).date()
+    except (TypeError, ValueError) as exc:
+        raise ValueError("Local report date and window timestamps must be valid ISO-8601 values") from exc
+    if local_start.tzinfo is None or local_end.tzinfo is None:
+        raise ValueError("Local report window timestamps must include their UTC offsets")
+    if local_start.astimezone(timezone.utc) != start or local_end.astimezone(timezone.utc) != end:
+        raise ValueError("Local and UTC report window boundaries do not match")
+    if local_start.date() != report_date or local_end.date() != report_date:
+        raise ValueError("Local report window must remain within report_date_local")
+    if end <= start:
+        raise ValueError("Report window cutoff must be later than its start")
+    is_partial = report.get("is_partial") is True
+    if is_partial:
+        if end >= start + timedelta(days=1):
+            raise ValueError("A partial local-day report cannot extend beyond the next local midnight")
+    elif end - start != timedelta(days=1):
+        raise ValueError("A completed local-day report must cover exactly one calendar day")
     if generated < end:
-        raise ValueError("generated_at_utc cannot precede the completed session end")
+        raise ValueError("generated_at_utc cannot precede the report cutoff")
     symbols = report["symbols"]
     if not isinstance(symbols, dict):
         raise ValueError("symbols must be an object keyed by symbol")
@@ -73,7 +92,7 @@ def _validate(report: dict[str, Any]):
             opened = _utc(candle.get("open_time"), f"{symbol}.candles[{index}].open_time")
             closed = _utc(candle.get("close_time"), f"{symbol}.candles[{index}].close_time")
             if opened < start or opened >= end or closed < opened or closed >= end:
-                raise ValueError(f"{symbol}.candles[{index}] is outside the completed session")
+                raise ValueError(f"{symbol}.candles[{index}] is outside the report window")
             if previous is not None and opened <= previous:
                 raise ValueError(f"{symbol} candles must be strictly ordered and unique")
             previous = opened
@@ -144,15 +163,17 @@ def _build_session_pdf(report: dict[str, Any], output_directory: Path | str, kin
     start, end, generated = _validate(report)
     if kind not in {"opening", "closing"}:
         raise ValueError("kind must be 'opening' or 'closing'")
-    date_text = start.strftime("%Y-%m-%d")
+    date_text = report["report_date_local"]
     filename = ("apertura-mercado_" if kind == "opening" else "cierre-mercado_") + date_text + ".pdf"
     title = "Market Opening Report" if kind == "opening" else "Market Closing Report"
     styles = report_styles()
     story = [
         Paragraph(title, styles["title"]),
-        Paragraph("Completed UTC market-day analysis for BTCUSDT and ETHUSDT", styles["subtitle"]),
+        Paragraph("America/Santo_Domingo local-calendar analysis for BTCUSDT and ETHUSDT", styles["subtitle"]),
         key_value_table([
-            ("Session", f"{start.isoformat().replace('+00:00', 'Z')} to {end.isoformat().replace('+00:00', 'Z')}"),
+            ("Local reporting window", f"{report['window_start_local']} to {report['cutoff_local']} ({report['report_timezone']})"),
+            ("UTC evidence window", f"{start.isoformat().replace('+00:00', 'Z')} to {end.isoformat().replace('+00:00', 'Z')} (cutoff exclusive)"),
+            ("Window status", "PARTIAL LOCAL DAY" if report.get("is_partial") else "COMPLETED LOCAL DAY"),
             ("Generated at UTC", generated.isoformat().replace("+00:00", "Z")),
             ("Primary source", report.get("source", "Not specified")),
             ("Market", report.get("market", "Not specified")),
