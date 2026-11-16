@@ -431,6 +431,8 @@ class JobRunner:
         manifest_directory = self.manager.workspace.directory("data/manifests")
         manifest_paths = sorted(manifest_directory.glob("*.evidence.json"))
         evidence_manifests = []
+        manifest_reports = []
+        verified_manifest_paths = []
         for manifest_path in manifest_paths:
             resolved_manifest = manifest_path.resolve(strict=True)
             if not resolved_manifest.is_relative_to(manifest_directory):
@@ -440,7 +442,16 @@ class JobRunner:
                     "recommendation": "Quarantine the manifest and investigate workspace integrity.",
                 })
                 continue
+            verified_manifest_paths.append(resolved_manifest)
             try:
+                manifest_payload = json.loads(resolved_manifest.read_text(encoding="utf-8"))
+                manifest_report = manifest_payload.get("report")
+                if isinstance(manifest_report, dict):
+                    manifest_reports.append({
+                        "report_type": manifest_payload.get("report_type"),
+                        "report": manifest_report,
+                        "manifest": resolved_manifest.name,
+                    })
                 audit_result = audit_evidence_manifest(
                     resolved_manifest, self.manager.workspace.root
                 )
@@ -458,7 +469,7 @@ class JobRunner:
                     "recommendation": "Quarantine malformed evidence and regenerate the report.",
                 })
         cross_report = audit_cross_report_consistency(
-            [path for path in manifest_paths if path.is_file()],
+            verified_manifest_paths,
             self.manager.workspace.root,
         )
         if cross_report["status"] == "failed":
@@ -493,20 +504,6 @@ class JobRunner:
                 "evidence": "No opening, closing, or intraday PDF files were found in the workspace.",
                 "recommendation": "Generate reports before attempting a full cross-report audit.",
             })
-        manifest_reports = []
-        for manifest_path in manifest_paths:
-            try:
-                manifest_payload = json.loads(manifest_path.read_text(encoding="utf-8"))
-                manifest_report = manifest_payload.get("report")
-                if isinstance(manifest_report, dict):
-                    manifest_reports.append({
-                        "report_type": manifest_payload.get("report_type"),
-                        "report": manifest_report,
-                        "manifest": manifest_path.name,
-                    })
-            except Exception:
-                continue
-
         def check(check_id, title, status, severity, evidence, recommendation):
             return {
                 "id": check_id, "case": title, "status": status, "severity": severity,
