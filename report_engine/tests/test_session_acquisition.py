@@ -51,7 +51,7 @@ class FakeClient:
 
 class SessionAcquisitionTests(unittest.TestCase):
     def setUp(self):
-        self.market = patch("report_engine.session_acquisition.collect_us_market_snapshot", return_value:{
+        self.market = patch("report_engine.session_acquisition.collect_us_market_snapshot", return_value={
     "status": "unavailable", "provider": "Fixture",
     "as_of_utc": "2026-11-16T15:00:00Z",
     "expected_instruments": 0, "available_instruments": 0,
