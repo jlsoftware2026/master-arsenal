@@ -621,6 +621,7 @@ class JobRunner:
             and item.get("report_date_local") == item.get("requested_report_date_local")
             for item in closing_reports
         )
+        source_skill_integrity = verify_original_skill_packages(Path(__file__).resolve().parents[1])
         account_disclosed = bool(all_reports) and all(
             item.get("binance_account_data_status") == "unavailable" for item in all_reports
         )
@@ -668,9 +669,11 @@ class JobRunner:
                   "high", "Closing reports disclose that scorecard linkage is not implemented." if scorecard_missing
                   else "No closing report proves scorecard linkage or explicit unavailability.",
                   "Persist opening scenarios and compare them with same-date observed outcomes."),
-            check("PKG-01", "Original skill package integrity and version history", "not_verified", "high",
-                  "The local workspace does not contain a signed source-package integrity record.",
-                  "Add package hashes, version identifiers, and inspectable change history to the audit input."),
+            check("PKG-01", "Original skill package integrity and version history",
+                  "passed" if source_skill_integrity["status"] == "passed" else "failed", "high",
+                  "All four user-supplied ZIP archives, internal SKILL.md files, and adapted skill identities were SHA-256/ZIP verified."
+                  if source_skill_integrity["status"] == "passed" else "; ".join(source_skill_integrity["findings"]),
+                  "Preserve the original archive hashes and update the source manifest only through an explicit reviewed change."),
             check("CI-01", "Cross-platform CI evidence on audited code head", "not_verified", "high",
                   "No trusted CI run manifest is attached to this local workspace audit.",
                   "Attach the final-head Ubuntu/Windows Python 3.11/3.12 Actions run and inspect all jobs."),
@@ -698,7 +701,7 @@ class JobRunner:
         change_history = [
             {
                 "date": audit_date_local, "version": __version__,
-                "change": "Phase 3 PDF reporting with Dominican local-day windows and evidence schema v2.",
+                "change": "Phase 3 PDF reporting with Dominican local-day windows, evidence schema v2, and verified original skill archives.",
             },
             {
                 "date": audit_date_local, "version": "original-skill-parity",
@@ -714,6 +717,7 @@ class JobRunner:
             "audit_verdict": audit_verdict,
             "desk_checks": desk_checks,
             "change_history": change_history,
+            "source_skill_integrity": source_skill_integrity,
             "artifacts": artifacts,
             "evidence_manifests": evidence_manifests,
             "cross_report_consistency": cross_report,
