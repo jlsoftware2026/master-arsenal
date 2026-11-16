@@ -1,7 +1,9 @@
 """Workspace, cross-process-safe job lifecycle, approval gate, and dispatcher."""
 from __future__ import annotations
 
+import base64
 import hashlib
+import io
 import json
 import os
 import platform
@@ -14,6 +16,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Iterator
 from uuid import UUID
+import zipfile
 
 from . import __version__
 from .protocol import JobValidationError, load_job, utc_now, validate_job
@@ -26,6 +29,84 @@ from report_engine import (
     generate_intraday_snapshot_pdf, generate_opening_report_pdf,
     audit_cross_report_consistency, audit_evidence_manifest, audit_market_report_artifact,
 )
+
+def verify_original_skill_packages(repository_root: Path | str) -> dict[str, Any]:
+    """Verify the exact user-supplied Claude archives and their ChatGPT adaptations."""
+    root = Path(repository_root).resolve()
+    source_root = root / "docs" / "original-skills-source"
+    manifest_path = source_root / "manifest.json"
+    expected_names = {
+        "binance-apertura-mercado", "binance-cierre-mercado",
+        "binance-momento-mercado", "binance-revision-skills",
+    }
+    findings: list[str] = []
+    packages: list[dict[str, Any]] = []
+    try:
+        manifest_bytes = manifest_path.read_bytes()
+        manifest = json.loads(manifest_bytes.decode("utf-8"))
+        declared = manifest.get("packages")
+        if not isinstance(declared, list):
+            raise ValueError("Original skill source manifest has no packages list")
+        declared_names = {item.get("name") for item in declared if isinstance(item, dict)}
+        if declared_names != expected_names or len(declared) != len(expected_names):
+            raise ValueError("Original skill source manifest must contain exactly the four named packages")
+        for item in declared:
+            name = item["name"]
+            archive_path = (source_root / item["archive"]).resolve()
+            if not archive_path.is_relative_to(source_root.resolve()):
+                raise ValueError(f"{name}: archive path escapes original skill source directory")
+            encoded = archive_path.read_text(encoding="ascii").strip()
+            archive_bytes = base64.b64decode(encoded, validate=True)
+            archive_sha = hashlib.sha256(archive_bytes).hexdigest()
+            if archive_sha != item.get("archive_sha256"):
+                raise ValueError(f"{name}: original archive SHA-256 mismatch")
+            if len(archive_bytes) != item.get("archive_bytes"):
+                raise ValueError(f"{name}: original archive byte count mismatch")
+            with zipfile.ZipFile(io.BytesIO(archive_bytes)) as archive:
+                names = archive.namelist()
+                if names != item.get("zip_members") or names != [f"{name}/SKILL.md"]:
+                    raise ValueError(f"{name}: original archive contains unexpected package members")
+                if archive.testzip() is not None:
+                    raise ValueError(f"{name}: original ZIP CRC validation failed")
+                source_bytes = archive.read(f"{name}/SKILL.md")
+            source_sha = hashlib.sha256(source_bytes).hexdigest()
+            if source_sha != item.get("skill_sha256") or len(source_bytes) != item.get("skill_bytes"):
+                raise ValueError(f"{name}: original SKILL.md integrity mismatch")
+            source_text = source_bytes.decode("utf-8")
+            if not source_text.startswith("---\n") or "\n---\n" not in source_text[4:]:
+                raise ValueError(f"{name}: original SKILL.md YAML frontmatter is missing")
+            frontmatter = source_text.split("\n---", 1)[0]
+            source_name = next(
+                (line.split(":", 1)[1].strip() for line in frontmatter.splitlines()
+                 if line.startswith("name:")), None
+            )
+            if source_name != name:
+                raise ValueError(f"{name}: original SKILL.md name does not match package name")
+            adapted_path = root / "skills" / name / "SKILL.md"
+            adapted_bytes = adapted_path.read_bytes()
+            adapted_text = adapted_bytes.decode("utf-8")
+            if not adapted_text.startswith(f"# {name}\n"):
+                raise ValueError(f"{name}: ChatGPT adaptation heading does not match source package")
+            if "## Local Engine workflow" not in adapted_text or "PDF" not in adapted_text:
+                raise ValueError(f"{name}: ChatGPT adaptation is missing the Local Engine/PDF contract")
+            packages.append({
+                "name": name,
+                "status": "passed",
+                "archive_sha256": archive_sha,
+                "source_skill_sha256": source_sha,
+                "adapted_skill_sha256": hashlib.sha256(adapted_bytes).hexdigest(),
+                "archive_members": names,
+            })
+    except Exception as exc:
+        findings.append(f"{type(exc).__name__}: {exc}")
+    return {
+        "status": "passed" if not findings and len(packages) == len(expected_names) else "failed",
+        "manifest_sha256": hashlib.sha256(manifest_path.read_bytes()).hexdigest()
+            if manifest_path.is_file() else None,
+        "packages": packages,
+        "findings": findings,
+    }
+
 
 DIRECTORIES = (
     "config", "jobs/inbox", "jobs/validated", "jobs/awaiting_approval", "jobs/running",
