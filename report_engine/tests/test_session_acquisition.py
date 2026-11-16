@@ -46,6 +46,17 @@ class FakeClient:
 
 
 class SessionAcquisitionTests(unittest.TestCase):
+    def setUp(self):
+        self.context = patch("report_engine.session_acquisition.collect_market_context", return_value={
+            "macro_context": "No macro items.", "news": "No news items.",
+            "macro_sources": [], "news_sources": [], "context_status": "complete",
+            "context_limitations": "Fixture context only.",
+        })
+        self.context.start()
+
+    def tearDown(self):
+        self.context.stop()
+
     def test_evidence_contains_exact_session_and_separate_warmup(self):
         report = acquire_session_report_evidence(FakeClient(), START.date())
         self.assertEqual(report["session_start_utc"], "2026-11-14T00:00:00Z")
