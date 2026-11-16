@@ -114,11 +114,11 @@ def acquire_session_report_evidence(
         performance = report["symbols"][symbol]["performance"]
         high, low, close = performance["high"], performance["low"], performance["close"]
         bullish.append(
-            "f"{symbol}: la continuación alcista depende de la aceptación por encima del máximo observado {high}; "
+            f"{symbol}: la continuación alcista depende de la aceptación por encima del máximo observado {high}; "
             f"el escenario se invalida por debajo del mínimo observado {low}. Último cierre: {close}."
         )
         bearish.append(
-            "f"{symbol}: la continuación bajista depende de la aceptación por debajo del mínimo observado {low}; "
+            f"{symbol}: la continuación bajista depende de la aceptación por debajo del mínimo observado {low}; "
             f"el escenario se invalida por encima del máximo observado {high}. Último cierre: {close}."
         )
     report["bullish_scenario"] = " ".join(bullish) + " Niveles de referencia condicionales, no objetivos ni probabilidades."
