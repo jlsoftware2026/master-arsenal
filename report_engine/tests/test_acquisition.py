@@ -40,7 +40,19 @@ class FakeClient:
     def get_server_time(self, market):
         return self.server_time
     def get_historical_klines(self, symbol, interval, start, end, market="spot"):
-        rows = candles_for(symbol, self.omit.get(symbol, ()), self.misalign.get(symbol, ()))
+        if end <= START:
+            rows = []
+            for index in range(250):
+                opened = start + timedelta(hours=index)
+                price = Decimal("100") + index
+                rows.append(Candle(
+                    symbol=symbol, interval=interval, open_time=opened,
+                    close_time=opened + timedelta(hours=1) - timedelta(milliseconds=1),
+                    open=price, high=price + 1, low=price - 1, close=price,
+                    volume=Decimal("10"),
+                ))
+        else:
+            rows = candles_for(symbol, self.omit.get(symbol, ()), self.misalign.get(symbol, ()))
         self.last_response_metadata = {
             "http_status": 200, "retrieved_at_utc": "2024-05-07T03:01:00Z"
         }
@@ -68,7 +80,9 @@ class IntradayAcquisitionTests(unittest.TestCase):
         self.assertEqual(btc["candle_count"], 3)
         self.assertEqual(btc["expected_candle_count"], 3)
         self.assertEqual(btc["ticker_24h"]["status"], "ok")
-        self.assertEqual(btc["response_metadata"]["http_status"], 200)
+        self.assertEqual(btc["response_metadata"]["candles"]["http_status"], 200)
+        self.assertEqual(btc["indicator_history"]["candle_count"], 250)
+        self.assertIsNotNone(btc["indicators"]["ema_200"])
         self.assertEqual(len(report["provenance"]), 2)
 
     def test_missing_candle_fails_closed(self):
