@@ -22,7 +22,7 @@ from binance_data_engine.client import BinancePublicClient
 from report_engine import (
     build_skills_audit_pdf, generate_closing_report_pdf,
     generate_intraday_snapshot_pdf, generate_opening_report_pdf,
-    audit_market_report_artifact,
+    audit_cross_report_consistency, audit_evidence_manifest, audit_market_report_artifact,
 )
 
 DIRECTORIES = (
@@ -405,11 +405,68 @@ class JobRunner:
             "evidence": "The local workspace contains no trusted CI test-run manifest.",
             "recommendation": "Attach verified GitHub Actions results and separate live endpoint checks before certifying test coverage.",
         })
-        findings.append({
-            "severity": "warning", "title": "Raw market evidence not available for full recalculation",
-            "evidence": "PDF artifacts contain report output, but the audit has no separate immutable raw-candle/indicator evidence bundle to recalculate every metric.",
-            "recommendation": "Persist a source-linked evidence manifest and independently recompute indicators and overlapping report windows.",
-        })
+        manifest_directory = self.manager.workspace.directory("data/manifests")
+        manifest_paths = sorted(manifest_directory.glob("*.evidence.json"))
+        evidence_manifests = []
+        for manifest_path in manifest_paths:
+            resolved_manifest = manifest_path.resolve(strict=True)
+            if not resolved_manifest.is_relative_to(manifest_directory):
+                findings.append({
+                    "severity": "critical", "title": "Evidence manifest escaped fixed directory",
+                    "evidence": str(manifest_path),
+                    "recommendation": "Quarantine the manifest and investigate workspace integrity.",
+                })
+                continue
+            try:
+                audit_result = audit_evidence_manifest(
+                    resolved_manifest, self.manager.workspace.root
+                )
+                evidence_manifests.append(audit_result)
+                if audit_result["status"] != "passed":
+                    findings.append({
+                        "severity": "high", "title": f"Raw evidence audit failed: {resolved_manifest.name}",
+                        "evidence": "; ".join(audit_result.get("findings", [])),
+                        "recommendation": "Reacquire source data and regenerate the affected report and manifest.",
+                    })
+            except Exception as exc:
+                findings.append({
+                    "severity": "high", "title": f"Evidence manifest could not be audited: {resolved_manifest.name}",
+                    "evidence": f"{type(exc).__name__}: {exc}",
+                    "recommendation": "Quarantine malformed evidence and regenerate the report.",
+                })
+        cross_report = audit_cross_report_consistency(
+            [path for path in manifest_paths if path.is_file()],
+            self.manager.workspace.root,
+        )
+        if cross_report["status"] == "failed":
+            findings.append({
+                "severity": "high", "title": "Cross-report candle evidence mismatch",
+                "evidence": "; ".join(cross_report["mismatches"]),
+                "recommendation": "Reconcile the source acquisition and regenerate inconsistent reports.",
+            })
+        elif cross_report["status"] == "not_verified":
+            findings.append({
+                "severity": "warning", "title": "No overlapping report candles available",
+                "evidence": "Cross-report comparison could not be performed on the available manifests.",
+                "recommendation": "Generate reports with overlapping windows to enable consistency checks.",
+            })
+        manifest_names = {item.get("pdf_filename") for item in (
+            json.loads(path.read_text(encoding="utf-8")) for path in manifest_paths
+            if path.is_file()
+        )}
+        for item in artifacts:
+            if item["filename"] not in manifest_names:
+                findings.append({
+                    "severity": "high", "title": f"Evidence manifest missing for {item['filename']}",
+                    "evidence": "No matching source-linked manifest was found.",
+                    "recommendation": "Regenerate the report through the Local Engine evidence workflow.",
+                })
+        if not manifest_paths:
+            findings.append({
+                "severity": "warning", "title": "No raw evidence manifests available",
+                "evidence": "No source-linked raw-candle manifests were found in data/manifests.",
+                "recommendation": "Generate market reports through Local Engine before running a full audit.",
+            })
         if not artifacts:
             findings.append({
                 "severity": "warning", "title": "No market report artifacts available",
@@ -420,6 +477,8 @@ class JobRunner:
             "audit_date_utc": audit_date,
             "generated_at_utc": generated.isoformat().replace("+00:00", "Z"),
             "artifacts": artifacts,
+            "evidence_manifests": evidence_manifests,
+            "cross_report_consistency": cross_report,
             "findings": findings,
             "test_evidence": [],
         }
