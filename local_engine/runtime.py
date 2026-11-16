@@ -820,8 +820,11 @@ class JobRunner:
             for item in closing_reports
         )
         source_skill_integrity = verify_original_skill_packages(Path(__file__).resolve().parents[1])
-        account_disclosed = bool(all_reports) and all(
-            item.get("binance_account_data_status") == "unavailable" for item in all_reports
+        account_scope_disclosed = bool(all_reports) and all(
+            isinstance(item.get("binance_account_data"), dict)
+            and item["binance_account_data"].get("portfolio_equity_status") == "not_available"
+            and item["binance_account_data"].get("flow_adjusted_return_status") == "not_available"
+            for item in all_reports
         )
         scorecard_statuses = [
             item.get("opening_forecast_scorecard_status", "not_verified")
@@ -863,7 +866,7 @@ class JobRunner:
                   if all_operational_artifacts_ok else "No existe evidencia QA independiente aprobada para los tres tipos de PDF operativos.",
                   "Generar PDF de apertura, cierre e intradía y adjuntar los resultados independientes de QA con PyMuPDF."),
             check("CONTENT-01", "Paridad de secciones y datos de mercado", "not_verified", "Alto",
-                  "No están implementados la amplitud del mercado estadounidense, sus catalizadores, el análisis de la cuenta privada ni toda la semántica de los informes originales.",
+                  "No están implementados la amplitud del mercado estadounidense, sus catalizadores, la valoración completa de cartera ni toda la semántica de los informes originales; el CSV local solo resume movimientos.",
                   "Implementar o marcar expresamente como no disponible cada sección original; no certificar paridad con las Skills fuente."),
             check("TIME-01", "Límites del día calendario dominicano", "passed" if local_windows_ok else "not_verified",
                   "Crítico", "Todos los manifiestos conservados declaran la zona horaria IANA y la ventana semiabierta." if local_windows_ok
@@ -908,10 +911,11 @@ class JobRunner:
                   "La clasificación premercado/regular/posmercado, los horarios ET/local y cierres anticipados coinciden con el calendario XNYS recalculado."
                   if us_calendar_ok else "La clasificación de sesión y los límites ET/DST no se pudieron reconciliar de forma independiente.",
                   "Regenerar los informes con evidencia XNYS verificable y volver a ejecutar la auditoría."),
-            check("ACCT-01", "Ausencia de acceso a cuenta privada de Binance", "disclosed" if account_disclosed else "not_verified",
-                  "Medio", "Los informes indican expresamente que el análisis de la cuenta privada no está disponible." if account_disclosed
-                  else "Ningún informe conservado demuestra que se declare la falta de datos de cuenta.",
-                  "Mantener la declaración de no disponibilidad hasta contar con una fuente de solo lectura autorizada o un parser de exportaciones."),
+            check("ACCT-01", "Límites del análisis de actividad y cartera Binance",
+                  "passed" if account_scope_disclosed else "not_verified", "Medio",
+                  "Los informes separan los movimientos CSV importados de patrimonio, PnL no realizado y rentabilidad ajustada por flujos."
+                  if account_scope_disclosed else "No se demuestra que las limitaciones del análisis de cuenta estén declaradas.",
+                  "Mantener la distinción entre actividad transaccional y valoración de cartera hasta disponer de balances y posiciones completos."),
             check("ACCT-02", "Exclusión de depósitos y retiros del PnL", "not_applicable", "Alto",
                   "No está implementado el libro mayor de la cuenta privada ni el cálculo del rendimiento de cartera.",
                   "Implementar conciliación del libro mayor antes de informar rendimientos; excluir depósitos/retiros del PnL."),
@@ -1018,7 +1022,7 @@ class JobRunner:
             },
             {
                 "date": audit_date_local, "version": "original-skill-parity",
-                "change": "La cobertura de precios del mercado estadounidense, la cuenta privada, el scorecard y la paridad total de la matriz de auditoría siguen incompletos; el calendario XNYS ya está integrado.",
+                "change": "La cobertura de precios del mercado estadounidense, la valoración completa de cartera, el scorecard y la paridad total de la matriz de auditoría siguen incompletos; el calendario XNYS y la importación CSV de actividad están integrados.",
             },
         ]
         report = {
