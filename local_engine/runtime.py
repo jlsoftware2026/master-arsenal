@@ -602,6 +602,7 @@ class JobRunner:
                 "recommendation": "Generate reports before attempting a full cross-report audit.",
             })
         expected_by_id = {
+            "LANG-01": "El contenido y los encabezados de los informes operativos se entregan en español, como en las Skills originales.",
             "SKILL-01": "La estructura del ZIP original y los hashes de origen pueden verificarse de forma independiente.",
             "SKILL-02": "Las cuatro adaptaciones conservan nombres, metadatos, versionado y flujo de trabajo PDF.",
             "SKILL-03": "Los tres flujos operativos comparten contratos coherentes de fechas, datos y procedencia.",
@@ -676,7 +677,10 @@ class JobRunner:
         )
         artifact_qa_ok = bool(artifacts) and all(item.get("status") == "passed" for item in artifacts)
         desk_checks = [
-            check("SKILL-01", "Original source package metadata and ZIP structure",
+            check("LANG-01", "Idioma de los informes operativos", "not_implemented", "Alto",
+                  "Los compositores de informes operativos aún generan títulos y secciones en inglés; las Skills originales están redactadas en español.",
+                  "Localizar títulos, secciones, tablas, etiquetas de gráficos, avisos y contenido de los tres PDF operativos al español."),
+            check("SKILL-01", "Metadatos y estructura ZIP de los paquetes originales",
                   "not_verified" if source_skill_integrity["status"] == "not_verified" else "failed", "Alto",
                   "Original archive and SKILL.md hashes are recorded, but the original ZIP payloads are not stored in the repository.",
                   "Retain the exact source archives in a controlled artifact store and revalidate package members and hashes."),
