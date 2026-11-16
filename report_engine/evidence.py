@@ -12,7 +12,8 @@ from pathlib import Path
 from typing import Any
 
 from binance_data_engine.engine import analyze_candles
-from binance_data_engine.models import Candle, utc_datetime
+from binance_data_engine.models import Candle
+from binance_data_engine.validation import interval_milliseconds
 from binance_data_engine.validation import validate_candles
 
 EVIDENCE_SCHEMA = "ma.report-evidence/v1"
@@ -68,6 +69,15 @@ def write_evidence_manifest(
     return destination
 
 
+def _strict_utc(value: Any) -> datetime:
+    if not isinstance(value, str):
+        raise ValueError("Timestamp must be an ISO-8601 UTC string")
+    parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    if parsed.tzinfo is None or parsed.utcoffset() != timedelta(0):
+        raise ValueError("Timestamp must explicitly use UTC")
+    return parsed.astimezone(timezone.utc)
+
+
 def _make_candles(rows: Any, symbol: str, interval: str) -> list[Candle]:
     if not isinstance(rows, list):
         raise ValueError(f"{symbol}: candle evidence must be a list")
@@ -77,8 +87,8 @@ def _make_candles(rows: Any, symbol: str, interval: str) -> list[Candle]:
             raise ValueError(f"{symbol}: candle {index} must be an object")
         candles.append(Candle(
             symbol=symbol, interval=interval,
-            open_time=utc_datetime(row["open_time"]),
-            close_time=utc_datetime(row["close_time"]),
+            open_time=_strict_utc(row["open_time"]),
+            close_time=_strict_utc(row["close_time"]),
             open=Decimal(str(row["open"])), high=Decimal(str(row["high"])),
             low=Decimal(str(row["low"])), close=Decimal(str(row["close"])),
             volume=Decimal(str(row["volume"])),
@@ -132,8 +142,8 @@ def audit_evidence_manifest(path: str | Path, workspace_root: str | Path) -> dic
         else ("session_start_utc", "session_end_utc")
     )
     try:
-        start = utc_datetime(report[start_key])
-        end = utc_datetime(report[end_key])
+        start = _strict_utc(report[start_key])
+        end = _strict_utc(report[end_key])
         if start.tzinfo is None or end <= start:
             raise ValueError("Invalid report time window.")
         if start.utcoffset() != timedelta(0) or end.utcoffset() != timedelta(0):
@@ -161,6 +171,17 @@ def audit_evidence_manifest(path: str | Path, workspace_root: str | Path) -> dic
             history_candles = _make_candles(history_data.get("candles"), symbol, report.get("interval", "1h"))
             if len(report_candles) != item.get("candle_count"):
                 findings.append(f"{symbol}: report candle count does not match raw evidence.")
+            interval_ms = interval_milliseconds(report.get("interval", "1h"))
+            if interval_ms is None:
+                findings.append(f"{symbol}: unsupported interval in evidence.")
+            else:
+                expected_window = int((end - start).total_seconds() * 1000) // interval_ms
+                if len(report_candles) != expected_window:
+                    findings.append(f"{symbol}: report window is missing expected candles.")
+                if report_candles and report_candles[0].open_time != start:
+                    findings.append(f"{symbol}: first report candle does not start at the declared window start.")
+                if report_candles and report_candles[-1].close_time != end - timedelta(milliseconds=1):
+                    findings.append(f"{symbol}: final report candle does not close at the exclusive window boundary.")
             expected_history = history_data.get("expected_candle_count",
                                                 (report.get("indicator_methodology") or {}).get("lookback_candles"))
             if expected_history is not None and len(history_candles) != expected_history:
@@ -171,6 +192,10 @@ def audit_evidence_manifest(path: str | Path, workspace_root: str | Path) -> dic
                 if candle.open_time < start or candle.open_time >= end or candle.close_time >= end:
                     findings.append(f"{symbol}: report candle falls outside the declared UTC window.")
                     break
+            if history_candles and report_candles:
+                interval_ms = interval_milliseconds(report.get("interval", "1h"))
+                if interval_ms is not None and history_candles[-1].close_time + timedelta(milliseconds=1) != report_candles[0].open_time:
+                    findings.append(f"{symbol}: indicator warm-up does not join the report window continuously.")
             combined = history_candles + report_candles
             validation = validate_candles(combined, report.get("interval", "1h"))
             errors = [issue for issue in validation if issue.severity == "error"]
