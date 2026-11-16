@@ -763,10 +763,14 @@ class JobRunner:
                 or snapshot.get("supported_file_count") != snapshot.get("file_count")
                 or snapshot.get("parse_errors")
                 or snapshot.get("unsupported_files")
-                or snapshot.get("assumptions")
                 or snapshot.get("unknown_operation_count", 0) != 0
             ):
                 findings.append("CSV files are unsupported, partial, ambiguous, or contain parse errors")
+            allowed_assumptions = {
+                "Naive UTC_Time values were interpreted as UTC; verify the export timezone setting."
+            }
+            if not set(snapshot.get("assumptions") or []).issubset(allowed_assumptions):
+                findings.append("CSV contains an unsupported timestamp or parsing assumption")
             files = snapshot.get("files")
             if not isinstance(files, list) or len(files) != snapshot.get("file_count"):
                 return findings + ["CSV manifest file count is inconsistent"]
@@ -924,7 +928,7 @@ class JobRunner:
                   "Conservar manifiestos de apertura, cierre e intradía y corregir cualquier discrepancia de calendario."),
             check("ACCOUNT-01", "Importación CSV de actividad de cuenta con integridad verificable",
                   "passed" if account_export_ok else "not_verified", "Alto",
-                  "Los archivos CSV admitidos tienen hashes SHA-256, esquema, ventana temporal y filas clasificadas verificables."
+                  "Los archivos CSV admitidos tienen hashes SHA-256, esquema y ventana verificables; la hora UTC asumida desde UTC_Time queda expresamente advertida."
                   if account_export_ok else "; ".join(account_export_findings[:5]) or "No hay exportaciones compatibles completas y trazables para esta ventana.",
                   "Exportar el historial de transacciones Binance con el esquema admitido y colocarlo en data/account_exports."),
             check("ACCOUNT-02", "Patrimonio, PnL no realizado y rentabilidad ajustada por flujos",
