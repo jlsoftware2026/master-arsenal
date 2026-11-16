@@ -42,8 +42,9 @@ def verify_original_skill_packages(repository_root: Path | str) -> dict[str, Any
     findings: list[str] = []
     packages: list[dict[str, Any]] = []
     try:
-        manifest_bytes = manifest_path.read_bytes()
-        manifest = json.loads(manifest_bytes.decode("utf-8"))
+        manifest_text = manifest_path.read_text(encoding="utf-8").replace("\r\n", "\n").replace("\r", "\n")
+        manifest_bytes = manifest_text.encode("utf-8")
+        manifest = json.loads(manifest_text)
         declared = manifest.get("packages")
         if not isinstance(declared, list):
             raise ValueError("Original skill source manifest has no packages list")
@@ -116,7 +117,7 @@ def verify_original_skill_packages(repository_root: Path | str) -> dict[str, Any
         "adaptation_status": "passed" if len(packages) == len(expected_names) and all(
             item.get("status") == "not_verified" for item in packages
         ) else "failed",
-        "manifest_sha256": hashlib.sha256(manifest_path.read_bytes()).hexdigest()
+        "manifest_sha256": hashlib.sha256(manifest_bytes).hexdigest()
             if manifest_path.is_file() else None,
         "packages": packages,
         "findings": findings,
