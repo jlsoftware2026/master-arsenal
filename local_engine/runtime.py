@@ -106,8 +106,8 @@ def verify_original_skill_packages(repository_root: Path | str) -> dict[str, Any
                 "source_payload": "not_embedded",
             })
         findings.append(
-            "Original archive and extracted SKILL.md hashes are recorded from intake, but the ZIP payloads "
-            "are not embedded in this repository and cannot be recomputed by the runtime audit."
+            "Los hashes del archivo original y del SKILL.md extraído se registraron durante la recepción, pero los ZIP "
+            "no están incluidos en este repositorio y la auditoría de ejecución no puede recalcularlos."
         )
     except Exception as exc:
         findings.append(f"{type(exc).__name__}: {exc}")
@@ -487,8 +487,8 @@ class JobRunner:
                 resolved = candidate.resolve(strict=True)
                 if not resolved.is_relative_to(directory):
                     findings.append({
-                        "severity": "Crítico", "title": "Artifact escaped report directory",
-                        "evidence": str(candidate), "recommendation": "Quarantine and investigate the path.",
+                        "severity": "Crítico", "title": "El archivo PDF salió del directorio de informes",
+                        "evidence": str(candidate), "recommendation": "Poner el archivo en cuarentena e investigar la ruta.",
                     })
                     continue
                 payload = resolved.read_bytes()
@@ -503,29 +503,29 @@ class JobRunner:
                         "qa_status": qa["status"],
                         "page_count": qa["structural_qa"]["page_count"],
                         "issues": "; ".join(qa["missing_markers"]) if qa["missing_markers"]
-                                  else "Structural and required-content checks passed.",
+                                  else "Las comprobaciones estructurales y de contenido obligatorio fueron aprobadas.",
                     })
                     if qa["status"] != "passed":
                         findings.append({
-                            "severity": "Alto", "title": f"Required report content missing: {resolved.name}",
+                            "severity": "Alto", "title": f"Falta contenido obligatorio en el informe: {resolved.name}",
                             "evidence": item["issues"],
-                            "recommendation": "Regenerate the report with all required sections and source registers.",
+                            "recommendation": "Regenerar el informe con todas las secciones obligatorias y los registros de fuentes.",
                         })
                 except Exception as exc:
                     item.update({
-                        "qa_status": "failed", "page_count": "Unknown",
+                        "qa_status": "failed", "page_count": "Desconocido",
                         "issues": f"{type(exc).__name__}: {exc}",
                     })
                     findings.append({
-                        "severity": "Alto", "title": f"PDF structural QA failed: {resolved.name}",
+                        "severity": "Alto", "title": f"Falló la inspección estructural del PDF: {resolved.name}",
                         "evidence": item["issues"],
-                        "recommendation": "Regenerate the artifact and inspect the source evidence.",
+                        "recommendation": "Regenerar el archivo e inspeccionar la evidencia de origen.",
                     })
                 artifacts.append(item)
         findings.append({
-            "severity": "warning", "title": "CI and live-test evidence not attached",
-            "evidence": "The local workspace contains no trusted CI test-run manifest.",
-            "recommendation": "Attach verified GitHub Actions results and separate live endpoint checks before certifying test coverage.",
+            "severity": "Alto", "title": "No se adjuntó evidencia de CI ni de pruebas en vivo",
+            "evidence": "El espacio de trabajo local no contiene un manifiesto confiable de ejecuciones de CI.",
+            "recommendation": "Adjuntar resultados verificados de GitHub Actions y comprobaciones independientes de endpoints en vivo antes de certificar la cobertura de pruebas.",
         })
         manifest_directory = self.manager.workspace.directory("data/manifests")
         manifest_paths = sorted(manifest_directory.glob("*.evidence.json"))
@@ -536,9 +536,9 @@ class JobRunner:
             resolved_manifest = manifest_path.resolve(strict=True)
             if not resolved_manifest.is_relative_to(manifest_directory):
                 findings.append({
-                    "severity": "Crítico", "title": "Evidence manifest escaped fixed directory",
+                    "severity": "Crítico", "title": "El manifiesto de evidencia salió del directorio fijo",
                     "evidence": str(manifest_path),
-                    "recommendation": "Quarantine the manifest and investigate workspace integrity.",
+                    "recommendation": "Poner el manifiesto en cuarentena e investigar la integridad del espacio de trabajo.",
                 })
                 continue
             verified_manifest_paths.append(resolved_manifest)
@@ -557,15 +557,15 @@ class JobRunner:
                 evidence_manifests.append(audit_result)
                 if audit_result["status"] != "passed":
                     findings.append({
-                        "severity": "Alto", "title": f"Raw evidence audit failed: {resolved_manifest.name}",
+                        "severity": "Alto", "title": f"Falló la auditoría de evidencia sin procesar: {resolved_manifest.name}",
                         "evidence": "; ".join(audit_result.get("findings", [])),
-                        "recommendation": "Reacquire source data and regenerate the affected report and manifest.",
+                        "recommendation": "Volver a adquirir los datos de origen y regenerar el informe y el manifiesto afectados.",
                     })
             except Exception as exc:
                 findings.append({
-                    "severity": "Alto", "title": f"Evidence manifest could not be audited: {resolved_manifest.name}",
+                    "severity": "Alto", "title": f"No se pudo auditar el manifiesto de evidencia: {resolved_manifest.name}",
                     "evidence": f"{type(exc).__name__}: {exc}",
-                    "recommendation": "Quarantine malformed evidence and regenerate the report.",
+                    "recommendation": "Poner la evidencia malformada en cuarentena y regenerar el informe.",
                 })
         cross_report = audit_cross_report_consistency(
             verified_manifest_paths,
@@ -573,35 +573,35 @@ class JobRunner:
         )
         if cross_report["status"] == "failed":
             findings.append({
-                "severity": "Alto", "title": "Cross-report candle evidence mismatch",
+                "severity": "Alto", "title": "Discrepancia entre velas de evidencia de informes distintos",
                 "evidence": "; ".join(cross_report["mismatches"]),
-                "recommendation": "Reconcile the source acquisition and regenerate inconsistent reports.",
+                "recommendation": "Conciliar la adquisición de origen y regenerar los informes inconsistentes.",
             })
         elif cross_report["status"] == "not_verified":
             findings.append({
-                "severity": "warning", "title": "No overlapping report candles available",
-                "evidence": "Cross-report comparison could not be performed on the available manifests.",
-                "recommendation": "Generate reports with overlapping windows to enable consistency checks.",
+                "severity": "Medio", "title": "No hay velas superpuestas entre informes",
+                "evidence": "No se pudo comparar informes entre sí con los manifiestos disponibles.",
+                "recommendation": "Generar informes con ventanas superpuestas para habilitar las comprobaciones de coherencia.",
             })
         manifest_names = {item.get("pdf_filename") for item in evidence_manifests}
         for item in artifacts:
             if item["filename"] not in manifest_names:
                 findings.append({
-                    "severity": "Alto", "title": f"Evidence manifest missing for {item['filename']}",
-                    "evidence": "No matching source-linked manifest was found.",
-                    "recommendation": "Regenerate the report through the Local Engine evidence workflow.",
+                    "severity": "Alto", "title": f"Falta el manifiesto de evidencia de {item['filename']}",
+                    "evidence": "No se encontró un manifiesto vinculado a la fuente correspondiente.",
+                    "recommendation": "Regenerar el informe mediante el flujo de evidencia del Local Engine.",
                 })
         if not manifest_paths:
             findings.append({
-                "severity": "warning", "title": "No raw evidence manifests available",
-                "evidence": "No source-linked raw-candle manifests were found in data/manifests.",
-                "recommendation": "Generate market reports through Local Engine before running a full audit.",
+                "severity": "Alto", "title": "No hay manifiestos de evidencia sin procesar",
+                "evidence": "No se encontraron manifiestos de velas sin procesar vinculados a la fuente en data/manifests.",
+                "recommendation": "Generar informes de mercado mediante Local Engine antes de ejecutar una auditoría completa.",
             })
         if not artifacts:
             findings.append({
-                "severity": "warning", "title": "No market report artifacts available",
-                "evidence": "No opening, closing, or intraday PDF files were found in the workspace.",
-                "recommendation": "Generate reports before attempting a full cross-report audit.",
+                "severity": "Alto", "title": "No hay informes de mercado disponibles",
+                "evidence": "No se encontraron archivos PDF de apertura, cierre o intradía en el espacio de trabajo.",
+                "recommendation": "Generar informes antes de intentar una auditoría completa entre informes.",
             })
         expected_by_id = {
             "LANG-01": "El contenido y los encabezados de los informes operativos se entregan en español, como en las Skills originales.",
@@ -634,8 +634,8 @@ class JobRunner:
         def check(check_id, title, status, severity, evidence, recommendation):
             return {
                 "id": check_id, "case": title, "status": status, "severity": severity,
-                "expected": expected_by_id.get(check_id, "Required behavior must be verified."),
-                "observed": evidence, "impact": impact_by_severity.get(severity, "Impact not classified."),
+                "expected": expected_by_id.get(check_id, "El comportamiento requerido debe verificarse."),
+                "observed": evidence, "impact": impact_by_severity.get(severity, "Impacto no clasificado."),
                 "evidence": evidence, "recommendation": recommendation,
             }
 
