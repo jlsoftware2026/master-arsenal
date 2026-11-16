@@ -5,6 +5,7 @@ from tempfile import TemporaryDirectory
 import unittest
 
 from report_engine import build_intraday_snapshot_pdf
+from report_engine.intraday import _us_market_rows
 from report_engine.audit import audit_market_report_artifact
 
 
@@ -60,6 +61,27 @@ def fixture():
 
 
 class IntradayPdfTests(unittest.TestCase):
+    def test_market_snapshot_rows_format_sector_etfs_and_yield_bps(self):
+        rows, unavailable = _us_market_rows({
+            "groups": {
+                "sectors": [{
+                    "status": "ok", "name": "Technology", "symbol": "XLK",
+                    "unit": "ETF_USD", "last_price": 250.5,
+                    "change_percent": 1.25, "observed_at_et": "2026-11-16T10:00:00-05:00",
+                }],
+                "rates": [{
+                    "status": "ok", "name": "U.S. Treasury 10Y yield", "symbol": "^TNX",
+                    "unit": "yield_percent", "last_price": 4.25,
+                    "change_basis_points": -2.0, "observed_at_et": "2026-11-16T10:00:00-05:00",
+                }],
+            }
+        })
+        self.assertEqual(rows[0][3], "$250.50")
+        self.assertEqual(rows[1][4], "-2.0 pb")
+        self.assertEqual(unavailable, [])
+
+
+
     def test_creates_named_readable_pdf(self):
         with TemporaryDirectory() as temp:
             result = build_intraday_snapshot_pdf(fixture(), temp)
