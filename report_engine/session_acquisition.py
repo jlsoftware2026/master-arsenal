@@ -62,7 +62,14 @@ def acquire_session_report_evidence(
     report["session_start_utc"] = report["window_start_utc"]
     report["session_end_utc"] = report["cutoff_utc"]
     report["report_kind"] = report_kind
+    report["requested_report_date_local"] = request_date.isoformat()
     report["report_date_local"] = target_date.isoformat()
+    report["cutoff_resolution"] = (
+        "previous_local_calendar_day" if report_kind == "opening" else
+        "explicit_local_cutoff" if cutoff_local is not None else
+        "execution_time_local_default" if report_kind == "closing" and target_date == current_local_report_date(now) else
+        "completed_historical_local_day"
+    )
     report["report_timezone"] = REPORT_TIMEZONE
     report["binance_account_data_status"] = "unavailable"
     report["us_equity_market_data_status"] = "not_integrated"
