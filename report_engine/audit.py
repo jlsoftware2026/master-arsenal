@@ -280,7 +280,7 @@ def audit_market_report_artifact(path: str | Path, report_type: str) -> dict[str
             "Macroeconomic context", "Relevant market news", "Data provenance",
             "Macro/news feed retrieval register", "Feed URL", "UTC", "Important notice",
             "America/Santo_Domingo", "Local reporting window", "COMPLETED LOCAL DAY",
-            "Binance account analytics", "U.S. equity-market coverage", "Activation timing",
+            "Binance account analytics", "U.S. equity-market coverage", "U.S. cash-session timing", "Activation timing",
         ),
         "closing": (
             "BTCUSDT", "ETHUSDT", "Bullish / long scenario", "Bearish / short scenario",
