@@ -170,3 +170,8 @@ A new approved job type `investment.opportunity_report` is registered in the Loc
 ## Opportunity evidence manifest and independent audit
 
 Opportunity reports now receive a JSON sidecar under `data/manifests/opportunities`, bound to the PDF by SHA-256. The `skills.audit` job scans opportunity PDFs and manifests under the fixed workspace paths, checks PDF structure/hash, reconstructs the normalized research packet from stored facts and freshness policy, and independently recalculates scenario and cash-only position-sizing outputs. It records an `OPPORTUNITY-01` desk check and renders opportunity audit results in the audit PDF. This verifies artifact integrity, evidence metadata consistency, and arithmetic—not the truth of source contents or the correctness of issuer/trial/protocol attribution.
+
+
+## Derived issuer financial ratios
+
+The SEC adapter now extracts additional gross-profit, capital-expenditure, current-asset/current-liability, and stockholders' equity facts. `report_engine/fundamentals.py` calculates same-period margins, free cash flow, liquidity ratios, and period-end ROA/ROE proxies only when inputs share period end and currency. It preserves source fact IDs and formulas, flags missing/ambiguous inputs, and does not calculate growth rates, total debt, valuation multiples, or peer comparisons. Opportunity PDFs display these ratios, and opportunity manifests allow `skills.audit` to independently recalculate them. See [sec-edgar-adapter.md](sec-edgar-adapter.md).
