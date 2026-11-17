@@ -30,6 +30,7 @@ from report_engine.clinical_trials import ClinicalTrialsGov
 from report_engine.defillama import DeFiLlamaProtocolResearch
 from report_engine.scenarios import calculate_long_scenarios
 from report_engine.position_sizing import calculate_cash_position_size
+from report_engine.opportunity import write_opportunity_manifest, audit_opportunity_manifest
 
 from report_engine import (
     build_skills_audit_pdf, build_opportunity_report_pdf, generate_closing_report_pdf,
@@ -1281,6 +1282,7 @@ class JobRunner:
             "unresolved_questions": parameters.get("unresolved_questions", []),
             "provider_status": provider_status or {"status": "No external provider adapter requested"},
             "methodology_notes": parameters.get("methodology_notes", []),
+            "freshness_limits_hours": freshness_limits,
         }
         output_directory = self.manager.workspace.directory("reports/opportunities")
         artifact = build_opportunity_report_pdf(report, output_directory)
@@ -1292,10 +1294,15 @@ class JobRunner:
                 or len(payload) < 16 or not payload.startswith(b"%PDF-")
                 or b"%%EOF" not in payload[-1024:]):
             raise ValueError("Opportunity report failed PDF integrity checks")
+        manifest_directory = self.manager.workspace.directory("data/manifests/opportunities")
+        manifest_path = write_opportunity_manifest(report, resolved, manifest_directory)
+        manifest_payload = manifest_path.read_bytes()
         return {
             "report_type": "investment.opportunity_report",
             "format": "pdf",
             "artifact_path": resolved.relative_to(self.manager.workspace.root).as_posix(),
+            "manifest_path": manifest_path.relative_to(self.manager.workspace.root).as_posix(),
+            "manifest_sha256": hashlib.sha256(manifest_payload).hexdigest(),
             "filename": resolved.name,
             "size_bytes": len(payload),
             "sha256": hashlib.sha256(payload).hexdigest(),
