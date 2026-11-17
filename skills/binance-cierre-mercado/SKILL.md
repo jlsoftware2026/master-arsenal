@@ -1,7 +1,7 @@
 ---
 name: binance-cierre-mercado
 description: 'Informe de cierre y recapitulación diaria. Activar cuando el usuario diga “cierre de mercado”, “resumen de cierre” o solicite cómo terminó la sesión. Analiza el día de la fecha local de solicitud, tanto la sesión bursátil estadounidense como la actividad de la cuenta Binance.'
-version: 1.1.0
+version: 1.2.0
 last_reviewed: 2026-11-17
 ---
 
@@ -58,9 +58,9 @@ For every candidate, verify the exact instrument, asset class, and venue. Listed
 
 ## Source-backed equity and biotechnology research
 
-When the user names an equity or biotech candidate for prospective investment research, use the exact instrument identity already validated by the instrument registry. Do not run issuer-fundamental research for an unspecified ticker or infer an issuer CIK from a ticker symbol.
+When the user names an equity or biotech candidate for prospective investment research, use the exact instrument identity already validated by the instrument registry. Do not run issuer-fundamental research for an unspecified ticker. For U.S. listed equities, the opportunity workflow may opt in to the SEC exchange-aware ticker directory using the candidate's exact symbol, exchange, and issuer name; it must fail closed on missing, ambiguous, or mismatched records. Tokenized equity still requires an explicit underlying-issuer CIK.
 
-- For a U.S. filer, the SEC EDGAR Company Facts adapter may retrieve annual or quarterly revenue, gross profit, operating income, net income, operating cash flow, capital expenditures, total/current assets, current liabilities, stockholders' equity, and cash/equivalents. Require an explicitly configured `MASTER_ARSENAL_SEC_USER_AGENT` and caller-supplied CIK. Preserve filing form, concept, accession, filing date, period end, and retrieval timestamp. Missing XBRL concepts remain missing, not zero.
+- For a U.S. filer, the SEC EDGAR Company Facts adapter may retrieve annual or quarterly revenue, gross profit, operating income, net income, operating cash flow, capital expenditures, total/current assets, current liabilities, stockholders' equity, and cash/equivalents. Require an explicitly configured `MASTER_ARSENAL_SEC_USER_AGENT`. Use either a manually confirmed CIK or the opt-in exact ticker/exchange/issuer resolver for listed equities; do not guess or silently select an ambiguous match. Preserve filing form, concept, accession, filing date, period end, and retrieval timestamp. Missing XBRL concepts remain missing, not zero.
 - The derived ratio engine calculates gross/operating/net/cash-flow margins, free cash flow and margin, current ratio, cash/current-liabilities, and period-end ROA/ROE proxies only from same-period, same-currency facts. It preserves formulas and source fact IDs; it skips missing, mismatched, ambiguous, or zero-denominator inputs. It does not calculate growth rates, total-debt aggregation, valuation multiples, peer analysis, or narrative risk-factor analysis.
 - For a biotech candidate, retrieve exact NCT records through ClinicalTrials.gov API v2 only when an NCT ID is supplied or otherwise established by primary issuer evidence. Record trial status, phase, enrollment and estimated/actual label, primary completion date, primary outcomes, interventions, and results-section presence.
 - Require a documented issuer-to-trial attribution basis, such as an issuer filing identifying the candidate/intervention. A trial's lead sponsor or drug name alone does not prove listed-company ownership, rights, or economic exposure.
@@ -98,6 +98,7 @@ The generated PDF has a SHA-256-bound evidence manifest. The `skills.audit` job 
 Adapted against the user-supplied original Claude skill package. U.S. market breadth, stock-level leaders/laggards, portfolio equity/PnL analytics and automated activation timing remain unavailable. Supported local transaction-history CSV activity is summarized by event and asset. Same-date opening-to-closing range scorecard is integrated when a valid same-date opening manifest exists; absence is marked not applicable. XNYS calendar/session classification and best-effort Yahoo quote snapshots are integrated.
 
 ## Version history
+- 1.2.0 — 2026-11-17: Added opt-in SEC ticker-to-CIK resolution with exact exchange/issuer matching and fail-closed ambiguity handling.
 - 1.1.0 — 2026-11-17: Added same-period SEC-derived financial ratios and independent ratio recalculation in opportunity reports.
 - 1.0.0 — 2026-11-17: Added standalone opportunity PDF workflow and SHA-256 evidence-manifest audit controls.
 - 0.9.0 — 2026-11-17: Added explicit-assumption scenario and cash-only hypothetical position-risk calculation controls.
