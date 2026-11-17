@@ -43,9 +43,16 @@ Stale, future-dated, disputed, or unverified facts make packet data quality `ins
 
 The packet does not calculate valuation, growth rates, scenario returns, or investment recommendations. Those require separately specified calculation logic and explicit assumptions.
 
-## Current implementation boundary
+## Current provider adapters and implementation boundary
 
-This module is a data contract, not a provider integration. Source adapters for SEC/issuer filings, clinical and regulatory registries, market data, and crypto/on-chain metrics remain separate work. Reports must not imply that a provider was queried merely because a valid source record can be constructed. Source retrieval, content extraction, citation verification, conflict reconciliation, and provider licensing/coverage checks remain acceptance requirements for a production research pipeline.
+The shared research-fact module is a data contract. Two read-only issuer/biotech source adapters now feed it:
+
+- `report_engine/sec_edgar.py`: SEC EDGAR Company Facts for a bounded set of U.S. GAAP USD fundamentals. Requires an explicit CIK and SEC User-Agent; it does not resolve tickers to CIKs, parse narrative filings, calculate total debt/free cash flow/valuation, or reconcile restatements.
+- `report_engine/clinical_trials.py`: ClinicalTrials.gov API v2 for one exact NCT record. Requires caller-supplied issuer-to-trial attribution; it does not prove sponsor ownership, efficacy, safety, regulatory approval, or commercial success.
+
+These adapters preserve source URLs, field references, publication/filing or record-update dates, and retrieval timestamps. Offline tests use fixtures and injected transports; they do not certify live endpoint availability. The adapters do not independently authenticate source content or validate the scientific/financial interpretation of each record.
+
+Crypto/on-chain fundamentals, broader regulatory-event coverage, issuer narrative filing analysis, source-content verification, conflict reconciliation, provider licensing/coverage checks, and peer/valuation calculations remain separate work. Reports must not imply that a provider was queried merely because a valid source record can be constructed.
 
 ## Safety and analytical boundaries
 
