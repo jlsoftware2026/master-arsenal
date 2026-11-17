@@ -1,7 +1,7 @@
 ---
 name: binance-revision-skills
 description: 'Audita, valida y mejora las tres Skills de análisis de mercado de Binance: Apertura de mercado, Cierre de mercado y Momento específico del mercado. Activar cuando el usuario solicite revisar, corregir, actualizar, comparar, probar o mantener cualquiera de esas Skills o el conjunto completo.'
-version: 1.6.0
+version: 1.7.0
 last_reviewed: 2026-11-17
 ---
 
@@ -107,6 +107,10 @@ The Local Engine `skills.audit` job now scans `reports/opportunities` and `data/
 
 Treat a missing/orphan manifest, hash mismatch, packet mismatch, or arithmetic mismatch as an audit finding. Do not overstate the result: this is an artifact-integrity, evidence-metadata, and calculation audit. It does not authenticate publishers, prove CIK/NCT/protocol mapping, independently verify issuer ownership or token rights, or validate the truth/scientific merit of source claims.
 
+
+
+## Crypto tokenomics verification
+When an opportunity report contains `ma.tokenomics/v1`, independently recalculate recorded supply ratios, market-cap/FDV arithmetic, unlock horizons, and holder concentration from the stored explicit inputs. Confirm circulating/total/max supply and price observations share the same UTC calendar date, are not after the report cutoff, and retain source name, HTTPS URL, source reference, and observation time. Check unlock-event IDs, amounts, future unlock timestamps, and schedule observation timestamps; only supplied known events may be counted. Check holder IDs, balances, categories, source provenance, observation time, and declared coverage. Partial holder coverage must remain partial and cannot be described as complete beneficial ownership. Missing unlock or holder data must remain not supplied/not assessed, never zero. The calculator does not establish wallet beneficial ownership, complete circulating supply, protocol safety, governance, or regulatory status.
 
 ## Status
 Adapted against the user-supplied original Claude audit skill. The PDF records a desk-check matrix, severity levels, Spanish verdict, and change-history section. XNYS holiday/session-state classification is integrated and independently recalculated by the audit. The audit now validates Yahoo quote source URLs, timestamps not later than the report cutoff, and explicit unavailable-symbol lists. Overall U.S. breadth/stock-level leader coverage and full private-account portfolio reconciliation remain incomplete; transaction-history CSV activity can be imported with file-hash verification. Same-date opening-to-closing range-scenario reconciliation is implemented when a valid opening manifest exists; the audit must verify its evidence. Repository CI passed in GitHub Actions run 43925472913. The local audit now queries GitHub Actions read-only for the exact local HEAD and verifies all four required matrix jobs; it does not self-certify when running inside CI. The uploaded original archives and extracted SKILL.md hashes were independently rechecked against the manifest during this development session. The ZIP payloads are not embedded in the repository, so a deployed runtime must still report archive integrity as NOT VERIFIED. The audit must not certify full source-skill parity.
