@@ -19,6 +19,7 @@ from .research import build_research_packet
 from .scenarios import calculate_long_scenarios
 from .position_sizing import calculate_cash_position_size
 from .fundamentals import calculate_financial_ratios, calculate_valuation_multiples
+from .peer_comparables import calculate_peer_comparables
 from .tokenomics import calculate_tokenomics
 
 from .sec_edgar import SEC_TICKER_EXCHANGE_URL, SECEdgarCompanyFacts
@@ -97,6 +98,12 @@ def _validate(report: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any], d
                 or valuation_metrics.get("schema") != "ma.valuation-multiples/v1"
                 or valuation_metrics.get("instrument_key") != key):
             raise ValueError("valuation_metrics must match the instrument and use ma.valuation-multiples/v1")
+    peer_comparables = report.get("peer_comparables")
+    if peer_comparables is not None:
+        if (not isinstance(peer_comparables, dict)
+                or peer_comparables.get("schema") != "ma.peer-comparables/v1"
+                or peer_comparables.get("candidate_instrument_key") != key):
+            raise ValueError("peer_comparables must match the instrument and use ma.peer-comparables/v1")
     tokenomics = report.get("tokenomics")
     tokenomics_inputs = report.get("tokenomics_inputs")
     if tokenomics is not None or tokenomics_inputs is not None:
@@ -158,10 +165,23 @@ def _validate_valuation_calculation(report: dict[str, Any], instrument: dict[str
         raise ValueError("valuation_metrics do not match an independent calculation from the supplied evidence")
 
 
+def _validate_peer_comparables(report: dict[str, Any]) -> None:
+    stored = report.get("peer_comparables")
+    if stored is None:
+        return
+    rebuilt = calculate_peer_comparables(
+        stored.get("candidate"), stored.get("peers"),
+        minimum_peer_count=stored.get("minimum_peer_count"),
+    )
+    if rebuilt != stored:
+        raise ValueError("peer_comparables do not match independent calculations from the supplied peer evidence")
+
+
 def build_opportunity_report_pdf(report: dict[str, Any], output_directory: Path | str) -> Path:
     """Render a source-attributed opportunity report from validated structured evidence."""
     instrument, packet, generated = _validate(report)
     _validate_valuation_calculation(report, instrument, packet)
+    _validate_peer_comparables(report)
     asset = _safe_component(instrument.get("asset_class", "asset"))
     symbol = _safe_component(instrument.get("symbol", "candidate"))
     report_date = generated.strftime("%Y-%m-%d")
@@ -382,6 +402,55 @@ def build_opportunity_report_pdf(report: dict[str, Any], output_directory: Path 
             styles["small"],
         ))
 
+    peer_comparables = report.get("peer_comparables")
+    if peer_comparables is not None:
+        story.append(section_heading("Comparables de valoración", styles))
+        story.append(paragraph(
+            f"Estado: {_text(peer_comparables.get('status'))}. "
+            f"Método de selección: {_text(peer_comparables.get('peer_selection_method'))}. "
+            f"Peers seleccionados: {_text(peer_comparables.get('peer_count'))}; "
+            f"mínimo requerido: {_text(peer_comparables.get('minimum_peer_count'))}.",
+            styles["body"],
+        ))
+        comparable_rows = [[
+            name, item.get("median"), item.get("minimum"), item.get("maximum"),
+            item.get("peer_count"), item.get("candidate_value"),
+            item.get("candidate_premium_discount_pct_vs_median"),
+        ] for name, item in (peer_comparables.get("metrics") or {}).items()]
+        if comparable_rows:
+            story.append(data_table(
+                ["Múltiplo", "Mediana", "Mínimo", "Máximo", "N peers", "Candidato", "Prima / descuento %"],
+                comparable_rows, styles,
+                widths=[26*mm, 20*mm, 20*mm, 20*mm, 14*mm, 22*mm, 52*mm],
+            ))
+        if peer_comparables.get("missing_metrics"):
+            story.append(paragraph(
+                "Comparaciones no publicadas: " + _text(peer_comparables["missing_metrics"]),
+                styles["small"],
+            ))
+        peer_rows = [[
+            _text(item.get("name")), _text(item.get("instrument_key")),
+            _text((item.get("selection_criteria") or {}).get("sector")),
+            _text((item.get("selection_criteria") or {}).get("business_model")),
+            _text((item.get("selection_criteria") or {}).get("geography")),
+            _text((item.get("selection_criteria") or {}).get("market_cap_band")),
+            _text((item.get("selection_criteria") or {}).get("rationale")),
+        ] for item in peer_comparables.get("peers", [])]
+        if peer_rows:
+            story.append(data_table(
+                ["Peer", "Instrumento", "Sector", "Modelo", "Geografía", "Tamaño", "Racional de selección"],
+                peer_rows, styles,
+                widths=[23*mm, 30*mm, 20*mm, 25*mm, 20*mm, 18*mm, 58*mm],
+            ))
+        story.append(paragraph(
+            "La selección de comparables es suministrada por el analista y no se certifica automáticamente. "
+            "Las medianas son descriptivas; diferencias de crecimiento, apalancamiento, mezcla de ingresos, "
+            "capitalización, contabilidad y riesgo pueden limitar la comparabilidad.",
+            styles["small"],
+        ))
+        if peer_comparables.get("limitations"):
+            story.append(paragraph("Limitaciones: " + _text(peer_comparables["limitations"]), styles["small"]))
+
     source_rows = []
     for fact in facts:
         source_rows.append([
@@ -488,6 +557,7 @@ def write_opportunity_manifest(
     """Write a fixed-schema, PDF-hash-bound sidecar for independent opportunity audit."""
     instrument, packet, _ = _validate(report)
     _validate_valuation_calculation(report, instrument, packet)
+    _validate_peer_comparables(report)
     pdf = Path(pdf_path).resolve(strict=True)
     if not pdf.is_file() or pdf.suffix.lower() != ".pdf":
         raise ValueError("Opportunity manifest requires an existing PDF artifact")
@@ -699,6 +769,23 @@ def audit_opportunity_manifest(
                 findings.append(f"Valuation-multiple recalculation failed: {type(exc).__name__}: {exc}")
                 valuation_status = "failed"
 
+        stored_peers = report.get("peer_comparables")
+        peer_status = "not_applicable"
+        if stored_peers is not None:
+            try:
+                rebuilt_peers = calculate_peer_comparables(
+                    stored_peers.get("candidate"), stored_peers.get("peers"),
+                    minimum_peer_count=stored_peers.get("minimum_peer_count"),
+                )
+                if rebuilt_peers != stored_peers:
+                    findings.append("Independent peer-comparables recalculation differs from the stored result.")
+                    peer_status = "failed"
+                else:
+                    peer_status = "passed"
+            except Exception as exc:
+                findings.append(f"Peer-comparables recalculation failed: {type(exc).__name__}: {exc}")
+                peer_status = "failed"
+
         stored_tokenomics = report.get("tokenomics")
         tokenomics_status = "not_applicable"
         if stored_tokenomics is not None:
@@ -780,6 +867,10 @@ def audit_opportunity_manifest(
             "valuation_metrics_status": valuation_status,
             "valuation_metrics_quality_status": (
                 (stored_valuation or {}).get("status", "not_applicable")
+            ),
+            "peer_comparables_status": peer_status,
+            "peer_comparables_quality_status": (
+                (stored_peers or {}).get("status", "not_applicable")
             ),
             "tokenomics_status": tokenomics_status,
             "issuer_mapping_status": issuer_mapping_status,
