@@ -6,6 +6,7 @@ independently establish factual truth, or generate investment recommendations.
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal, InvalidOperation
 from typing import Any, Mapping
 from urllib.parse import urlparse
 
@@ -144,6 +145,70 @@ def assess_freshness(
     }
 
 
+def _comparison_value(value: Any) -> tuple[str, str]:
+    """Normalize numeric representations while preserving non-numeric values."""
+    try:
+        number = Decimal(str(value).strip())
+        if number.is_finite():
+            normalized = format(number.normalize(), "f")
+            return ("numeric", normalized)
+    except (InvalidOperation, ValueError, TypeError):
+        pass
+    return ("text", str(value).strip().casefold())
+
+
+def _find_fact_conflicts(facts: list[Mapping[str, Any]]) -> tuple[list[dict[str, Any]], list[str]]:
+    """Find differing externally sourced values for the same labeled period metric."""
+    groups: dict[tuple[str, str, str, str], list[Mapping[str, Any]]] = {}
+    for fact in facts:
+        if fact.get("source_kind") in {"user_assumption", "analyst_assumption"}:
+            continue
+        key = (
+            str(fact.get("dimension", "")),
+            str(fact.get("label", "")).strip().casefold(),
+            str(fact.get("unit", "")),
+            str(fact.get("as_of_utc", "")),
+        )
+        groups.setdefault(key, []).append(fact)
+
+    conflicts: list[dict[str, Any]] = []
+    conflicted_ids: set[str] = set()
+    for key, items in sorted(groups.items()):
+        variants: dict[tuple[str, str], dict[str, Any]] = {}
+        for fact in items:
+            comparison = _comparison_value(fact.get("value"))
+            variant = variants.setdefault(comparison, {
+                "value": str(fact.get("value")),
+                "fact_ids": [],
+                "sources": [],
+                "published_at_utc": [],
+            })
+            variant["fact_ids"].append(str(fact.get("fact_id")))
+            source = str(fact.get("source_name") or fact.get("source_kind"))
+            if source not in variant["sources"]:
+                variant["sources"].append(source)
+            published = fact.get("published_at_utc")
+            if published and published not in variant["published_at_utc"]:
+                variant["published_at_utc"].append(published)
+        if len(variants) <= 1:
+            continue
+        fact_ids = sorted(str(item.get("fact_id")) for item in items)
+        conflicted_ids.update(fact_ids)
+        conflicts.append({
+            "dimension": key[0],
+            "label": items[0].get("label"),
+            "unit": key[2],
+            "as_of_utc": key[3],
+            "fact_ids": fact_ids,
+            "variants": sorted(
+                variants.values(),
+                key=lambda item: _comparison_value(item["value"]),
+            ),
+            "resolution_status": "unresolved",
+        })
+    return conflicts, sorted(conflicted_ids)
+
+
 def build_research_packet(
     instrument_key: str,
     facts: list[Mapping[str, Any]],
@@ -186,6 +251,7 @@ def build_research_packet(
         normalized.append(fact)
 
     dimensions_present = sorted({item["dimension"] for item in normalized})
+    conflicts, conflicted_fact_ids = _find_fact_conflicts(normalized)
     stale = [item["fact_id"] for item in normalized if item["freshness"]["status"] == "stale"]
     future = [item["fact_id"] for item in normalized if item["freshness"]["status"] == "future_dated"]
     unassessed = [item["fact_id"] for item in normalized if item["freshness"]["status"] == "not_assessed"]
@@ -200,7 +266,7 @@ def build_research_packet(
         "dimensions_covered": dimensions_present,
         "facts": normalized,
         "data_quality": {
-            "status": "insufficient_evidence" if not normalized or stale or future or disputed or unverified else (
+            "status": "insufficient_evidence" if not normalized or stale or future or disputed or unverified or conflicts else (
                 "freshness_not_assessed" if unassessed else "evidence_recorded"
             ),
             "stale_fact_ids": stale,
@@ -209,11 +275,14 @@ def build_research_packet(
             "disputed_fact_ids": disputed,
             "unverified_fact_ids": unverified,
             "estimated_fact_ids": estimated,
+            "conflicted_fact_ids": conflicted_fact_ids,
+            "conflicts": conflicts,
             "limitations": [
                 "This packet validates metadata and provenance fields; it does not independently verify source contents.",
                 "A source citation does not establish that a claim is true, material, or correctly interpreted.",
                 "Facts without an explicit freshness limit are not assessed for staleness.",
                 "Assumptions remain labeled as assumptions and must not be presented as sourced facts.",
+                "Differing externally sourced values for the same labeled metric, unit, and observation period are surfaced as unresolved conflicts; no source is selected automatically.",
             ],
         },
     }
