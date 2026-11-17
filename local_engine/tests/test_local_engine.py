@@ -234,6 +234,87 @@ class LocalEngineTests(unittest.TestCase):
         )
         self.assertEqual(opportunity_audit["fundamental_metrics_status"], "passed")
 
+
+    def test_opportunity_report_can_resolve_sec_ticker_automatically(self):
+        now = datetime.now(timezone.utc)
+        stamp = now.isoformat().replace("+00:00", "Z")
+        key = "listed_equity|exm|usd|example corp|nasdaq"
+
+        class FakeSEC:
+            def __init__(self):
+                pass
+
+            def resolve_ticker(self, **kwargs):
+                self.lookup = kwargs
+                return {
+                    "status": "resolved", "ticker": "EXM", "exchange": "NASDAQ",
+                    "issuer_name": "EXAMPLE CORP", "cik": "0000000123",
+                    "source_url": "https://www.sec.gov/files/company_tickers_exchange.json",
+                    "retrieved_at_utc": stamp, "limitations": ["Fixture mapping only."],
+                }
+
+            def fetch_facts(self, **kwargs):
+                self.fetch = kwargs
+                return {
+                    "cik": "0000000123", "provider_entity_name": "EXAMPLE CORP",
+                    "source_url": "https://data.sec.gov/api/xbrl/companyfacts/CIK0000000123.json",
+                    "missing_dimensions": ["net_income"],
+                    "facts": [{
+                        "fact_id": "sec-fixture-revenue", "instrument_key": key,
+                        "dimension": "revenue", "label": "Example Corp revenue",
+                        "value": "1000000", "unit": "USD",
+                        "source_kind": "audited_financials", "evidence_quality": "verified_source",
+                        "source_name": "SEC EDGAR Company Facts",
+                        "source_url": "https://www.sec.gov/Archives/edgar/data/123/filing/",
+                        "source_reference": "CIK 0000000123; us-gaap:Revenues; form 10-K",
+                        "as_of_utc": stamp, "published_at_utc": stamp,
+                        "retrieved_at_utc": stamp,
+                    }],
+                }
+
+        parameters = {
+            "instrument_candidate": {
+                "asset_class": "listed_equity", "name": "Example Corp",
+                "symbol": "EXM", "quote_currency": "USD",
+                "issuer": "Example Corp", "exchange": "NASDAQ",
+            },
+            "sec_edgar": {"resolve_ticker": True, "period": "annual"},
+            "conclusion": "insufficient_evidence",
+        }
+        with patch("local_engine.runtime.SECEdgarCompanyFacts", FakeSEC):
+            job = self._approved_job("investment.opportunity_report", parameters)
+            result = JobRunner(self.manager).run(job["job_id"])
+        self.assertEqual(result["status"], "completed", result)
+        provider = result["result"]["provider_status"]["sec_edgar"]
+        self.assertEqual(provider["cik"], "0000000123")
+        self.assertEqual(provider["ticker_resolution"]["status"], "resolved")
+        self.assertEqual(provider["ticker_resolution"]["ticker"], "EXM")
+        self.assertEqual(result["result"]["fact_count"], 1)
+
+    def test_sec_ticker_auto_resolution_rejects_non_unique_mapping(self):
+        class FakeSEC:
+            def __init__(self):
+                pass
+
+            def resolve_ticker(self, **kwargs):
+                return {"status": "ambiguous"}
+
+        parameters = {
+            "instrument_candidate": {
+                "asset_class": "listed_equity", "name": "Example Corp",
+                "symbol": "EXM", "quote_currency": "USD",
+                "issuer": "Example Corp", "exchange": "NASDAQ",
+            },
+            "sec_edgar": {"resolve_ticker": True},
+            "conclusion": "insufficient_evidence",
+        }
+        with patch("local_engine.runtime.SECEdgarCompanyFacts", FakeSEC):
+            job = self._approved_job("investment.opportunity_report", parameters)
+            result = JobRunner(self.manager).run(job["job_id"])
+        self.assertEqual(result["status"], "failed")
+        self.assertIn("ambiguous", result["error"])
+
+
     def test_opportunity_report_requires_approval(self):
         job = new_job("investment.opportunity_report", {
             "instrument_candidate": {"asset_class": "crypto", "name": "Example",
