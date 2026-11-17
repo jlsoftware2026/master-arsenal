@@ -15,6 +15,7 @@ from urllib.request import Request, urlopen
 from .research import normalize_research_fact
 
 SEC_COMPANYFACTS_URL = "https://data.sec.gov/api/xbrl/companyfacts/CIK{cik}.json"
+SEC_TICKER_EXCHANGE_URL = "https://www.sec.gov/files/company_tickers_exchange.json"
 MAX_RESPONSE_BYTES = 25 * 1024 * 1024
 
 # The first concept present with a usable USD unit is selected. Tags are
@@ -268,3 +269,115 @@ class SECEdgarCompanyFacts:
                 "SEC facts and filing references require analyst review before use in an investment conclusion.",
             ],
         }
+
+
+    @staticmethod
+    def _normalize_issuer_name(value: str) -> str:
+        import re
+        normalized = re.sub(r"[^A-Z0-9]+", " ", value.upper()).strip()
+        tokens = normalized.split()
+        suffixes = {"INC", "INCORPORATED", "CORP", "CORPORATION", "CO", "COMPANY",
+                    "LTD", "LIMITED", "PLC", "LLC", "LP"}
+        while tokens and tokens[-1] in suffixes:
+            tokens.pop()
+        return " ".join(tokens)
+
+    def resolve_ticker(
+        self,
+        *,
+        ticker: str,
+        exchange: str,
+        issuer_name: str,
+        retrieved_at: datetime | None = None,
+    ) -> dict[str, Any]:
+        """Resolve an exact listed-equity ticker/exchange/name against the SEC directory.
+
+        The SEC itself cautions that ticker associations may be incomplete or
+        inaccurate. This lookup is a candidate mapping, not proof of security
+        ownership, legal identity, or current exchange listing.
+        """
+        for field, value in (("ticker", ticker), ("exchange", exchange),
+                             ("issuer_name", issuer_name)):
+            if not isinstance(value, str) or not value.strip():
+                raise ValueError(f"{field} is required for SEC ticker resolution")
+        ticker_key = ticker.strip().upper()
+        exchange_key = exchange.strip().casefold()
+        issuer_key = self._normalize_issuer_name(issuer_name)
+        if not issuer_key:
+            raise ValueError("issuer_name must contain an issuer name")
+
+        retrieval_time = retrieved_at or datetime.now(timezone.utc)
+        retrieved_iso = _utc_iso(retrieval_time)
+        payload = self._fetch_json(
+            SEC_TICKER_EXCHANGE_URL,
+            {"User-Agent": self.user_agent, "Accept": "application/json"},
+            self.timeout_seconds,
+        )
+        if not isinstance(payload, dict):
+            raise ValueError("SEC ticker directory must be a JSON object")
+        fields = payload.get("fields")
+        rows = payload.get("data")
+        if not isinstance(fields, list) or not isinstance(rows, list):
+            raise ValueError("SEC ticker directory must contain fields and data arrays")
+        required = {"cik", "name", "ticker", "exchange"}
+        if not required.issubset(set(fields)):
+            raise ValueError("SEC ticker directory is missing required columns")
+        indexes = {name: fields.index(name) for name in required}
+        matches: list[dict[str, Any]] = []
+        for row_index, row in enumerate(rows):
+            if not isinstance(row, list) or len(row) != len(fields):
+                continue
+            raw_ticker = row[indexes["ticker"]]
+            raw_exchange = row[indexes["exchange"]]
+            raw_name = row[indexes["name"]]
+            raw_cik = row[indexes["cik"]]
+            if not isinstance(raw_ticker, str) or not isinstance(raw_exchange, str):
+                continue
+            if not isinstance(raw_name, str) or not raw_name.strip():
+                continue
+            if isinstance(raw_cik, bool) or not isinstance(raw_cik, int) or raw_cik <= 0:
+                continue
+            if raw_ticker.strip().upper() != ticker_key:
+                continue
+            if raw_exchange.strip().casefold() != exchange_key:
+                continue
+            matches.append({
+                "cik": _normalize_cik(raw_cik),
+                "issuer_name": raw_name.strip(),
+                "ticker": raw_ticker.strip().upper(),
+                "exchange": raw_exchange.strip(),
+                "record_index": row_index,
+            })
+
+        base = {
+            "ticker": ticker_key,
+            "exchange": exchange.strip(),
+            "source_url": SEC_TICKER_EXCHANGE_URL,
+            "retrieved_at_utc": retrieved_iso,
+            "limitations": [
+                "The SEC periodically updates ticker associations but does not guarantee their accuracy or scope.",
+                "The directory is a candidate mapping; issuer/security identity and current listing status require independent confirmation.",
+            ],
+        }
+        if not matches:
+            return {"status": "not_found", **base, "candidates": []}
+
+        confirmed = [
+            item for item in matches
+            if self._normalize_issuer_name(item["issuer_name"]) == issuer_key
+        ]
+        if not confirmed:
+            return {
+                "status": "issuer_name_mismatch",
+                **base,
+                "candidates": matches,
+                "reason": "Ticker and exchange matched, but the SEC issuer name did not match the supplied issuer name.",
+            }
+        if len(confirmed) != 1:
+            return {
+                "status": "ambiguous",
+                **base,
+                "candidates": confirmed,
+                "reason": "Multiple SEC records match the supplied ticker, exchange, and issuer name.",
+            }
+        return {"status": "resolved", **base, **confirmed[0]}
