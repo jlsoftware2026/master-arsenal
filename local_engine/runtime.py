@@ -960,9 +960,16 @@ class JobRunner:
         )
         source_skill_integrity = verify_original_skill_packages(Path(__file__).resolve().parents[1])
         repository_root = Path(__file__).resolve().parents[1]
-        ci_repository = resolve_github_repository(repository_root)
-        ci_commit_sha = resolve_git_head_sha(repository_root)
-        ci_evidence = GitHubActionsEvidence().verify(ci_repository, ci_commit_sha)
+        if os.environ.get("GITHUB_ACTIONS", "").lower() == "true" or os.environ.get("CI", "").lower() == "true":
+            ci_evidence = {
+                "status": "not_verified", "repository": None, "commit_sha": None,
+                "run_id": None, "jobs": [],
+                "reason": "La auditoría ejecutada dentro de CI no consulta ni se autocertifica con su propia ejecución.",
+            }
+        else:
+            ci_repository = resolve_github_repository(repository_root)
+            ci_commit_sha = resolve_git_head_sha(repository_root)
+            ci_evidence = GitHubActionsEvidence().verify(ci_repository, ci_commit_sha)
         if ci_evidence["status"] != "passed":
             findings.append({
                 "severity": "Alto", "title": "No se verificó CI multiplataforma para el commit local",
