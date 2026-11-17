@@ -1,7 +1,7 @@
 ---
 name: binance-cierre-mercado
 description: 'Informe de cierre y recapitulación diaria. Activar cuando el usuario diga “cierre de mercado”, “resumen de cierre” o solicite cómo terminó la sesión. Analiza el día de la fecha local de solicitud, tanto la sesión bursátil estadounidense como la actividad de la cuenta Binance.'
-version: 1.3.0
+version: 1.4.0
 last_reviewed: 2026-11-17
 ---
 
@@ -90,7 +90,7 @@ Hypothetical position sizing is permitted only when the user explicitly supplies
 
 ## Dedicated investment opportunity PDF workflow
 
-The closing-market PDF remains a time-specific market-session report. When the user separately requests a candidate-level pre-investment report, use the approved Local Engine job `investment.opportunity_report` rather than silently expanding the closing recap. The job requires an exact asset identity, accepts only explicitly configured SEC/ClinicalTrials.gov/DeFiLlama sources and caller-supplied assumptions, and writes to the fixed `reports/opportunities` directory after the normal validation/approval gate. Never infer CIK, NCT, protocol slug, issuer ownership, or token rights.
+The closing-market PDF remains a time-specific market-session report. When the user separately requests a candidate-level pre-investment report, use the approved Local Engine job `investment.opportunity_report` rather than silently expanding the closing recap. The job requires an exact asset identity, accepts explicitly configured SEC/ClinicalTrials.gov/DeFiLlama sources, optional read-only Binance Spot product verification, and caller-supplied assumptions, and writes to the fixed `reports/opportunities` directory after the normal validation/approval gate. Never infer CIK, NCT, protocol slug, issuer ownership, or token rights. When `binance_spot_check` is enabled, verify exact base/quote product identity, trading status, and Spot permission; do not treat listed shares as Spot products or infer underlying rights from tokenized-equity listings.
 
 The generated PDF has a SHA-256-bound evidence manifest. The `skills.audit` job checks the PDF/manifest link, rebuilds the evidence packet, and recalculates scenario and sizing arithmetic. This does not prove source-content truth or the correctness of issuer/trial/protocol attribution; disclose those remaining diligence limits.
 
@@ -99,6 +99,7 @@ The generated PDF has a SHA-256-bound evidence manifest. The `skills.audit` job 
 Adapted against the user-supplied original Claude skill package. U.S. market breadth, stock-level leaders/laggards, portfolio equity/PnL analytics and automated activation timing remain unavailable. Supported local transaction-history CSV activity is summarized by event and asset. Same-date opening-to-closing range scorecard is integrated when a valid same-date opening manifest exists; absence is marked not applicable. XNYS calendar/session classification and best-effort Yahoo quote snapshots are integrated.
 
 ## Version history
+- 1.4.0 — 2026-11-17: Added optional read-only Binance Spot product verification with exact identity and status checks.
 - 1.3.0 — 2026-11-17: Added cross-source conflict detection and disclosure in opportunity reports.
 - 1.2.0 — 2026-11-17: Added opt-in SEC ticker-to-CIK resolution with exact exchange/issuer matching and fail-closed ambiguity handling.
 - 1.1.0 — 2026-11-17: Added same-period SEC-derived financial ratios and independent ratio recalculation in opportunity reports.
