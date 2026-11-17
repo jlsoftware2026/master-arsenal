@@ -1,7 +1,7 @@
 ---
 name: binance-revision-skills
 description: 'Audita, valida y mejora las tres Skills de análisis de mercado de Binance: Apertura de mercado, Cierre de mercado y Momento específico del mercado. Activar cuando el usuario solicite revisar, corregir, actualizar, comparar, probar o mantener cualquiera de esas Skills o el conjunto completo.'
-version: 1.5.0
+version: 1.6.0
 last_reviewed: 2026-11-17
 ---
 
@@ -127,3 +127,5 @@ Adapted against the user-supplied original Claude audit skill. The PDF records a
 - 0.5.0 — 2026-11-16: Added XNYS calendar desk-check reconciliation, including holidays, early closes, DST, and session-state classification; corrected source instruction typos.
 - 0.6.0 — 2026-11-16: Added source/cutoff provenance checks for Yahoo Finance market quote evidence.
 - 0.7.0 — 2026-11-16: Added SHA-256 and schema checks for local Binance transaction-history CSV imports; portfolio equity and flow-adjusted returns remain outside supported scope.
+
+- 1.6.0 — 2026-11-17: Added read-only GitHub Actions verification bound to the exact local commit and all four required CI matrix jobs; the audit never self-certifies from within CI.
