@@ -2,7 +2,7 @@
 
 ## Purpose and boundary
 
-`report_engine/binance_venue.py` provides an optional, public read-only check of whether an exact crypto or tokenized-equity product is present and enabled for Spot trading on Binance. It uses the existing `BinancePublicClient.get_exchange_info("spot")` adapter and the public `/api/v3/exchangeInfo` endpoint. No API key, private account endpoint, balance access, or order endpoint is used.
+`report_engine/binance_venue.py` provides an optional, public read-only check of whether an exact cryptocurrency product is present and enabled for Spot trading on Binance. It uses the existing `BinancePublicClient.get_exchange_info("spot")` adapter and the public `/api/v3/exchangeInfo` endpoint. No API key, private account endpoint, balance access, or order endpoint is used.
 
 The opportunity job opts in with:
 
