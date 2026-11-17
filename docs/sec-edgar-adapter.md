@@ -10,16 +10,16 @@ The SEC states that its submissions and XBRL data APIs are public and do not req
 
 ## Supported metrics
 
-The first implementation extracts a bounded set of USD facts where the issuer reports a supported US-GAAP concept:
+The adapter extracts a bounded set of USD facts where the issuer reports a supported US-GAAP concept:
 
 - Revenue (alternative concepts are tried in order; never summed together).
-- Operating income.
-- Net income.
-- Operating cash flow.
-- Total assets.
-- Cash and cash equivalents.
+- Gross profit, operating income, and net income.
+- Capital expenditures and operating cash flow.
+- Total assets, current assets, current liabilities, stockholders' equity, and cash/equivalents.
 
 Duration metrics are filtered to annual (300–400 days) or quarterly (70–110 days) reporting periods. Instant metrics use point-in-time observations. Unsupported/missing concepts are listed as missing and are never replaced with zero.
+
+The derived-ratio engine in `report_engine/fundamentals.py` calculates same-period gross/operating/net/cash-flow margins, free cash flow and its margin, current ratio, cash-to-current-liabilities, and period-end ROA/ROE proxies. It requires matching period ends and currencies, preserves the contributing fact IDs and formula, and skips ambiguous/missing/zero-denominator inputs. ROA/ROE use period-end rather than average balances. No growth rates, total-debt aggregation, valuation multiples, or peer comparisons are calculated.
 
 ## Identity and provenance
 
