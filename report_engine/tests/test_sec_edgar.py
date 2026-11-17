@@ -28,6 +28,36 @@ def companyfacts_fixture():
                          "filed": "2026-02-20", "form": "10-K", "accn": "0000000001-26-000001"},
                     ]}
                 },
+                "GrossProfit": {
+                    "units": {"USD": [
+                        {"val": 600, "start": "2025-01-01", "end": "2025-12-31",
+                         "filed": "2026-02-20", "form": "10-K", "accn": "0000000001-26-000001"},
+                    ]}
+                },
+                "PaymentsToAcquirePropertyPlantAndEquipment": {
+                    "units": {"USD": [
+                        {"val": 50, "start": "2025-01-01", "end": "2025-12-31",
+                         "filed": "2026-02-20", "form": "10-K", "accn": "0000000001-26-000001"},
+                    ]}
+                },
+                "AssetsCurrent": {
+                    "units": {"USD": [
+                        {"val": 700, "end": "2025-12-31",
+                         "filed": "2026-02-20", "form": "10-K", "accn": "0000000001-26-000001"},
+                    ]}
+                },
+                "LiabilitiesCurrent": {
+                    "units": {"USD": [
+                        {"val": 300, "end": "2025-12-31",
+                         "filed": "2026-02-20", "form": "10-K", "accn": "0000000001-26-000001"},
+                    ]}
+                },
+                "StockholdersEquity": {
+                    "units": {"USD": [
+                        {"val": 500, "end": "2025-12-31",
+                         "filed": "2026-02-20", "form": "10-K", "accn": "0000000001-26-000001"},
+                    ]}
+                },
                 "Assets": {
                     "units": {"USD": [
                         {"val": 5000, "end": "2025-12-31",
@@ -80,6 +110,15 @@ class SECEdgarTests(unittest.TestCase):
                                      issuer_name="Example Corp", retrieved_at=NOW)
         assets = next(f for f in result["facts"] if f["dimension"] == "total_assets")
         self.assertEqual(assets["value"], "5000")
+
+    def test_extracts_additional_margin_and_liquidity_inputs(self):
+        adapter = SECEdgarCompanyFacts("MASTER ARSENAL contact@example.org",
+                                       fetch_json=lambda *args: companyfacts_fixture())
+        result = adapter.fetch_facts(cik=123, instrument_key=KEY,
+                                     issuer_name="Example Corp", retrieved_at=NOW)
+        dimensions = {fact["dimension"] for fact in result["facts"]}
+        self.assertTrue({"gross_profit", "capital_expenditures", "current_assets",
+                         "current_liabilities", "stockholders_equity"}.issubset(dimensions))
 
     def test_missing_concepts_are_not_zero_filled(self):
         adapter = SECEdgarCompanyFacts("MASTER ARSENAL contact@example.org",
