@@ -82,7 +82,7 @@ def assess_biotech_valuation(
             missing["cash_runway_months"] = "Cash or burn observation is after the analysis cutoff."
         elif cash_currency != burn_currency:
             missing["cash_runway_months"] = "Cash and quarterly net cash burn use different currencies."
-        elif cash["as_of_utc"] != quarterly_net_cash_burn["as_of_utc"]:
+        elif _timestamp(cash["as_of_utc"], "cash.as_of_utc") != _timestamp(quarterly_net_cash_burn["as_of_utc"], "quarterly_net_cash_burn.as_of_utc"):
             missing["cash_runway_months"] = "Cash balance and quarterly net cash burn must share the same period-end observation date."
         elif cash_value < 0 or burn_value <= 0:
             missing["cash_runway_months"] = "Cash must be non-negative and quarterly net cash burn must be positive."
