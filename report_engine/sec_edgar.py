@@ -286,8 +286,8 @@ class SECEdgarCompanyFacts:
         self,
         *,
         ticker: str,
-        exchange: str,
-        issuer_name: str,
+        exchange: str | None = None,
+        issuer_name: str | None = None,
         retrieved_at: datetime | None = None,
     ) -> dict[str, Any]:
         """Resolve an exact listed-equity ticker/exchange/name against the SEC directory.
