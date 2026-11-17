@@ -38,7 +38,7 @@ class AdaptedSkillContractTests(unittest.TestCase):
     def test_opening_preserves_previous_dominican_day_and_premarket_timing(self):
         text = read_skill("binance-apertura-mercado")
         for required in (
-            "15–20 minutes before the U.S. regular open",
+            "15–20 minutes before the U.S. regular cash open",
             "previous completed America/Santo_Domingo local calendar day",
             "last completed U.S. cash session",
             "BTCUSDT and ETHUSDT",
