@@ -154,6 +154,19 @@ class ValuationMultipleTests(unittest.TestCase):
         self.assertEqual(result["metrics"], {})
         self.assertIn("not annualized", result["missing_metrics"]["price_to_earnings"])
 
+    def test_quarterly_basis_still_calculates_balance_sheet_price_to_book(self):
+        facts = [fact("net_income", 100), fact("revenue", 1000),
+                 fact("stockholders_equity", 500)]
+        result = calculate_valuation_multiples(
+            facts, instrument_key=KEY, market_cap=self.market_cap,
+            earnings_period_basis="quarterly",
+        )
+        self.assertNotIn("price_to_earnings", result["metrics"])
+        self.assertNotIn("price_to_sales", result["metrics"])
+        self.assertEqual(result["metrics"]["price_to_book"]["value"], "10000.0000")
+        self.assertIn("not annualized", result["missing_metrics"]["price_to_earnings"])
+        self.assertEqual(result["status"], "partial")
+
     def test_market_cap_requires_source_and_timestamp(self):
         for field in ("source_id", "source_url", "as_of_utc"):
             incomplete = dict(self.market_cap)
