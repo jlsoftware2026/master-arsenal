@@ -1262,14 +1262,42 @@ class JobRunner:
 
         sec_config = parameters.get("sec_edgar")
         if sec_config is not None:
-            if not isinstance(sec_config, dict) or set(sec_config) - {"cik", "issuer_name", "period"}:
-                raise ValueError("sec_edgar must contain only cik, issuer_name, and period")
+            if not isinstance(sec_config, dict) or set(sec_config) - {"cik", "issuer_name", "period", "resolve_ticker"}:
+                raise ValueError("sec_edgar may contain only cik, issuer_name, period, and resolve_ticker")
             if instrument["asset_class"] not in {"listed_equity", "tokenized_equity"}:
                 raise ValueError("SEC issuer fundamentals require an equity instrument identity")
-            sec_result = SECEdgarCompanyFacts().fetch_facts(
-                cik=sec_config.get("cik"),
+            resolve_ticker = sec_config.get("resolve_ticker", False)
+            if not isinstance(resolve_ticker, bool):
+                raise ValueError("sec_edgar.resolve_ticker must be boolean")
+            explicit_cik = sec_config.get("cik")
+            if bool(explicit_cik) == resolve_ticker:
+                raise ValueError("Supply either sec_edgar.cik or resolve_ticker=true, but not both")
+            sec_client = SECEdgarCompanyFacts()
+            ticker_resolution = None
+            if resolve_ticker:
+                if instrument["asset_class"] != "listed_equity":
+                    raise ValueError("Automatic SEC ticker resolution is limited to listed_equity; tokenized equity requires an explicit CIK")
+                ticker_resolution = sec_client.resolve_ticker(
+                    ticker=instrument["symbol"],
+                    exchange=instrument["exchange"],
+                    issuer_name=instrument["issuer"],
+                )
+                if ticker_resolution.get("status") != "resolved":
+                    raise ValueError(
+                        "SEC ticker resolution did not produce one exact issuer match: "
+                        + str(ticker_resolution.get("status"))
+                    )
+                cik = ticker_resolution["cik"]
+                issuer_name = instrument["issuer"]
+            else:
+                cik = explicit_cik
+                issuer_name = sec_config.get("issuer_name")
+                if not isinstance(issuer_name, str) or not issuer_name.strip():
+                    raise ValueError("sec_edgar.issuer_name is required when an explicit CIK is supplied")
+            sec_result = sec_client.fetch_facts(
+                cik=cik,
                 instrument_key=instrument_key,
-                issuer_name=sec_config.get("issuer_name"),
+                issuer_name=issuer_name,
                 period=sec_config.get("period", "annual"),
             )
             facts.extend(sec_result["facts"])
@@ -1280,6 +1308,15 @@ class JobRunner:
                 "fact_count": len(sec_result["facts"]),
                 "missing_dimensions": sec_result["missing_dimensions"],
                 "source_url": sec_result["source_url"],
+                "ticker_resolution": ({
+                    "status": ticker_resolution["status"],
+                    "ticker": ticker_resolution["ticker"],
+                    "exchange": ticker_resolution["exchange"],
+                    "issuer_name": ticker_resolution["issuer_name"],
+                    "source_url": ticker_resolution["source_url"],
+                    "retrieved_at_utc": ticker_resolution["retrieved_at_utc"],
+                    "limitations": ticker_resolution["limitations"],
+                } if ticker_resolution else None),
             }
 
         clinical_config = parameters.get("clinical_trials", [])
