@@ -195,3 +195,7 @@ The approval-gated opportunity job now supports opt-in `binance_spot_check: true
 
 
 The opportunity manifest audit now also checks the recorded Binance Spot product evidence against the normalized crypto instrument, exact base/quote product ID, trading status, Spot permission, source endpoint, and observation timestamp. Caller-supplied venue evidence is labeled as not independently re-queried. This audit verifies internal consistency only; it does not certify account eligibility or live exchange availability after report generation.
+
+## Exact-commit GitHub Actions audit evidence
+
+`report_engine/github_ci.py` resolves the local checkout's HEAD SHA and GitHub origin without invoking a shell, then queries the public GitHub Actions API read-only. `CI-01` passes only when a pull-request run for the exact SHA is completed successfully and all four required jobs are completed with a successful conclusion: Ubuntu/Windows × Python 3.11/3.12. A different SHA, missing matrix job, failed/cancelled job, missing Git metadata, API error, or in-progress run cannot pass. The audit process skips querying GitHub Actions when it is itself running inside GitHub Actions, avoiding self-certification and network-dependent unit tests. This check verifies CI execution only; it does not verify live SEC, Binance, ClinicalTrials.gov, DeFiLlama, RSS, or Yahoo data availability, nor the factual correctness of provider content.
