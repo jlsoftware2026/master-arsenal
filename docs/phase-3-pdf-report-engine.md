@@ -168,7 +168,7 @@ A new approved job type `investment.opportunity_report` is registered in the Loc
 
 ## Opportunity evidence manifest and independent audit
 
-Opportunity reports now receive a JSON sidecar under `data/manifests/opportunities`, bound to the PDF by SHA-256. The `skills.audit` job scans opportunity PDFs and manifests under the fixed workspace paths, checks PDF structure/hash, reconstructs the normalized research packet from stored facts and freshness policy, and independently recalculates scenario and cash-only position-sizing outputs. It records an `OPPORTUNITY-01` desk check and renders opportunity audit results in the audit PDF. This verifies artifact integrity, evidence metadata consistency, and arithmetic—not the truth of source contents or the correctness of issuer/trial/protocol attribution.
+Opportunity reports receive a JSON sidecar under `data/manifests/opportunities`, bound to the PDF by SHA-256. The `skills.audit` job scans opportunity PDFs and manifests under the fixed workspace paths, checks PDF structure/hash, reconstructs the normalized research packet (including same-label source-conflict detection), checks recorded SEC ticker-mapping consistency, and independently recalculates financial ratios, scenarios, and cash-only position sizing. It records an `OPPORTUNITY-01` desk check and renders opportunity audit results in the audit PDF. This verifies artifact integrity, evidence metadata consistency, and arithmetic—not the truth of source contents or the correctness of issuer/trial/protocol attribution.
 
 
 ## Derived issuer financial ratios
