@@ -21,6 +21,7 @@ from .position_sizing import calculate_cash_position_size
 from .fundamentals import calculate_financial_ratios, calculate_valuation_multiples
 from .peer_comparables import calculate_peer_comparables
 from .tokenomics import calculate_tokenomics
+from .biotech_valuation import assess_biotech_valuation
 
 from .sec_edgar import SEC_TICKER_EXCHANGE_URL, SECEdgarCompanyFacts
 from .binance_venue import BINANCE_SPOT_EXCHANGE_INFO_URL
@@ -104,6 +105,17 @@ def _validate(report: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any], d
                 or peer_comparables.get("schema") != "ma.peer-comparables/v1"
                 or peer_comparables.get("candidate_instrument_key") != key):
             raise ValueError("peer_comparables must match the instrument and use ma.peer-comparables/v1")
+    biotech_valuation = report.get("biotech_valuation")
+    biotech_valuation_inputs = report.get("biotech_valuation_inputs")
+    if biotech_valuation is not None or biotech_valuation_inputs is not None:
+        if not isinstance(biotech_valuation, dict) or biotech_valuation.get("schema") != "ma.biotech-valuation/v1":
+            raise ValueError("biotech_valuation must use ma.biotech-valuation/v1")
+        if biotech_valuation.get("instrument_key") != key:
+            raise ValueError("biotech_valuation instrument_key does not match instrument")
+        if not isinstance(biotech_valuation_inputs, dict) or biotech_valuation_inputs.get("instrument_key") != key:
+            raise ValueError("biotech_valuation_inputs must match the instrument and be retained for audit")
+        if assess_biotech_valuation(**biotech_valuation_inputs) != biotech_valuation:
+            raise ValueError("biotech_valuation does not match its explicit source-attributed inputs")
     tokenomics = report.get("tokenomics")
     tokenomics_inputs = report.get("tokenomics_inputs")
     if tokenomics is not None or tokenomics_inputs is not None:
@@ -165,6 +177,18 @@ def _validate_valuation_calculation(report: dict[str, Any], instrument: dict[str
         raise ValueError("valuation_metrics do not match an independent calculation from the supplied evidence")
 
 
+def _validate_biotech_valuation(report: dict[str, Any]) -> None:
+    stored = report.get("biotech_valuation")
+    if stored is None:
+        return
+    inputs = report.get("biotech_valuation_inputs")
+    if not isinstance(inputs, dict):
+        raise ValueError("biotech_valuation_inputs are required for independent recalculation")
+    rebuilt = assess_biotech_valuation(**inputs)
+    if rebuilt != stored:
+        raise ValueError("biotech_valuation does not match independent calculations from the supplied evidence")
+
+
 def _validate_peer_comparables(report: dict[str, Any]) -> None:
     stored = report.get("peer_comparables")
     if stored is None:
@@ -182,6 +206,7 @@ def build_opportunity_report_pdf(report: dict[str, Any], output_directory: Path 
     instrument, packet, generated = _validate(report)
     _validate_valuation_calculation(report, instrument, packet)
     _validate_peer_comparables(report)
+    _validate_biotech_valuation(report)
     asset = _safe_component(instrument.get("asset_class", "asset"))
     symbol = _safe_component(instrument.get("symbol", "candidate"))
     report_date = generated.strftime("%Y-%m-%d")
@@ -347,6 +372,38 @@ def build_opportunity_report_pdf(report: dict[str, Any], output_directory: Path 
             ))
         if valuation_metrics.get("limitations"):
             story.append(paragraph("Limitaciones: " + _text(valuation_metrics["limitations"]), styles["small"]))
+
+    biotech_valuation = report.get("biotech_valuation")
+    if biotech_valuation is not None:
+        story.append(section_heading("Diligencia biotech: etapa, runway y catalizadores", styles))
+        story.append(paragraph(
+            f"Etapa declarada: {_text(biotech_valuation.get('development_stage'))}. "
+            f"Estado del análisis: {_text(biotech_valuation.get('status'))}.",
+            styles["body"],
+        ))
+        biotech_rows = [[name, _text(item.get("value")), _text(item.get("unit")),
+                         _text(item.get("formula")), _text(item.get("as_of_utc") or
+                         item.get("market_cap_as_of_utc")), _text(item.get("cash_source_id") or
+                         item.get("market_cap_source_id"))]
+                        for name, item in (biotech_valuation.get("metrics") or {}).items()]
+        if biotech_rows:
+            story.append(data_table(
+                ["Métrica", "Valor", "Unidad", "Fórmula", "Observado UTC", "Fuente ID"],
+                biotech_rows, styles,
+                widths=[28*mm, 20*mm, 18*mm, 48*mm, 34*mm, 34*mm],
+            ))
+        if biotech_valuation.get("missing_metrics"):
+            story.append(paragraph("Métricas no calculadas: " + _text(biotech_valuation["missing_metrics"]), styles["small"]))
+        catalysts = biotech_valuation.get("clinical_catalysts") or []
+        if catalysts:
+            story.append(data_table(
+                ["NCT", "Fase", "Estado", "Finalización primaria", "Fuente"],
+                [[_text(item.get("nct_id")), _text(item.get("phase")), _text(item.get("status")),
+                  _text(item.get("primary_completion_date")), _text(item.get("source_url"))]
+                 for item in catalysts], styles,
+                widths=[23*mm, 25*mm, 30*mm, 38*mm, 66*mm],
+            ))
+        story.append(paragraph(_text(biotech_valuation.get("warnings")), styles["small"]))
 
     tokenomics = report.get("tokenomics")
     if tokenomics:
@@ -558,6 +615,7 @@ def write_opportunity_manifest(
     instrument, packet, _ = _validate(report)
     _validate_valuation_calculation(report, instrument, packet)
     _validate_peer_comparables(report)
+    _validate_biotech_valuation(report)
     pdf = Path(pdf_path).resolve(strict=True)
     if not pdf.is_file() or pdf.suffix.lower() != ".pdf":
         raise ValueError("Opportunity manifest requires an existing PDF artifact")
@@ -769,6 +827,20 @@ def audit_opportunity_manifest(
                 findings.append(f"Valuation-multiple recalculation failed: {type(exc).__name__}: {exc}")
                 valuation_status = "failed"
 
+        stored_biotech = report.get("biotech_valuation")
+        biotech_status = "not_applicable"
+        if stored_biotech is not None:
+            try:
+                rebuilt_biotech = assess_biotech_valuation(**report["biotech_valuation_inputs"])
+                if rebuilt_biotech != stored_biotech:
+                    findings.append("Independent biotech valuation/runway recalculation differs from the stored result.")
+                    biotech_status = "failed"
+                else:
+                    biotech_status = "passed"
+            except Exception as exc:
+                findings.append(f"Biotech valuation/runway recalculation failed: {type(exc).__name__}: {exc}")
+                biotech_status = "failed"
+
         stored_peers = report.get("peer_comparables")
         peer_status = "not_applicable"
         if stored_peers is not None:
@@ -869,6 +941,7 @@ def audit_opportunity_manifest(
                 (stored_valuation or {}).get("status", "not_applicable")
             ),
             "peer_comparables_status": peer_status,
+            "biotech_valuation_status": biotech_status,
             "peer_comparables_quality_status": (
                 (stored_peers or {}).get("status", "not_applicable")
             ),
