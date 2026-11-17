@@ -1,7 +1,7 @@
 ---
 name: binance-revision-skills
 description: 'Audita, valida y mejora las tres Skills de análisis de mercado de Binance: Apertura de mercado, Cierre de mercado y Momento específico del mercado. Activar cuando el usuario solicite revisar, corregir, actualizar, comparar, probar o mantener cualquiera de esas Skills o el conjunto completo.'
-version: 1.2.0
+version: 1.3.0
 last_reviewed: 2026-11-17
 ---
 
@@ -69,7 +69,7 @@ When a report contains SEC or ClinicalTrials.gov evidence, independently check:
 8. The `skills.audit` opportunity manifest check independently recalculates derived financial ratios from the stored source facts and flags mismatches.
 9. Offline fixture tests are distinguished from live provider availability and independent review of filing/registry content.
 
-Mark unavailable, ambiguous, or issuer-mismatched CIK/NCT mappings, stale records, missing metrics, unsupported clinical interpretations, and absent source evidence as not verified. The opportunity audit may verify recorded mapping consistency but does not independently authenticate the SEC directory or legal issuer/security identity. SEC and ClinicalTrials.gov adapters validate and preserve data provenance; they do not replace analyst review or a full financial/clinical diligence process.
+Mark unavailable, ambiguous, or issuer-mismatched CIK/NCT mappings, stale records, missing metrics, unsupported clinical interpretations, and absent source evidence as not verified. Also inspect research-packet conflicts: same-label/same-unit/same-period sourced values that disagree must remain unresolved, be traceable to their fact IDs and sources, and block a supported-candidate conclusion until reconciled. The packet audit verifies deterministic conflict reconstruction, not source truth or semantic equivalence. The opportunity audit may verify recorded mapping consistency but does not independently authenticate the SEC directory or legal issuer/security identity. SEC and ClinicalTrials.gov adapters validate and preserve data provenance; they do not replace analyst review or a full financial/clinical diligence process.
 
 
 
@@ -112,6 +112,7 @@ Treat a missing/orphan manifest, hash mismatch, packet mismatch, or arithmetic m
 Adapted against the user-supplied original Claude audit skill. The PDF records a desk-check matrix, severity levels, Spanish verdict, and change-history section. XNYS holiday/session-state classification is integrated and independently recalculated by the audit. The audit now validates Yahoo quote source URLs, timestamps not later than the report cutoff, and explicit unavailable-symbol lists. Overall U.S. breadth/stock-level leader coverage and full private-account portfolio reconciliation remain incomplete; transaction-history CSV activity can be imported with file-hash verification. Same-date opening-to-closing range-scenario reconciliation is implemented when a valid opening manifest exists; the audit must verify its evidence. Repository CI passed in GitHub Actions run 43925472913; the local audit still requires CI evidence to be attached because it does not query GitHub Actions. The uploaded original archives and extracted SKILL.md hashes were independently rechecked against the manifest during this development session. The ZIP payloads are not embedded in the repository, so a deployed runtime must still report archive integrity as NOT VERIFIED. The audit must not certify full source-skill parity.
 
 ## Version history
+- 1.3.0 — 2026-11-17: Added unresolved cross-source conflict detection and independent packet reconstruction checks.
 - 1.2.0 — 2026-11-17: Added opt-in SEC ticker-to-CIK resolution with exact exchange/issuer matching and fail-closed ambiguity handling.
 - 1.1.0 — 2026-11-17: Added same-period SEC-derived financial ratios and independent ratio recalculation in opportunity reports.
 - 1.0.0 — 2026-11-17: Added standalone opportunity PDF workflow and SHA-256 evidence-manifest audit controls.
