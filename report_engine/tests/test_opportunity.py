@@ -5,7 +5,9 @@ import tempfile
 import unittest
 
 from report_engine.instruments import build_instrument_record
-from report_engine.opportunity import build_opportunity_report_pdf
+from report_engine.opportunity import (
+    audit_opportunity_manifest, build_opportunity_report_pdf, write_opportunity_manifest,
+)
 from report_engine.research import build_research_packet
 from report_engine.scenarios import calculate_long_scenarios
 from report_engine.position_sizing import calculate_cash_position_size
@@ -51,6 +53,7 @@ def report_fixture():
     )
     return {
         "generated_at_utc": "2026-11-17T16:00:00Z",
+        "freshness_limits_hours": {"revenue": 24},
         "instrument": instrument, "research_packet": packet,
         "conclusion": "potential_candidate_for_further_diligence",
         "executive_summary": ["Evidence is preliminary.", "Further diligence is required."],
@@ -69,6 +72,46 @@ class OpportunityPdfTests(unittest.TestCase):
             self.assertEqual(path.suffix, ".pdf")
             self.assertTrue(path.read_bytes().startswith(b"%PDF-"))
             self.assertIn("oportunidad-listed_equity-EXM", path.name)
+
+    def test_opportunity_manifest_recalculates_packet_scenarios_and_sizing(self):
+        report = report_fixture()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            pdf_dir = root / "reports" / "opportunities"
+            manifest_dir = root / "data" / "manifests" / "opportunities"
+            pdf_dir.mkdir(parents=True)
+            pdf = build_opportunity_report_pdf(report, pdf_dir)
+            manifest = write_opportunity_manifest(report, pdf, manifest_dir)
+            result = audit_opportunity_manifest(manifest, root)
+            self.assertEqual(result["status"], "passed", result)
+            self.assertEqual(result["pdf_page_count"], 1)
+            self.assertEqual(result["scenario_status"], "passed")
+            self.assertEqual(result["position_sizing_status"], "passed")
+            self.assertEqual(result["fact_count"], 1)
+
+    def test_opportunity_manifest_detects_pdf_tampering(self):
+        report = report_fixture()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            pdf_dir = root / "reports" / "opportunities"
+            manifest_dir = root / "data" / "manifests" / "opportunities"
+            pdf_dir.mkdir(parents=True)
+            manifest = write_opportunity_manifest(report, build_opportunity_report_pdf(report, pdf_dir),
+                                                  manifest_dir)
+            pdf = pdf_dir / f"{manifest.name.removesuffix('.opportunity.json')}.pdf"
+            pdf.write_bytes(pdf.read_bytes() + b"tampered")
+            result = audit_opportunity_manifest(manifest, root)
+            self.assertEqual(result["status"], "failed")
+            self.assertTrue(any("SHA-256" in item for item in result["findings"]))
+
+    def test_opportunity_manifest_rejects_manifest_outside_fixed_directory(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            outside = root / "outside.json"
+            outside.write_text("{}", encoding="utf-8")
+            result = audit_opportunity_manifest(outside, root)
+            self.assertEqual(result["status"], "failed")
+            self.assertTrue(any("escapes" in item for item in result["findings"]))
 
     def test_rejects_mismatched_research_packet_instrument(self):
         report = report_fixture()
