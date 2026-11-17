@@ -40,7 +40,7 @@ Future-dated, stale, or mismatched evidence is downgraded to `not_verified`. A m
 
 ## Current implementation boundary
 
-This is a validation contract, not a live exchange adapter. A later provider adapter must retrieve the venue's authoritative product metadata, retain the exact source URL and observation timestamp, and pass the evidence into this validator. Until that adapter exists and has been exercised, reports must say venue availability is **not verified**. They must not treat this validator's ability to validate supplied evidence as proof that a venue was queried.
+The identity validator remains deterministic and network-free. A separate optional Binance Spot adapter now retrieves public `exchangeInfo` metadata for crypto and tokenized-equity product identities and passes exact, timestamped evidence into this validator. The adapter fails closed on malformed or ambiguous data and does not treat request failure as proof that a product is unlisted. Other venues still require explicit source-attributed evidence. See [binance-spot-verification.md](binance-spot-verification.md).
 
 ## Safety and analytical boundaries
 
