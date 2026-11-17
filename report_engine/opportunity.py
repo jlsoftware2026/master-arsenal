@@ -83,6 +83,34 @@ def _validate(report: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any], d
         raise ValueError("research_packet must use schema ma.investment-research/v1")
     if packet.get("instrument_key") != key:
         raise ValueError("research_packet instrument_key does not match instrument")
+    conflicts = data_quality.get("conflicts") or []
+    if conflicts:
+        conflict_rows = [[
+            _text(item.get("dimension")),
+            _text(item.get("label")),
+            _text(item.get("unit")),
+            _text(item.get("as_of_utc")),
+            _text([
+                f"{variant.get('value')} ({', '.join(variant.get('sources') or [])})"
+                for variant in item.get("variants", [])
+            ]),
+            _text(item.get("resolution_status")),
+        ] for item in conflicts if isinstance(item, dict)]
+        story.extend([
+            section_heading("Conflictos de evidencia no resueltos", styles),
+            paragraph(
+                "Se detectaron valores externos diferentes para la misma métrica, unidad y periodo. "
+                "No se selecciona automáticamente una fuente ni se promedian los valores; la discrepancia "
+                "requiere revisión y reconciliación antes de apoyar una conclusión de inversión.",
+                styles["body"],
+            ),
+            data_table(
+                ["Dimensión", "Métrica", "Unidad", "Periodo", "Valores / fuentes", "Estado"],
+                conflict_rows, styles,
+                widths=[20*mm, 30*mm, 16*mm, 28*mm, 75*mm, 18*mm],
+            ),
+        ])
+
     fundamental_metrics = report.get("fundamental_metrics")
     if fundamental_metrics is not None:
         if (not isinstance(fundamental_metrics, dict)
@@ -170,7 +198,8 @@ def build_opportunity_report_pdf(report: dict[str, Any], output_directory: Path 
             f"Hechos obsoletos: {_text(data_quality.get('stale_fact_ids'))}. "
             f"Hechos futuros: {_text(data_quality.get('future_dated_fact_ids'))}. "
             f"Hechos disputados: {_text(data_quality.get('disputed_fact_ids'))}. "
-            f"Hechos no verificados: {_text(data_quality.get('unverified_fact_ids'))}.",
+            f"Hechos no verificados: {_text(data_quality.get('unverified_fact_ids'))}. "
+            f"Hechos en conflicto: {_text(data_quality.get('conflicted_fact_ids'))}.",
             styles["body"],
         ),
     ])
