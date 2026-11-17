@@ -16,7 +16,7 @@ DIMENSIONS = {
     "clinical_development", "regulatory", "patents_ip", "reimbursement",
     "product_adoption", "customer_concentration", "technology_differentiation",
     "protocol_utility", "network_adoption", "developer_activity",
-    "tokenomics", "supply_unlocks", "holder_concentration", "governance",
+    "protocol_fees", "tokenomics", "supply_unlocks", "holder_concentration", "governance",
     "security", "protocol_usage", "protocol_revenue", "market_price",
     "market_volume", "market_structure", "volatility", "derivatives_positioning",
     "catalyst", "risk", "thesis_invalidation",
