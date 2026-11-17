@@ -130,11 +130,22 @@ def validate_venue_evidence(
         raise ValueError(f"status must be one of: {', '.join(sorted(VERIFICATION_STATES))}")
     venue = _required_text(evidence, "venue")
     if state == "not_verified":
-        return {
+        result = {
             "status": "not_verified",
             "venue": venue,
             "reason": _optional_text(evidence, "reason") or "Evidence is insufficient to establish current availability.",
         }
+        source_url = _optional_text(evidence, "source_url")
+        if source_url is not None:
+            parsed_url = urlparse(source_url)
+            if parsed_url.scheme != "https" or not parsed_url.netloc:
+                raise ValueError("source_url must be an HTTPS URL")
+            result["source_url"] = source_url
+        observed_value = evidence.get("observed_at_utc")
+        if observed_value is not None:
+            observed = _utc_datetime(observed_value, "observed_at_utc")
+            result["observed_at_utc"] = observed.isoformat().replace("+00:00", "Z")
+        return result
     if state == "unavailable":
         source_url = _required_text(evidence, "source_url")
         parsed_url = urlparse(source_url)
