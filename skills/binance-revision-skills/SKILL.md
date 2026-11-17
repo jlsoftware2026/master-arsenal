@@ -1,7 +1,7 @@
 ---
 name: binance-revision-skills
 description: 'Audita, valida y mejora las tres Skills de análisis de mercado de Binance: Apertura de mercado, Cierre de mercado y Momento específico del mercado. Activar cuando el usuario solicite revisar, corregir, actualizar, comparar, probar o mantener cualquiera de esas Skills o el conjunto completo.'
-version: 0.8.0
+version: 0.9.0
 last_reviewed: 2026-11-17
 ---
 
@@ -84,10 +84,26 @@ For DeFiLlama evidence, independently check:
 
 Mark unverified protocol/token attribution, missing source coverage, stale observations, or unsupported token-economics claims as not verified.
 
+## Scenario and position-sizing audit
+
+For scenario or sizing outputs, independently verify:
+
+1. The exact instrument key, quote currency, analysis horizon, and as-of timestamp.
+2. Bull/base/bear prices and their written rationales are explicit caller-supplied assumptions; prices obey bull ≥ base ≥ bear.
+3. Invalidation is below the reference entry for a long scenario and its rationale is present.
+4. Scenario return, downside, and reward-to-risk arithmetic can be recalculated from displayed inputs.
+5. Probabilities and expected returns are absent unless a separately specified, evidence-backed methodology is implemented and approved.
+6. Position sizing uses explicit available capital, risk budget, maximum allocation, entry/invalidation prices, and fee/slippage assumptions; cash-only units/notional do not exceed either cap.
+7. No leverage, actual holdings, order submission, guaranteed stop execution, or guaranteed maximum loss is implied.
+
+Mark missing assumptions, inconsistent arithmetic, hidden defaults, or unsupported forecasts as findings.
+
+
 ## Status
 Adapted against the user-supplied original Claude audit skill. The PDF records a desk-check matrix, severity levels, Spanish verdict, and change-history section. XNYS holiday/session-state classification is integrated and independently recalculated by the audit. The audit now validates Yahoo quote source URLs, timestamps not later than the report cutoff, and explicit unavailable-symbol lists. Overall U.S. breadth/stock-level leader coverage and full private-account portfolio reconciliation remain incomplete; transaction-history CSV activity can be imported with file-hash verification. Same-date opening-to-closing range-scenario reconciliation is implemented when a valid opening manifest exists; the audit must verify its evidence. Repository CI passed in GitHub Actions run 43925472913; the local audit still requires CI evidence to be attached because it does not query GitHub Actions. The uploaded original archives and extracted SKILL.md hashes were independently rechecked against the manifest during this development session. The ZIP payloads are not embedded in the repository, so a deployed runtime must still report archive integrity as NOT VERIFIED. The audit must not certify full source-skill parity.
 
 ## Version history
+- 0.9.0 — 2026-11-17: Added explicit-assumption scenario and cash-only hypothetical position-risk calculation controls.
 - 0.1.0 — 2026-11-16: Initial ChatGPT/MASTER ARSENAL adaptation; preserves the original skill identity and documents the Local Engine/PDF workflow and current implementation gaps.
 
 - 0.2.0 — 2026-11-16: Reconciled activation phrases, Dominican local-day semantics, PDF-only delivery, explicit limitations, and source-derived report requirements. Outstanding parity gaps remain disclosed.
