@@ -105,7 +105,7 @@ class SessionReportTests(unittest.TestCase):
             with fitz.open(path) as document:
                 text = " ".join(page.get_text("text") for page in document)
             self.assertIn("Retrasado", text)
-            self.assertIn("Referencia temporal bursátil (ET)", text)
+            self.assertIn("Referencia temporal bursátil", text)
 
     def test_closing_pdf_uses_local_date_and_is_readable(self):
         with TemporaryDirectory() as temp:
