@@ -18,6 +18,7 @@ from .qa import inspect_pdf_artifact
 from .research import build_research_packet
 from .scenarios import calculate_long_scenarios
 from .position_sizing import calculate_cash_position_size
+from .fundamentals import calculate_financial_ratios
 
 CONCLUSIONS_ES = {
     "potential_candidate_for_further_diligence": "Candidato potencial para diligencia adicional",
@@ -74,6 +75,12 @@ def _validate(report: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any], d
         raise ValueError("research_packet must use schema ma.investment-research/v1")
     if packet.get("instrument_key") != key:
         raise ValueError("research_packet instrument_key does not match instrument")
+    fundamental_metrics = report.get("fundamental_metrics")
+    if fundamental_metrics is not None:
+        if (not isinstance(fundamental_metrics, dict)
+                or fundamental_metrics.get("schema") != "ma.financial-ratios/v1"
+                or fundamental_metrics.get("instrument_key") != key):
+            raise ValueError("fundamental_metrics must match the instrument and use ma.financial-ratios/v1")
     facts = packet.get("facts")
     if not isinstance(facts, list):
         raise ValueError("research_packet.facts must be a list")
@@ -184,6 +191,30 @@ def build_opportunity_report_pdf(report: dict[str, Any], output_directory: Path 
             section_heading("Hechos y observaciones de investigación", styles),
             paragraph("No se proporcionaron hechos de investigación verificables.", styles["body"]),
         ])
+
+    fundamental_metrics = report.get("fundamental_metrics")
+    if fundamental_metrics:
+        metric_rows = [[
+            name,
+            f"{item.get('value')} {item.get('unit')}",
+            item.get("formula"),
+            item.get("as_of_utc"),
+            _text(item.get("source_fact_ids")),
+        ] for name, item in (fundamental_metrics.get("metrics") or {}).items()]
+        story.append(section_heading("Ratios financieros derivados", styles))
+        if metric_rows:
+            story.append(data_table(
+                ["Métrica", "Valor", "Fórmula", "Periodo", "Hechos fuente"],
+                metric_rows, styles,
+                widths=[32*mm, 24*mm, 44*mm, 32*mm, 42*mm],
+            ))
+        else:
+            story.append(paragraph("No hay datos suficientes para calcular ratios financieros.", styles["body"]))
+        if fundamental_metrics.get("missing_metrics"):
+            story.append(paragraph(
+                "Métricas no calculadas: " + _text(fundamental_metrics["missing_metrics"]),
+                styles["small"],
+            ))
 
     source_rows = []
     for fact in facts:
@@ -375,6 +406,18 @@ def audit_opportunity_manifest(
         if rebuilt_packet != packet:
             findings.append("Independent research-packet reconstruction differs from the stored packet.")
 
+        stored_fundamentals = report.get("fundamental_metrics")
+        fundamental_status = "not_applicable"
+        if stored_fundamentals is not None:
+            rebuilt_fundamentals = calculate_financial_ratios(
+                packet.get("facts", []), instrument_key=instrument["instrument_key"]
+            )
+            if rebuilt_fundamentals != stored_fundamentals:
+                findings.append("Independent financial-ratio recalculation differs from the stored metrics.")
+                fundamental_status = "failed"
+            else:
+                fundamental_status = "passed"
+
         scenario = report.get("scenarios")
         scenario_status = "not_applicable"
         if scenario is not None:
@@ -438,6 +481,7 @@ def audit_opportunity_manifest(
             "conclusion": report["conclusion"],
             "fact_count": packet.get("fact_count", 0),
             "data_quality_status": (packet.get("data_quality") or {}).get("status"),
+            "fundamental_metrics_status": fundamental_status,
             "scenario_status": scenario_status,
             "position_sizing_status": sizing_status,
             "status": "passed" if not findings else "failed",
