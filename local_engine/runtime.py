@@ -490,6 +490,84 @@ class JobRunner:
         audit_date_local = current_local_report_date(generated).isoformat()
         artifacts = []
         findings = []
+        opportunity_artifacts = []
+        opportunity_report_directory = self.manager.workspace.directory("reports/opportunities")
+        opportunity_manifest_directory = self.manager.workspace.directory("data/manifests/opportunities")
+        opportunity_pdfs = sorted(opportunity_report_directory.glob("*.pdf"))
+        opportunity_manifest_files = sorted(opportunity_manifest_directory.glob("*.opportunity.json"))
+        opportunity_manifest_by_name = {
+            item.name.removesuffix(".opportunity.json") + ".pdf": item
+            for item in opportunity_manifest_files
+        }
+        audited_opportunity_manifests: set[str] = set()
+        for candidate in opportunity_pdfs:
+            resolved = candidate.resolve(strict=True)
+            if not resolved.is_relative_to(opportunity_report_directory):
+                opportunity_artifacts.append({
+                    "filename": candidate.name, "qa_status": "failed",
+                    "issues": "Opportunity PDF escaped its fixed directory.",
+                })
+                findings.append({
+                    "severity": "Crítico", "title": "El PDF de oportunidad salió del directorio fijo",
+                    "evidence": str(candidate),
+                    "recommendation": "Poner el archivo en cuarentena e investigar la ruta.",
+                })
+                continue
+            manifest_path = opportunity_manifest_by_name.get(resolved.name)
+            if manifest_path is None:
+                item = {
+                    "filename": resolved.name, "qa_status": "not_verified",
+                    "issues": "No se encontró un manifiesto de evidencia de oportunidad.",
+                    "size_bytes": resolved.stat().st_size,
+                    "sha256": hashlib.sha256(resolved.read_bytes()).hexdigest(),
+                }
+                opportunity_artifacts.append(item)
+                findings.append({
+                    "severity": "Alto", "title": f"Falta manifiesto de oportunidad: {resolved.name}",
+                    "evidence": item["issues"],
+                    "recommendation": "Regenerar el informe mediante investment.opportunity_report para crear su manifiesto vinculado.",
+                })
+                continue
+            audited_opportunity_manifests.add(manifest_path.name)
+            audit_result = audit_opportunity_manifest(manifest_path, self.manager.workspace.root)
+            item = {
+                "filename": resolved.name,
+                "manifest": manifest_path.name,
+                "qa_status": audit_result["status"],
+                "issues": "; ".join(audit_result.get("findings", [])) or "PDF, paquete de evidencia y cálculos recalculados.",
+                "size_bytes": resolved.stat().st_size,
+                "sha256": hashlib.sha256(resolved.read_bytes()).hexdigest(),
+                "instrument_key": audit_result.get("instrument_key"),
+                "fact_count": audit_result.get("fact_count", 0),
+                "scenario_status": audit_result.get("scenario_status", "not_applicable"),
+                "position_sizing_status": audit_result.get("position_sizing_status", "not_applicable"),
+            }
+            opportunity_artifacts.append(item)
+            if audit_result["status"] != "passed":
+                findings.append({
+                    "severity": "Alto", "title": f"Falló la auditoría del informe de oportunidad: {resolved.name}",
+                    "evidence": item["issues"],
+                    "recommendation": "Revisar la integridad del PDF, reconstrucción de evidencia y recálculo independiente de escenarios/dimensionamiento.",
+                })
+        for manifest_path in opportunity_manifest_files:
+            if manifest_path.name not in audited_opportunity_manifests:
+                orphan_result = audit_opportunity_manifest(manifest_path, self.manager.workspace.root)
+                opportunity_artifacts.append({
+                    "filename": orphan_result.get("pdf_filename", "PDF ausente"),
+                    "manifest": manifest_path.name,
+                    "qa_status": "failed",
+                    "issues": "; ".join(orphan_result.get("findings", [])),
+                })
+                findings.append({
+                    "severity": "Alto", "title": f"Manifiesto de oportunidad huérfano: {manifest_path.name}",
+                    "evidence": "; ".join(orphan_result.get("findings", [])),
+                    "recommendation": "Restaurar el PDF vinculado o retirar de forma controlada el manifiesto huérfano.",
+                })
+        opportunity_audit_status = (
+            "not_exercised" if not opportunity_pdfs and not opportunity_manifest_files
+            else "passed" if opportunity_artifacts and all(x.get("qa_status") == "passed" for x in opportunity_artifacts)
+            else "failed"
+        )
         for report_type, relative_directory in (
             ("opening", "reports/opening"),
             ("closing", "reports/closing"),
@@ -636,6 +714,7 @@ class JobRunner:
             "SCORE-01": "El cierre compara el pronóstico de apertura de esa misma fecha cuando existe.",
             "PKG-01": "Los bytes y hashes del archivo original se verifican de forma independiente.",
             "CI-01": "El commit final supera CI en Ubuntu/Windows con Python 3.11/3.12.",
+            "OPPORTUNITY-01": "Los informes de oportunidad conservan un manifiesto vinculado al PDF y superan la reconstrucción independiente de evidencia y cálculos.",
         }
         impact_by_severity = {
             "Crítico": "Puede producir fechas incorrectas, datos inventados, acceso inseguro o conclusiones materialmente falsas.",
@@ -994,6 +1073,10 @@ class JobRunner:
             check("CI-01", "Evidencia CI multiplataforma del commit auditado", "not_verified", "Alto",
                   "No se adjunta un manifiesto CI verificable a esta auditoría local.",
                   "Adjuntar la ejecución de Actions del commit final en Ubuntu/Windows con Python 3.11/3.12 e inspeccionar todos los trabajos."),
+            check("OPPORTUNITY-01", "Integridad y recálculo de informes de oportunidad",
+                  opportunity_audit_status, "Medio" if opportunity_audit_status == "not_exercised" else "Alto",
+                  (f"Se auditaron {len(opportunity_artifacts)} artefactos de oportunidad; estado: {opportunity_audit_status}."),
+                  "Generar informes de oportunidad mediante Local Engine y conservar el manifiesto SHA-256 para permitir reconstrucción independiente."),
         ]
         unresolved = [
             item for item in desk_checks
@@ -1106,6 +1189,8 @@ class JobRunner:
             "change_history": change_history,
             "source_skill_integrity": source_skill_integrity,
             "artifacts": artifacts,
+            "opportunity_artifacts": opportunity_artifacts,
+            "opportunity_audit_status": opportunity_audit_status,
             "evidence_manifests": evidence_manifests,
             "cross_report_consistency": cross_report,
             "findings": findings,
@@ -1125,6 +1210,8 @@ class JobRunner:
             "filename": resolved.name, "size_bytes": len(payload),
             "sha256": hashlib.sha256(payload).hexdigest(),
             "artifacts_inspected": len(artifacts),
+            "opportunity_reports_checked": len(opportunity_artifacts),
+            "opportunity_audit_status": opportunity_audit_status,
             "evidence_manifests_checked": len(evidence_manifests),
             "cross_report_consistency_status": cross_report["status"],
             "overlapping_candles_checked": cross_report["overlapping_candles_checked"],
