@@ -482,6 +482,9 @@ def audit_opportunity_manifest(
             "fact_count": packet.get("fact_count", 0),
             "data_quality_status": (packet.get("data_quality") or {}).get("status"),
             "fundamental_metrics_status": fundamental_status,
+            "fundamental_metrics_quality_status": (
+                (stored_fundamentals or {}).get("status", "not_applicable")
+            ),
             "scenario_status": scenario_status,
             "position_sizing_status": sizing_status,
             "status": "passed" if not findings else "failed",
