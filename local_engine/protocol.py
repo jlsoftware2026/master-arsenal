@@ -11,7 +11,7 @@ from uuid import UUID, uuid4
 SCHEMA_VERSION = "ma.job/v1"
 JOB_TYPES = frozenset({
     "market.opening_report", "market.closing_report", "market.intraday_snapshot",
-    "skills.audit", "engine.health_check", "engine.validate_data",
+    "skills.audit", "investment.opportunity_report", "engine.health_check", "engine.validate_data",
 })
 REQUESTERS = frozenset({"chatgpt", "claude", "user"})
 JOB_OUTPUTS = {
@@ -19,6 +19,7 @@ JOB_OUTPUTS = {
     "market.closing_report": {"format": "pdf", "directory": "reports/closing"},
     "market.intraday_snapshot": {"format": "pdf", "directory": "reports/intraday"},
     "skills.audit": {"format": "pdf", "directory": "reports/audit"},
+    "investment.opportunity_report": {"format": "pdf", "directory": "reports/opportunities"},
 }
 UUID_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$", re.I)
 
