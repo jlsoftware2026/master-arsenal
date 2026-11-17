@@ -1,7 +1,7 @@
 ---
 name: binance-cierre-mercado
 description: 'Informe de cierre y recapitulación diaria. Activar cuando el usuario diga “cierre de mercado”, “resumen de cierre” o solicite cómo terminó la sesión. Analiza el día de la fecha local de solicitud, tanto la sesión bursátil estadounidense como la actividad de la cuenta Binance.'
-version: 0.8.0
+version: 0.9.0
 last_reviewed: 2026-11-17
 ---
 
@@ -79,10 +79,18 @@ When a prospective crypto asset is explicitly in scope, use its validated instru
 - Token supply, unlock schedules, holder concentration, security audits, exploit history, governance quality, and regulatory analysis are not covered by this adapter. Mark these dimensions not verified unless supported by separate primary evidence.
 - Keep protocol fundamentals separate from the completed/partial Binance market-session recap and any forward-looking market scenario.
 
+## Scenario and hypothetical position-risk calculations
+
+When the user explicitly requests a forward-looking investment scenario, the scenario engine may calculate bull/base/bear price returns and reward-to-risk only from caller-supplied hypothetical entry, invalidation, and scenario prices with written assumptions. Never invent target prices, probabilities, expected returns, or a forecast.
+
+Hypothetical position sizing is permitted only when the user explicitly supplies available capital, risk budget, maximum allocation, entry/invalidation assumptions, and cost assumptions. The calculator is cash-only and unlevered. Do not infer that the user owns the asset or has placed an order. State that an invalidation level is not a guaranteed execution price and actual losses can exceed the estimate. If any required input is absent, do not fill it with a guessed default; report that sizing is not calculated.
+
+
 ## Status
 Adapted against the user-supplied original Claude skill package. U.S. market breadth, stock-level leaders/laggards, portfolio equity/PnL analytics and automated activation timing remain unavailable. Supported local transaction-history CSV activity is summarized by event and asset. Same-date opening-to-closing range scorecard is integrated when a valid same-date opening manifest exists; absence is marked not applicable. XNYS calendar/session classification and best-effort Yahoo quote snapshots are integrated.
 
 ## Version history
+- 0.9.0 — 2026-11-17: Added explicit-assumption scenario and cash-only hypothetical position-risk calculation controls.
 - 0.1.0 — 2026-11-16: Initial ChatGPT/MASTER ARSENAL adaptation; preserves the original skill identity and documents the Local Engine/PDF workflow and current implementation gaps.
 
 
