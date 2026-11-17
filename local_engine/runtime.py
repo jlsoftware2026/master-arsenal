@@ -1214,6 +1214,7 @@ class JobRunner:
             "artifacts_inspected": len(artifacts),
             "opportunity_reports_checked": len(opportunity_artifacts),
             "opportunity_audit_status": opportunity_audit_status,
+            "opportunity_artifacts": opportunity_artifacts,
             "evidence_manifests_checked": len(evidence_manifests),
             "cross_report_consistency_status": cross_report["status"],
             "overlapping_candles_checked": cross_report["overlapping_candles_checked"],
