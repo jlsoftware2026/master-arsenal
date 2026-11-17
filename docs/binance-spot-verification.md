@@ -14,14 +14,14 @@ This option is mutually exclusive with caller-supplied `venue_evidence`. The can
 
 - `verified`: exact product metadata matches and Spot trading is enabled. The report records the product ID, base/quote assets, exchange status, observation timestamp, and source URL.
 - `unavailable`: the exact product is absent, not in `TRADING` status, or Spot trading is explicitly disabled at retrieval time.
-- `not_verified`: request failure, malformed response, ambiguous records, missing Spot-permission metadata, or an asset class that must not be represented as a Binance Spot product.
+- `not_verified`: request failure, malformed response, ambiguous records, missing Spot-permission metadata, or a candidate class that cannot be established from this Spot ticker directory.
 
 A failed metadata request is not interpreted as proof that the product is unlisted. The check does not establish the user's account eligibility, jurisdictional access, order-book depth, liquidity, custody, suitability, or investment merit.
 
 ## Asset-class controls
 
 - Listed equity is not checked as if a stock share were a Binance Spot product. The resolver returns `not_verified` with an explicit explanation.
-- Tokenized equity checks the token product symbol, not the underlying listed share. A verified token listing does not establish ownership, voting, dividend, redemption, or other rights in the underlying issuer.
+- Tokenized equity is not automatically verified from a ticker match. A separate issuer/contract/product mapping and rights review is required before caller-supplied exact venue evidence can be considered. This adapter returns `not_verified` for tokenized equity.
 - Crypto checks the exact candidate base asset and quote currency. A matching ticker alone is insufficient.
 
 ## Testing
