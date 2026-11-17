@@ -608,6 +608,7 @@ class BiotechOpportunityIntegrationTests(unittest.TestCase):
             result = audit_opportunity_manifest(manifest, root)
             self.assertEqual(result["status"], "passed", result)
             self.assertEqual(result["biotech_valuation_status"], "passed")
+            self.assertEqual(result["biotech_valuation_quality_status"], "partial")
 
             payload = json.loads(manifest.read_text(encoding="utf-8"))
             payload["report"]["biotech_valuation"]["metrics"]["cash_runway_months"]["value"] = "99.00"
