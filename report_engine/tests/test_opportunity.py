@@ -89,6 +89,23 @@ class OpportunityPdfTests(unittest.TestCase):
             self.assertEqual(result["position_sizing_status"], "passed")
             self.assertEqual(result["fact_count"], 1)
 
+    def test_opportunity_manifest_detects_scenario_recalculation_tampering(self):
+        report = report_fixture()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            pdf_dir = root / "reports" / "opportunities"
+            manifest_dir = root / "data" / "manifests" / "opportunities"
+            pdf_dir.mkdir(parents=True)
+            manifest = write_opportunity_manifest(report, build_opportunity_report_pdf(report, pdf_dir),
+                                                  manifest_dir)
+            import json
+            payload = json.loads(manifest.read_text(encoding="utf-8"))
+            payload["report"]["scenarios"]["bull_reward_to_risk"] = "999.0000"
+            manifest.write_text(json.dumps(payload), encoding="utf-8")
+            result = audit_opportunity_manifest(manifest, root)
+            self.assertEqual(result["status"], "failed")
+            self.assertTrue(any("scenario recalculation" in item.lower() for item in result["findings"]))
+
     def test_opportunity_manifest_detects_pdf_tampering(self):
         report = report_fixture()
         with tempfile.TemporaryDirectory() as directory:
