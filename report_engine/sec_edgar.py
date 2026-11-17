@@ -6,8 +6,8 @@ infer that a ticker identifies a particular filer or security.
 from __future__ import annotations
 
 import json
+import math
 import os
-import re
 from datetime import datetime, timezone
 from typing import Any, Callable
 from urllib.request import Request, urlopen
@@ -94,8 +94,9 @@ class SECEdgarCompanyFacts:
             )
         if len(self.user_agent) < 8 or "\n" in self.user_agent or "\r" in self.user_agent:
             raise ValueError("SEC User-Agent must be a valid descriptive header value")
-        if isinstance(timeout_seconds, bool) or timeout_seconds <= 0:
-            raise ValueError("timeout_seconds must be positive")
+        if (isinstance(timeout_seconds, bool) or not isinstance(timeout_seconds, (int, float))
+                or not math.isfinite(float(timeout_seconds)) or timeout_seconds <= 0):
+            raise ValueError("timeout_seconds must be a finite positive number")
         self.timeout_seconds = float(timeout_seconds)
         self._fetch_json = fetch_json or self._http_fetch_json
 
@@ -144,6 +145,9 @@ class SECEdgarCompanyFacts:
         entity_name = payload.get("entityName")
         if not isinstance(entity_name, str) or not entity_name.strip():
             raise ValueError("SEC Company Facts response is missing entityName")
+        response_cik = payload.get("cik")
+        if not isinstance(response_cik, int) or response_cik != int(cik_text):
+            raise ValueError("SEC Company Facts response CIK does not match the requested CIK")
         facts_root = payload.get("facts")
         if not isinstance(facts_root, dict):
             raise ValueError("SEC Company Facts response is missing facts")
@@ -198,7 +202,9 @@ class SECEdgarCompanyFacts:
 
             concept, row = selected
             form = row["form"]
-            accession = row.get("accn", "")
+            accession = row.get("accn")
+            if not isinstance(accession, str) or not re.fullmatch(r"\\d{10}-\\d{2}-\\d{6}", accession):
+                raise ValueError("SEC fact is missing a valid accession number")
             accession_compact = accession.replace("-", "")
             source_url = (
                 f"https://www.sec.gov/Archives/edgar/data/{int(cik_text)}/"
