@@ -10,7 +10,7 @@ The job is read-only. It can call only the configured public source adapters and
 
 - `instrument_candidate` (required): asset-class-specific identity input for listed equity, tokenized equity, or crypto.
 - `venue_evidence` (optional): caller-supplied timestamped exact-product evidence.
-- `binance_spot_check` (optional boolean): when true, queries public Binance Spot `exchangeInfo` for the exact candidate base/quote product. It is mutually exclusive with `venue_evidence`, restricted to crypto/tokenized-equity product identity, and does not access private accounts or place orders. Listed shares are not treated as Binance Spot products.
+- `binance_spot_check` (optional boolean): when true, queries public Binance Spot `exchangeInfo` for the exact candidate base/quote product. It is mutually exclusive with `venue_evidence`, restricted to crypto product identity, and does not access private accounts or place orders. Listed shares are not treated as Binance Spot products.
 - `research_facts` (optional): caller-supplied source-attributed facts. Each fact must use the exact normalized `instrument_key`.
 - `freshness_limits_hours` (optional): explicit per-dimension freshness policy. Missing policies remain `not_assessed`.
 - `sec_edgar` (optional): either exact caller-supplied `cik` plus `issuer_name`, or `resolve_ticker: true` for automatic exact SEC ticker/exchange/issuer resolution from a `listed_equity` candidate; optional `period` (`annual` or `quarterly`). Requires `MASTER_ARSENAL_SEC_USER_AGENT`. Tokenized equity requires an explicit CIK.
