@@ -12,7 +12,7 @@ The job is read-only. It can call only the configured public source adapters and
 - `venue_evidence` (optional): timestamped exact-product evidence. If omitted, venue status remains `not_verified`.
 - `research_facts` (optional): caller-supplied source-attributed facts. Each fact must use the exact normalized `instrument_key`.
 - `freshness_limits_hours` (optional): explicit per-dimension freshness policy. Missing policies remain `not_assessed`.
-- `sec_edgar` (optional): exact caller-supplied `cik`, `issuer_name`, and optional `period` (`annual` or `quarterly`). Requires `MASTER_ARSENAL_SEC_USER_AGENT`.
+- `sec_edgar` (optional): either exact caller-supplied `cik` plus `issuer_name`, or `resolve_ticker: true` for automatic exact SEC ticker/exchange/issuer resolution from a `listed_equity` candidate; optional `period` (`annual` or `quarterly`). Requires `MASTER_ARSENAL_SEC_USER_AGENT`. Tokenized equity requires an explicit CIK.
 - `clinical_trials` (optional): up to ten records, each containing exact `nct_id` and documented `attribution_basis`. Restricted to equity candidates.
 - `defillama` (optional): exact `protocol_slug` and documented `attribution_basis`. Restricted to crypto candidates.
 - `scenario_inputs` (optional): complete inputs for the long-only scenario calculator, including the exact instrument key.
@@ -20,7 +20,7 @@ The job is read-only. It can call only the configured public source adapters and
 - `conclusion` (optional): one of `potential_candidate_for_further_diligence`, `wait_for_confirmation`, `insufficient_evidence`, or `avoid_for_now`. Defaults to `insufficient_evidence`.
 - `executive_summary`, `risks`, `thesis_invalidation`, `unresolved_questions`, and `methodology_notes` (optional): report narrative fields.
 
-Unknown top-level parameters are rejected. Source adapters are called only when their explicit configuration is present. The Local Engine never infers CIK, NCT, protocol slug, issuer ownership, or token value capture.
+Unknown top-level parameters are rejected. Source adapters are called only when their explicit configuration is present. The Local Engine never guesses CIK, NCT, protocol slug, issuer ownership, or token value capture. SEC ticker resolution is an explicit opt-in lookup against the official exchange-aware directory and fails closed on ambiguity or issuer-name mismatch.
 
 ## Evidence and conclusion gates
 
