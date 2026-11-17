@@ -1,8 +1,8 @@
 ---
 name: binance-momento-mercado
 description: 'Informe de mercado a una hora concreta o snapshot intradía. Activar cuando el usuario diga “momento específico del mercado”, “estado del mercado ahora”, “resumen a esta hora”, “snapshot intradía” o solicite el comportamiento del día hasta una hora indicada. El análisis empieza al inicio del día local y termina en la hora de corte solicitada.'
-version: 0.7.0
-last_reviewed: 2026-11-16
+version: 0.8.0
+last_reviewed: 2026-11-17
 ---
 
 # binance-momento-mercado
@@ -52,6 +52,18 @@ Do not treat an incomplete day as a closed session. Headlines are candidate cont
 Intraday market context can support a prospective investment decision even when the user has no transaction history. Do not require a Binance CSV export for watchlist research, asset screening, or hypothetical scenario calculations. If the user declares a pre-investment state, account performance is not applicable and personal balances/positions are not supplied; never infer a zero balance solely from an absent export.
 
 Identify the exact instrument and venue for every candidate, distinguishing listed equities, tokenized equity products, and cryptocurrencies. Keep observed market data separate from fundamental interpretation and forward-looking scenarios. State data timestamps, source coverage, uncertainty, catalysts, downside risks, and the conditions that would invalidate the thesis. Do not present a market snapshot as a guaranteed prediction or an automatic trade instruction.
+
+## Source-backed equity and biotechnology research
+
+When the user names an equity or biotech candidate for prospective investment research, use the exact instrument identity already validated by the instrument registry. Do not run issuer-fundamental research for an unspecified ticker or infer an issuer CIK from a ticker symbol.
+
+- For a U.S. filer, the SEC EDGAR Company Facts adapter may retrieve annual or quarterly revenue, operating income, net income, operating cash flow, total assets, and cash/equivalents. Require an explicitly configured `MASTER_ARSENAL_SEC_USER_AGENT` and caller-supplied CIK. Preserve filing form, concept, accession, filing date, period end, and retrieval timestamp. Missing XBRL concepts remain missing, not zero. The adapter does not provide total debt, free cash flow, valuation multiples, peer analysis, or narrative risk-factor analysis.
+- For a biotech candidate, retrieve exact NCT records through ClinicalTrials.gov API v2 only when an NCT ID is supplied or otherwise established by primary issuer evidence. Record trial status, phase, enrollment and estimated/actual label, primary completion date, primary outcomes, interventions, and results-section presence.
+- Require a documented issuer-to-trial attribution basis, such as an issuer filing identifying the candidate/intervention. A trial's lead sponsor or drug name alone does not prove listed-company ownership, rights, or economic exposure.
+- Treat registry fields as sponsor-submitted data. Trial registration, phase, recruitment status, and the existence of a results section are not proof of efficacy, safety, approval, or commercial success. Do not call trial results positive without analyzing the posted outcomes and source context.
+- Keep filing period-end, filing/publication date, registry last-update date, and retrieval timestamp distinct. Apply explicit freshness rules; if CIK/NCT mapping or source evidence is missing, state that the relevant diligence is not verified.
+- Use these modules only when a candidate is explicitly in scope; do not turn an intraday snapshot into a full fundamental report. Keep observed market conditions separate from long-term evidence and analyst scenarios.
+
 
 ## Status
 Adapted against the user-supplied original Claude skill package. XNYS premarket/regular/postmarket classification is integrated; Yahoo market quotes are best-effort and partial, with breadth and stock-level leaders/laggards unavailable. Local transaction-history CSV activity can be summarized, but portfolio equity and flow-adjusted returns remain unavailable.
