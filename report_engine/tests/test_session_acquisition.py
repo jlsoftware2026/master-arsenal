@@ -66,6 +66,7 @@ class SessionAcquisitionTests(unittest.TestCase):
             "macro_sources": [], "news_sources": [], "context_status": "complete",
             "context_sources": [
                 {"publisher": f"Feed {index}", "kind": "news", "status": "ok",
+                 "feed_url": f"https://example.com/feed-{index}.xml",
                  "retrieved_at_utc": "2026-11-15T00:00:00Z", "matching_items": 0}
                 for index in range(6)
             ],
