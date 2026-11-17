@@ -126,6 +126,20 @@ class ResearchEvidenceTests(unittest.TestCase):
         self.assertEqual(packet["fact_count"], 0)
         self.assertEqual(packet["data_quality"]["status"], "insufficient_evidence")
 
+    def test_disputed_and_unverified_facts_block_evidence_recorded_status(self):
+        disputed = sourced_fact(evidence_quality="disputed")
+        packet = build_research_packet(KEY, [disputed], now=NOW,
+                                       freshness_limits_hours={"revenue": 24})
+        self.assertEqual(packet["data_quality"]["status"], "insufficient_evidence")
+        self.assertEqual(packet["data_quality"]["disputed_fact_ids"], ["fact-001"])
+
+    def test_estimated_fact_is_explicit_but_not_automatically_disputed(self):
+        estimated = sourced_fact(evidence_quality="estimated")
+        packet = build_research_packet(KEY, [estimated], now=NOW,
+                                       freshness_limits_hours={"revenue": 24})
+        self.assertEqual(packet["data_quality"]["status"], "evidence_recorded")
+        self.assertEqual(packet["data_quality"]["estimated_fact_ids"], ["fact-001"])
+
     def test_unassessed_freshness_is_explicit(self):
         packet = build_research_packet(KEY, [sourced_fact()], now=NOW)
         self.assertEqual(packet["data_quality"]["status"], "freshness_not_assessed")
