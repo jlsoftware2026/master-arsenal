@@ -60,7 +60,7 @@ class BinanceSpotVerifierTests(unittest.TestCase):
         self.assertEqual(result["source_url"], BINANCE_SPOT_EXCHANGE_INFO_URL)
         self.assertEqual(client.calls, ["spot"])
 
-    def test_tokenized_equity_checks_token_product_not_underlying_share(self):
+    def test_tokenized_equity_requires_contract_and_rights_evidence_beyond_ticker_match(self):
         client = FakeBinanceClient({"symbols": [product(
             symbol="AAPLXUSDT", baseAsset="AAPLX"
         )]})
@@ -74,9 +74,9 @@ class BinanceSpotVerifierTests(unittest.TestCase):
             ),
             retrieved_at=NOW,
         )
-        self.assertEqual(result["status"], "verified")
-        self.assertEqual(result["base_asset"], "AAPLX")
-        self.assertNotEqual(result["base_asset"], "EXM")
+        self.assertEqual(result["status"], "not_verified")
+        self.assertIn("exact token contract", result["reason"])
+        self.assertEqual(client.calls, [])
 
     def test_listed_equity_is_not_misclassified_as_binance_spot(self):
         client = FakeBinanceClient({"symbols": [product()]})
