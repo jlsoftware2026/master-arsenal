@@ -1,7 +1,7 @@
 ---
 name: binance-apertura-mercado
 description: 'Informe de apertura/premercado. Activar cuando el usuario diga “apertura de mercado”, “brief de apertura” o solicite el panorama antes de la apertura. Analiza la sesión bursátil estadounidense que abrirá hoy y el comportamiento de la cuenta Binance durante la sesión/día anterior. El día de referencia de la cuenta es el día calendario anterior a la fecha local de solicitud.'
-version: 1.2.0
+version: 1.3.0
 last_reviewed: 2026-11-17
 ---
 
@@ -65,6 +65,7 @@ When the user names an equity or biotech candidate for prospective investment re
 - Require a documented issuer-to-trial attribution basis, such as an issuer filing identifying the candidate/intervention. A trial's lead sponsor or drug name alone does not prove listed-company ownership, rights, or economic exposure.
 - Treat registry fields as sponsor-submitted data. Trial registration, phase, recruitment status, and the existence of a results section are not proof of efficacy, safety, approval, or commercial success. Do not call trial results positive without analyzing the posted outcomes and source context.
 - Keep filing period-end, filing/publication date, registry last-update date, and retrieval timestamp distinct. Apply explicit freshness rules; if CIK/NCT mapping or source evidence is missing, state that the relevant diligence is not verified.
+- Inspect the research packet's unresolved source conflicts. Different sourced values for the same labeled metric, unit, and observation period must be disclosed with source provenance; do not choose a preferred value or average them. A conflict keeps the packet insufficient until reconciled. Analyst/user assumptions are not source conflicts.
 - These research modules provide evidence, not a buy/sell decision. Present positive evidence, counterevidence, unresolved questions, catalysts, and thesis-invalidation conditions separately from the market-opening snapshot.
 
 
@@ -97,6 +98,7 @@ The generated PDF has a SHA-256-bound evidence manifest. The `skills.audit` job 
 Adapted against the user-supplied original Claude skill package. The XNYS calendar and best-effort Yahoo Finance quote snapshot are integrated. Breadth and stock-level leaders/laggards remain unavailable. Transaction-history CSV activity can be summarized, but account equity, unrealized PnL and flow-adjusted returns remain unavailable.
 
 ## Version history
+- 1.3.0 — 2026-11-17: Added cross-source conflict detection and disclosure in opportunity reports.
 - 1.2.0 — 2026-11-17: Added opt-in SEC ticker-to-CIK resolution with exact exchange/issuer matching and fail-closed ambiguity handling.
 - 1.1.0 — 2026-11-17: Added same-period SEC-derived financial ratios and independent ratio recalculation in opportunity reports.
 - 1.0.0 — 2026-11-17: Added standalone opportunity PDF workflow and SHA-256 evidence-manifest audit controls.
