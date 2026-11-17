@@ -18,7 +18,6 @@ def _decimal(value: Any, field: str) -> Decimal:
         raise ValueError(f"{field} must be finite")
     return number
 
-""")
 def _timestamp(value: Any, field: str) -> datetime:
     if not isinstance(value, str):
         raise ValueError(f"{field} must be an ISO-8601 timestamp")
