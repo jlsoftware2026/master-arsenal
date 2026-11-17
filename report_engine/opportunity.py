@@ -107,7 +107,7 @@ def _validate(report: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any], d
             data_table(
                 ["Dimensión", "Métrica", "Unidad", "Periodo", "Valores / fuentes", "Estado"],
                 conflict_rows, styles,
-                widths=[20*mm, 30*mm, 16*mm, 28*mm, 75*mm, 18*mm],
+                widths=[18*mm, 28*mm, 14*mm, 25*mm, 65*mm, 17*mm],
             ),
         ])
 
