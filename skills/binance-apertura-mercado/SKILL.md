@@ -1,7 +1,7 @@
 ---
 name: binance-apertura-mercado
 description: 'Informe de apertura/premercado. Activar cuando el usuario diga “apertura de mercado”, “brief de apertura” o solicite el panorama antes de la apertura. Analiza la sesión bursátil estadounidense que abrirá hoy y el comportamiento de la cuenta Binance durante la sesión/día anterior. El día de referencia de la cuenta es el día calendario anterior a la fecha local de solicitud.'
-version: 0.9.0
+version: 1.0.0
 last_reviewed: 2026-11-17
 ---
 
@@ -85,10 +85,18 @@ When the user explicitly requests a forward-looking investment scenario, the sce
 Hypothetical position sizing is permitted only when the user explicitly supplies available capital, risk budget, maximum allocation, entry/invalidation assumptions, and cost assumptions. The calculator is cash-only and unlevered. Do not infer that the user owns the asset or has placed an order. State that an invalidation level is not a guaranteed execution price and actual losses can exceed the estimate. If any required input is absent, do not fill it with a guessed default; report that sizing is not calculated.
 
 
+## Dedicated investment opportunity PDF workflow
+
+The opening-market PDF remains a time-specific market-session report. When the user separately requests a candidate-level pre-investment report, use the approved Local Engine job `investment.opportunity_report` rather than silently expanding the opening snapshot. The job requires an exact asset identity, accepts only explicitly configured SEC/ClinicalTrials.gov/DeFiLlama sources and caller-supplied assumptions, and writes to the fixed `reports/opportunities` directory after the normal validation/approval gate. Never infer CIK, NCT, protocol slug, issuer ownership, or token rights.
+
+The generated PDF has a SHA-256-bound evidence manifest. The `skills.audit` job checks the PDF/manifest link, rebuilds the evidence packet, and recalculates scenario and sizing arithmetic. This does not prove source-content truth or the correctness of issuer/trial/protocol attribution; disclose those remaining diligence limits.
+
+
 ## Status
 Adapted against the user-supplied original Claude skill package. The XNYS calendar and best-effort Yahoo Finance quote snapshot are integrated. Breadth and stock-level leaders/laggards remain unavailable. Transaction-history CSV activity can be summarized, but account equity, unrealized PnL and flow-adjusted returns remain unavailable.
 
 ## Version history
+- 1.0.0 — 2026-11-17: Added standalone opportunity PDF workflow and SHA-256 evidence-manifest audit controls.
 - 0.9.0 — 2026-11-17: Added explicit-assumption scenario and cash-only hypothetical position-risk calculation controls.
 - 0.1.0 — 2026-11-16: Initial ChatGPT/MASTER ARSENAL adaptation; preserves the original skill identity and documents the Local Engine/PDF workflow and current implementation gaps.
 
