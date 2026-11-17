@@ -23,6 +23,13 @@ from binance_data_engine.client import BinancePublicClient
 from report_engine.account_exports import collect_binance_account_exports
 from report_engine.timezone import REPORT_TIMEZONE, current_local_report_date
 from report_engine.us_market_calendar import classify_us_equity_session
+from report_engine.instruments import build_instrument_record
+from report_engine.research import build_research_packet
+from report_engine.sec_edgar import SECEdgarCompanyFacts
+from report_engine.clinical_trials import ClinicalTrialsGov
+from report_engine.defillama import DeFiLlamaProtocolResearch
+from report_engine.scenarios import calculate_long_scenarios
+from report_engine.position_sizing import calculate_cash_position_size
 
 from report_engine import (
     build_skills_audit_pdf, generate_closing_report_pdf,
@@ -350,6 +357,7 @@ class JobRunner:
             "market.closing_report": self._closing_report,
             "market.intraday_snapshot": self._intraday_snapshot,
             "skills.audit": self._skills_audit,
+            "investment.opportunity_report": self._opportunity_report,
         }
 
     def _health_check(self, job: dict[str, Any]) -> dict[str, Any]:
@@ -1134,6 +1142,171 @@ class JobRunner:
             "us_market_data_provenance_status": next((x["status"] for x in desk_checks if x["id"] == "US-DATA-01"), "not_verified"),
             "audit_date_local": audit_date_local,
             "read_only": True,
+        }
+
+    def _opportunity_report(self, job: dict[str, Any]) -> dict[str, Any]:
+        """Build a pre-investment PDF from explicit identities and approved public-source lookups."""
+        parameters = job["parameters"]
+        allowed = {
+            "instrument_candidate", "venue_evidence", "research_facts",
+            "freshness_limits_hours", "sec_edgar", "clinical_trials",
+            "defillama", "scenario_inputs", "position_sizing_inputs",
+            "conclusion", "executive_summary", "risks", "thesis_invalidation",
+            "unresolved_questions", "methodology_notes",
+        }
+        unknown = set(parameters) - allowed
+        if unknown:
+            raise ValueError(f"Unknown investment opportunity parameters: {sorted(unknown)}")
+        candidate = parameters.get("instrument_candidate")
+        if not isinstance(candidate, dict):
+            raise ValueError("instrument_candidate must be an asset identity object")
+        instrument = build_instrument_record(candidate, parameters.get("venue_evidence"))
+        instrument_key = instrument["instrument_key"]
+        facts = parameters.get("research_facts", [])
+        if not isinstance(facts, list) or len(facts) > 500:
+            raise ValueError("research_facts must be a list containing at most 500 facts")
+        facts = list(facts)
+        provider_status: dict[str, Any] = {}
+
+        sec_config = parameters.get("sec_edgar")
+        if sec_config is not None:
+            if not isinstance(sec_config, dict) or set(sec_config) - {"cik", "issuer_name", "period"}:
+                raise ValueError("sec_edgar must contain only cik, issuer_name, and period")
+            if instrument["asset_class"] not in {"listed_equity", "tokenized_equity"}:
+                raise ValueError("SEC issuer fundamentals require an equity instrument identity")
+            sec_result = SECEdgarCompanyFacts().fetch_facts(
+                cik=sec_config.get("cik"),
+                instrument_key=instrument_key,
+                issuer_name=sec_config.get("issuer_name"),
+                period=sec_config.get("period", "annual"),
+            )
+            facts.extend(sec_result["facts"])
+            provider_status["sec_edgar"] = {
+                "status": "retrieved" if sec_result["facts"] else "partial",
+                "cik": sec_result["cik"],
+                "entity_name": sec_result["provider_entity_name"],
+                "fact_count": len(sec_result["facts"]),
+                "missing_dimensions": sec_result["missing_dimensions"],
+                "source_url": sec_result["source_url"],
+            }
+
+        clinical_config = parameters.get("clinical_trials", [])
+        if not isinstance(clinical_config, list) or len(clinical_config) > 10:
+            raise ValueError("clinical_trials must be a list containing at most 10 NCT records")
+        if clinical_config and instrument["asset_class"] not in {"listed_equity", "tokenized_equity"}:
+            raise ValueError("ClinicalTrials.gov issuer diligence requires an equity instrument identity")
+        clinical_status = []
+        seen_nct: set[str] = set()
+        clinical_client = ClinicalTrialsGov() if clinical_config else None
+        for item in clinical_config:
+            if not isinstance(item, dict) or set(item) != {"nct_id", "attribution_basis"}:
+                raise ValueError("Each clinical_trials item must contain nct_id and attribution_basis")
+            nct_id = item["nct_id"]
+            if not isinstance(nct_id, str) or nct_id.upper() in seen_nct:
+                raise ValueError("clinical_trials NCT identifiers must be unique strings")
+            seen_nct.add(nct_id.upper())
+            trial = clinical_client.fetch_study(
+                nct_id=nct_id,
+                instrument_key=instrument_key,
+                attribution_basis=item["attribution_basis"],
+            )
+            facts.extend(trial["facts"])
+            clinical_status.append({
+                "nct_id": trial["nct_id"],
+                "study_title": trial["study_title"],
+                "overall_status": trial["overall_status"],
+                "fact_count": len(trial["facts"]),
+                "attribution_status": trial["issuer_trial_attribution"]["status"],
+                "source_url": trial["source_url"],
+            })
+        if clinical_config:
+            provider_status["clinical_trials"] = {
+                "status": "retrieved" if clinical_status else "unavailable",
+                "studies": clinical_status,
+            }
+
+        defi_config = parameters.get("defillama")
+        if defi_config is not None:
+            if not isinstance(defi_config, dict) or set(defi_config) != {"protocol_slug", "attribution_basis"}:
+                raise ValueError("defillama must contain protocol_slug and attribution_basis")
+            if instrument["asset_class"] != "crypto":
+                raise ValueError("DeFiLlama protocol research requires a crypto instrument identity")
+            defi_result = DeFiLlamaProtocolResearch().fetch_protocol_research(
+                protocol_slug=defi_config["protocol_slug"],
+                instrument_key=instrument_key,
+                attribution_basis=defi_config["attribution_basis"],
+            )
+            facts.extend(defi_result["facts"])
+            provider_status["defillama"] = {
+                "status": defi_result["data_quality_status"],
+                "protocol_slug": defi_result["protocol_slug"],
+                "protocol_name": defi_result["protocol_name"],
+                "fact_count": len(defi_result["facts"]),
+                "missing_metrics": defi_result["missing_metrics"],
+                "source_url": defi_result["source_url"],
+                "attribution_status": defi_result["protocol_instrument_attribution"]["status"],
+            }
+
+        generated_at = datetime.now(timezone.utc)
+        freshness_limits = parameters.get("freshness_limits_hours", {})
+        if not isinstance(freshness_limits, dict):
+            raise ValueError("freshness_limits_hours must be an object")
+        packet = build_research_packet(
+            instrument_key, facts, now=generated_at,
+            freshness_limits_hours=freshness_limits,
+        )
+
+        scenarios = parameters.get("scenario_inputs")
+        if scenarios is not None:
+            if not isinstance(scenarios, dict) or scenarios.get("instrument_key") != instrument_key:
+                raise ValueError("scenario_inputs must include the exact normalized instrument_key")
+            scenarios = calculate_long_scenarios(**scenarios)
+
+        sizing = parameters.get("position_sizing_inputs")
+        if sizing is not None:
+            if not isinstance(sizing, dict) or sizing.get("instrument_key") != instrument_key:
+                raise ValueError("position_sizing_inputs must include the exact normalized instrument_key")
+            sizing = calculate_cash_position_size(**sizing)
+
+        report = {
+            "generated_at_utc": generated_at.isoformat().replace("+00:00", "Z"),
+            "instrument": instrument,
+            "research_packet": packet,
+            "conclusion": parameters.get("conclusion", "insufficient_evidence"),
+            "executive_summary": parameters.get("executive_summary", []),
+            "scenarios": scenarios,
+            "position_sizing": sizing,
+            "risks": parameters.get("risks", []),
+            "thesis_invalidation": parameters.get("thesis_invalidation", []),
+            "unresolved_questions": parameters.get("unresolved_questions", []),
+            "provider_status": provider_status or {"status": "No external provider adapter requested"},
+            "methodology_notes": parameters.get("methodology_notes", []),
+        }
+        output_directory = self.manager.workspace.directory("reports/opportunities")
+        artifact = build_opportunity_report_pdf(report, output_directory)
+        resolved = artifact.resolve(strict=True)
+        if not resolved.is_relative_to(output_directory):
+            raise ValueError("Generated opportunity report escaped reports/opportunities")
+        payload = resolved.read_bytes()
+        if (not resolved.is_file() or resolved.suffix.lower() != ".pdf"
+                or len(payload) < 16 or not payload.startswith(b"%PDF-")
+                or b"%%EOF" not in payload[-1024:]):
+            raise ValueError("Opportunity report failed PDF integrity checks")
+        return {
+            "report_type": "investment.opportunity_report",
+            "format": "pdf",
+            "artifact_path": resolved.relative_to(self.manager.workspace.root).as_posix(),
+            "filename": resolved.name,
+            "size_bytes": len(payload),
+            "sha256": hashlib.sha256(payload).hexdigest(),
+            "instrument_key": instrument_key,
+            "conclusion": report["conclusion"],
+            "fact_count": packet["fact_count"],
+            "data_quality_status": packet["data_quality"]["status"],
+            "venue_verification_status": (instrument.get("venue_verification") or {}).get("status", "not_verified"),
+            "provider_status": provider_status,
+            "read_only": True,
+            "hypothetical_only": True,
         }
 
     def _intraday_snapshot(self, job: dict[str, Any]) -> dict[str, Any]:
