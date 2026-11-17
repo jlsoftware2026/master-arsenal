@@ -382,9 +382,9 @@ def build_opportunity_report_pdf(report: dict[str, Any], output_directory: Path 
             styles["body"],
         ))
         biotech_rows = [[name, _text(item.get("value")), _text(item.get("unit")),
-                         _text(item.get("formula")), _text(item.get("as_of_utc") or
-                         item.get("market_cap_as_of_utc")), _text(item.get("cash_source_id") or
-                         item.get("market_cap_source_id"))]
+                         _text(item.get("formula")), _text(item.get("cash_as_of_utc") or item.get("market_cap_as_of_utc")),
+                         _text([item.get("cash_source_id"), item.get("burn_source_id"),
+                                item.get("market_cap_source_id"), item.get("revenue_source_id")])]
                         for name, item in (biotech_valuation.get("metrics") or {}).items()]
         if biotech_rows:
             story.append(data_table(
