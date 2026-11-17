@@ -265,7 +265,7 @@ class SECEdgarCompanyFacts:
                 "Concept availability and reporting practices vary by issuer; absent concepts are not zero.",
                 "The selected concept is the first available alternative, not a sum of potentially overlapping tags.",
                 "The adapter does not calculate total debt, free cash flow, valuation multiples, or restated historical series.",
-                "The supplied CIK-to-instrument mapping is caller-provided and is not independently resolved from a ticker.",
+                "The CIK mapping is either caller-supplied or resolved from the SEC ticker directory; neither path independently establishes legal issuer/security identity.",
                 "SEC facts and filing references require analyst review before use in an investment conclusion.",
             ],
         }
