@@ -161,3 +161,8 @@ A read-only DeFiLlama public API adapter is implemented in `report_engine/defill
 ## Scenario calculation and hypothetical risk sizing
 
 Two deterministic calculators now exist: `report_engine/scenarios.py` computes long-only bull/base/bear price returns, downside to invalidation, and bull/base reward-to-risk from explicit hypothetical prices and rationales; `report_engine/position_sizing.py` computes a cash-only hypothetical maximum size under explicit capital, risk-budget, allocation, fee, and slippage assumptions. Neither generates probabilities, expected returns, price targets, or trading instructions; neither submits orders. Details and limitations: [scenario-and-risk-engine.md](scenario-and-risk-engine.md). Offline tests are added for arithmetic and validation.
+
+
+## Standalone opportunity PDF and Local Engine job
+
+A new approved job type `investment.opportunity_report` is registered in the Local Engine protocol with a fixed `reports/opportunities` PDF output. The handler normalizes exact instrument identity, optionally calls explicitly configured SEC/ClinicalTrials.gov/DeFiLlama public adapters, combines facts into one instrument-bound research packet, optionally calculates explicit-assumption scenarios and cash-only sizing, and produces a standalone opportunity PDF. Empty/insufficient evidence cannot support a potential-candidate conclusion. The job remains read-only and approval-gated. Structural PDF QA runs at generation; independent opportunity-manifest and scenario/source audit integration remains outstanding. See [opportunity-report-workflow.md](opportunity-report-workflow.md).
