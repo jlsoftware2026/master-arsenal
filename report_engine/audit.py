@@ -196,7 +196,7 @@ def build_skills_audit_pdf(report: dict[str, Any], output_directory: Path | str)
             story.append(data_table(
                 ["PDF", "Auditoría", "Hechos", "Auditoría ratios", "Calidad ratios", "Mapeo emisor", "Escenarios", "Dimensionamiento", "Manifiesto", "Hallazgos"],
                 opportunity_rows, styles,
-                widths=[20*mm, 13*mm, 8*mm, 12*mm, 15*mm, 18*mm, 13*mm, 16*mm, 25*mm, 40*mm],
+                widths=[18*mm, 12*mm, 8*mm, 11*mm, 14*mm, 16*mm, 12*mm, 14*mm, 24*mm, 40*mm],
             ))
     else:
         story.append(paragraph(
