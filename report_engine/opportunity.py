@@ -19,6 +19,7 @@ from .research import build_research_packet
 from .scenarios import calculate_long_scenarios
 from .position_sizing import calculate_cash_position_size
 from .fundamentals import calculate_financial_ratios, calculate_valuation_multiples
+from .tokenomics import calculate_tokenomics
 
 from .sec_edgar import SEC_TICKER_EXCHANGE_URL, SECEdgarCompanyFacts
 from .binance_venue import BINANCE_SPOT_EXCHANGE_INFO_URL
@@ -96,6 +97,21 @@ def _validate(report: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any], d
                 or valuation_metrics.get("schema") != "ma.valuation-multiples/v1"
                 or valuation_metrics.get("instrument_key") != key):
             raise ValueError("valuation_metrics must match the instrument and use ma.valuation-multiples/v1")
+    tokenomics = report.get("tokenomics")
+    tokenomics_inputs = report.get("tokenomics_inputs")
+    if tokenomics is not None or tokenomics_inputs is not None:
+        if instrument.get("asset_class") != "crypto":
+            raise ValueError("tokenomics analysis is only supported for crypto instruments")
+        if not isinstance(tokenomics, dict) or tokenomics.get("schema") != "ma.tokenomics/v1":
+            raise ValueError("tokenomics must use ma.tokenomics/v1")
+        if tokenomics.get("instrument_key") != key:
+            raise ValueError("tokenomics instrument_key does not match instrument")
+        if not isinstance(tokenomics_inputs, dict):
+            raise ValueError("tokenomics_inputs are required for independent recalculation")
+        if tokenomics_inputs.get("instrument_key") != key:
+            raise ValueError("tokenomics_inputs instrument_key does not match instrument")
+        if calculate_tokenomics(**tokenomics_inputs) != tokenomics:
+            raise ValueError("tokenomics does not match its explicit calculation inputs")
     facts = packet.get("facts")
     if not isinstance(facts, list):
         raise ValueError("research_packet.facts must be a list")
@@ -295,6 +311,60 @@ def build_opportunity_report_pdf(report: dict[str, Any], output_directory: Path 
             ))
         if valuation_metrics.get("limitations"):
             story.append(paragraph("Limitaciones: " + _text(valuation_metrics["limitations"]), styles["small"]))
+
+    tokenomics = report.get("tokenomics")
+    if tokenomics:
+        supply = tokenomics.get("supply") or {}
+        valuation = tokenomics.get("valuation") or {}
+        story.extend([
+            section_heading("Tokenomics: oferta y valoración diluida", styles),
+            key_value_table([
+                ("Oferta circulante", supply.get("circulating")),
+                ("Oferta total", supply.get("total")),
+                ("Oferta máxima", supply.get("max") or "No suministrada"),
+                ("Circulante / total", f"{_text(supply.get('circulating_pct_of_total'))}%"),
+                ("Circulante / máximo", f"{_text(supply.get('circulating_pct_of_max'))}%" if supply.get("circulating_pct_of_max") is not None else "No calculado"),
+                ("Precio de referencia", f"{_text(valuation.get('price'))} {_text(valuation.get('quote_currency'))}"),
+                ("Capitalización estimada", _text(valuation.get("market_cap"))),
+                ("FDV estimada", _text(valuation.get("fully_diluted_valuation"))),
+            ], styles),
+            paragraph(
+                "La capitalización y FDV son cálculos aritméticos sobre precio y oferta suministrados; "
+                "no constituyen una valoración independiente. Las definiciones de oferta deben revisarse.",
+                styles["small"],
+            ),
+        ])
+        unlocks = tokenomics.get("unlock_schedule") or {}
+        story.append(section_heading("Calendario de desbloqueos conocidos", styles))
+        story.append(key_value_table([
+            ("Estado de cobertura", unlocks.get("status")),
+            ("Desbloqueos conocidos futuros", unlocks.get("known_future_unlock_total")),
+            ("Próximos 30 días (% oferta circulante)", (unlocks.get("known_unlocks_pct_of_circulating") or {}).get("30d")),
+            ("Próximos 90 días (% oferta circulante)", (unlocks.get("known_unlocks_pct_of_circulating") or {}).get("90d")),
+            ("Próximos 365 días (% oferta circulante)", (unlocks.get("known_unlocks_pct_of_circulating") or {}).get("365d")),
+        ], styles))
+        if unlocks.get("events"):
+            story.append(data_table(
+                ["Evento", "Fecha UTC", "Cantidad", "Categoría"],
+                [[item.get("event_id"), item.get("unlock_at_utc"), item.get("amount"), item.get("recipient_category")]
+                 for item in unlocks["events"]],
+                styles, widths=[30*mm, 45*mm, 35*mm, 55*mm],
+            ))
+        holders = tokenomics.get("holder_concentration") or {}
+        story.append(section_heading("Concentración de tenedores observada", styles))
+        story.append(key_value_table([
+            ("Estado", holders.get("status")),
+            ("Cobertura declarada", f"{_text(holders.get('coverage_pct'))}%" if holders.get("coverage_pct") is not None else "No evaluada"),
+            ("Top 1 observado / circulante", f"{_text(holders.get('top_1_observed_pct'))}%"),
+            ("Top 5 observado / circulante", f"{_text(holders.get('top_5_observed_pct'))}%"),
+            ("Carteras incluidas", holders.get("holder_count")),
+        ], styles))
+        story.append(paragraph(
+            "La concentración se limita a las carteras suministradas y a la cobertura declarada; "
+            "una dirección no equivale necesariamente a un beneficiario económico. "
+            "Datos ausentes no significan cero desbloqueos ni concentración nula.",
+            styles["small"],
+        ))
 
     source_rows = []
     for fact in facts:
@@ -612,6 +682,20 @@ def audit_opportunity_manifest(
                 findings.append(f"Valuation-multiple recalculation failed: {type(exc).__name__}: {exc}")
                 valuation_status = "failed"
 
+        stored_tokenomics = report.get("tokenomics")
+        tokenomics_status = "not_applicable"
+        if stored_tokenomics is not None:
+            try:
+                rebuilt_tokenomics = calculate_tokenomics(**report["tokenomics_inputs"])
+                if rebuilt_tokenomics != stored_tokenomics:
+                    findings.append("Independent tokenomics recalculation differs from the stored result.")
+                    tokenomics_status = "failed"
+                else:
+                    tokenomics_status = "passed"
+            except Exception as exc:
+                findings.append(f"Tokenomics recalculation failed: {type(exc).__name__}: {exc}")
+                tokenomics_status = "failed"
+
         scenario = report.get("scenarios")
         scenario_status = "not_applicable"
         if scenario is not None:
@@ -680,6 +764,7 @@ def audit_opportunity_manifest(
             "valuation_metrics_quality_status": (
                 (stored_valuation or {}).get("status", "not_applicable")
             ),
+            "tokenomics_status": tokenomics_status,
             "issuer_mapping_status": issuer_mapping_status,
             "venue_mapping_status": venue_mapping_status,
             "fundamental_metrics_quality_status": (
