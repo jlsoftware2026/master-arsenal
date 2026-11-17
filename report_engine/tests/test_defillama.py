@@ -18,7 +18,7 @@ def protocol_fixture():
         "gecko_id": "aave",
         "tvl": [
             {"date": 1794873600, "totalLiquidityUSD": 1_000_000_000},
-            {"date": 1794960000, "totalLiquidityUSD": 1_100_000_000},
+            {"date": 1794902400, "totalLiquidityUSD": 1_100_000_000},
         ],
     }
 
@@ -27,7 +27,7 @@ def fee_fixture(value):
     return {
         "totalDataChart": [
             [1794873600, value - 100],
-            [1794960000, value],
+            [1794902400, value],
         ],
         "total24h": value,
     }
@@ -41,10 +41,10 @@ class DeFiLlamaTests(unittest.TestCase):
                 _slug(value)
 
     def test_latest_tvl_uses_latest_valid_point(self):
-        self.assertEqual(_latest_tvl(protocol_fixture()["tvl"]), (1_100_000_000.0, 1794960000))
+        self.assertEqual(_latest_tvl(protocol_fixture()["tvl"]), (1_100_000_000.0, 1794902400))
 
     def test_latest_chart_uses_latest_valid_point(self):
-        self.assertEqual(_latest_chart([[1794873600, 4], [1794960000, 5]]), (5.0, 1794960000))
+        self.assertEqual(_latest_chart([[1794873600, 4], [1794902400, 5]]), (5.0, 1794902400))
 
     def test_latest_chart_rejects_invalid_values(self):
         self.assertIsNone(_latest_chart([["bad", 4], [1794873600, float("nan")]]))
