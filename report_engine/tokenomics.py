@@ -108,6 +108,9 @@ def calculate_tokenomics(
     if circulating > total:
         raise ValueError("circulating_supply cannot exceed total_supply")
 
+    supply_dates = {circ_source["as_of_utc"][:10], total_source["as_of_utc"][:10]}
+    if len(supply_dates) != 1:
+        raise ValueError("supply observations must share the same UTC calendar date")
     sources = {"circulating_supply": circ_source, "total_supply": total_source}
     maximum = None
     if max_supply is not None:
@@ -116,6 +119,9 @@ def calculate_tokenomics(
         )
         if maximum < total:
             raise ValueError("max_supply cannot be below total_supply")
+        supply_dates.add(sources["max_supply"]["as_of_utc"][:10])
+        if len(supply_dates) != 1:
+            raise ValueError("supply observations must share the same UTC calendar date")
 
     price_value = None
     market_cap = None
@@ -128,6 +134,8 @@ def calculate_tokenomics(
         price_time = _utc(price.get("as_of_utc"), "price.as_of_utc")
         if price_time > cutoff:
             raise ValueError("price observation is after the analysis cutoff")
+        if price_time.date().isoformat() not in supply_dates:
+            raise ValueError("price and supply observations must share the same UTC calendar date")
         currency = price.get("quote_currency")
         if not isinstance(currency, str) or not currency.strip():
             raise ValueError("price.quote_currency is required")
@@ -160,6 +168,10 @@ def calculate_tokenomics(
             if event_time <= cutoff:
                 continue
             provenance = _source(event, f"unlock_events[{index}]")
+            schedule_as_of = _utc(event.get("as_of_utc"), f"unlock_events[{index}].as_of_utc")
+            if schedule_as_of > cutoff:
+                raise ValueError("unlock schedule observation is after the analysis cutoff")
+            provenance["as_of_utc"] = schedule_as_of.isoformat().replace("+00:00", "Z")
             scheduled_total += amount
             for horizon, end in horizons.items():
                 if event_time <= end:
