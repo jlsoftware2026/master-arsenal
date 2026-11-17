@@ -32,7 +32,7 @@ from report_engine.scenarios import calculate_long_scenarios
 from report_engine.position_sizing import calculate_cash_position_size
 
 from report_engine import (
-    build_skills_audit_pdf, generate_closing_report_pdf,
+    build_skills_audit_pdf, build_opportunity_report_pdf, generate_closing_report_pdf,
     generate_intraday_snapshot_pdf, generate_opening_report_pdf,
     audit_cross_report_consistency, audit_evidence_manifest, audit_market_report_artifact,
 )
