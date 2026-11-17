@@ -75,6 +75,35 @@ class OpportunityPdfTests(unittest.TestCase):
             self.assertTrue(path.read_bytes().startswith(b"%PDF-"))
             self.assertIn("oportunidad-listed_equity-EXM", path.name)
 
+
+    def test_conflicting_source_values_are_disclosed_in_opportunity_pdf(self):
+        report = report_fixture()
+        first = report["research_packet"]["facts"][0]
+        second = dict(first)
+        second.update({
+            "fact_id": "fact-002", "value": "1300000",
+            "source_name": "Second issuer disclosure",
+            "source_url": "https://example.org/second-filing",
+            "source_reference": "FY2025 revenue reconciliation",
+        })
+        report["research_packet"] = build_research_packet(
+            KEY, [first, second], now=NOW,
+            freshness_limits_hours={"revenue": 24},
+        )
+        report["fundamental_metrics"] = calculate_financial_ratios(
+            report["research_packet"]["facts"], instrument_key=KEY
+        )
+        report["conclusion"] = "insufficient_evidence"
+        with tempfile.TemporaryDirectory() as directory:
+            path = build_opportunity_report_pdf(report, directory)
+            import pymupdf as fitz
+            with fitz.open(path) as document:
+                extracted = " ".join(page.get_text("text") for page in document)
+        self.assertIn("Conflictos de evidencia no resueltos", extracted)
+        self.assertIn("1300000", extracted)
+        self.assertIn("125000000", extracted)
+
+
     def test_opportunity_manifest_recalculates_packet_scenarios_and_sizing(self):
         report = report_fixture()
         with tempfile.TemporaryDirectory() as directory:
