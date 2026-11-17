@@ -25,6 +25,7 @@ def unlock(event_id, amount, at):
         "event_id": event_id, "amount": str(amount), "unlock_at_utc": at,
         "source_name": "Vesting schedule", "source_url": "https://example.org/vesting",
         "source_reference": "Vesting schedule row " + event_id,
+        "as_of_utc": "2026-11-17T15:00:00Z",
     }
 
 
@@ -109,6 +110,20 @@ class TokenomicsTests(unittest.TestCase):
                 circulating_supply=future, total_supply=obs("total", 150),
             )
 
+    def test_rejects_misaligned_supply_and_price_observations(self):
+        with self.assertRaisesRegex(ValueError, "same UTC calendar date"):
+            calculate_tokenomics(
+                instrument_key=KEY, as_of_utc=CUTOFF,
+                circulating_supply=obs("circ", 60),
+                total_supply=obs("total", 80, as_of_utc="2026-11-16T15:00:00Z"),
+            )
+        with self.assertRaisesRegex(ValueError, "same UTC calendar date"):
+            calculate_tokenomics(
+                instrument_key=KEY, as_of_utc=CUTOFF,
+                circulating_supply=obs("circ", 60), total_supply=obs("total", 80),
+                price={**obs("price", "2.50", as_of_utc="2026-11-16T15:00:00Z"), "quote_currency": "USD"},
+            )
+
     def test_rejects_supply_ordering_inconsistency(self):
         with self.assertRaisesRegex(ValueError, "cannot exceed"):
             calculate_tokenomics(
@@ -129,6 +144,16 @@ class TokenomicsTests(unittest.TestCase):
                 instrument_key=KEY, as_of_utc=CUTOFF,
                 circulating_supply=obs("circ", 100), total_supply=obs("total", 150),
                 unlock_events=[event, event],
+            )
+
+    def test_rejects_future_observed_unlock_schedule(self):
+        event = unlock("u1", 10, "2026-12-01T00:00:00Z")
+        event["as_of_utc"] = "2026-11-17T16:01:00Z"
+        with self.assertRaisesRegex(ValueError, "after the analysis cutoff"):
+            calculate_tokenomics(
+                instrument_key=KEY, as_of_utc=CUTOFF,
+                circulating_supply=obs("circ", 100), total_supply=obs("total", 150),
+                unlock_events=[event],
             )
 
     def test_rejects_unlocks_without_source_provenance(self):
