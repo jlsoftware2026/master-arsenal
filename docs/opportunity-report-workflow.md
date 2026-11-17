@@ -9,7 +9,8 @@ The job is read-only. It can call only the configured public source adapters and
 ## Parameters
 
 - `instrument_candidate` (required): asset-class-specific identity input for listed equity, tokenized equity, or crypto.
-- `venue_evidence` (optional): timestamped exact-product evidence. If omitted, venue status remains `not_verified`.
+- `venue_evidence` (optional): caller-supplied timestamped exact-product evidence.
+- `binance_spot_check` (optional boolean): when true, queries public Binance Spot `exchangeInfo` for the exact candidate base/quote product. It is mutually exclusive with `venue_evidence`, restricted to crypto/tokenized-equity product identity, and does not access private accounts or place orders. Listed shares are not treated as Binance Spot products.
 - `research_facts` (optional): caller-supplied source-attributed facts. Each fact must use the exact normalized `instrument_key`.
 - `freshness_limits_hours` (optional): explicit per-dimension freshness policy. Missing policies remain `not_assessed`.
 - `sec_edgar` (optional): either exact caller-supplied `cik` plus `issuer_name`, or `resolve_ticker: true` for automatic exact SEC ticker/exchange/issuer resolution from a `listed_equity` candidate; optional `period` (`annual` or `quarterly`). Requires `MASTER_ARSENAL_SEC_USER_AGENT`. Tokenized equity requires an explicit CIK.
@@ -24,7 +25,7 @@ Unknown top-level parameters are rejected. Source adapters are called only when 
 
 ## Evidence and conclusion gates
 
-The handler builds the normalized instrument identity first, then collects supplied facts and selected public-provider facts, and constructs a single research packet bound to that instrument key. Duplicate fact IDs, mismatched instrument keys, invalid timestamps, invalid provenance, and unsupported freshness policies fail validation.
+When `binance_spot_check` is enabled, the handler first queries exact public Spot product metadata and records `verified`, `unavailable`, or `not_verified` with source/time provenance; a successful result supplies the exact venue identity to the instrument validator. It then collects supplied facts and selected public-provider facts and constructs a single research packet bound to that instrument key. Duplicate fact IDs, mismatched instrument keys, invalid timestamps, invalid provenance, and unsupported freshness policies fail validation.
 
 A `potential_candidate_for_further_diligence` conclusion is rejected when the packet is classified as `insufficient_evidence`. Missing venue evidence is disclosed and does not become a claim of Binance tradability. Provider coverage gaps remain visible.
 
@@ -43,3 +44,6 @@ Every generated opportunity PDF is accompanied by a JSON evidence manifest under
 The `skills.audit` job scans opportunity PDFs and manifests and runs `OPPORTUNITY-01`. It verifies the fixed manifest/PDF paths, PDF hash and structural QA, reconstructs the research packet from its facts and freshness policy, and independently recalculates any scenario and cash-only position-size outputs. Missing/orphan manifests or mismatched hashes/calculations are reported as audit findings.
 
 This is an independent arithmetic, provenance-metadata, and artifact-integrity check. It does not independently authenticate source publishers, prove CIK/NCT/protocol attribution, verify the contents of SEC or ClinicalTrials.gov filings, or establish that clinical or financial claims are true. Those remain analyst diligence requirements.
+
+
+The Binance Spot check proves only that the exact product was present in exchangeInfo with `status=TRADING` and `isSpotTradingAllowed=true` at retrieval time. It does not establish account eligibility, jurisdictional access, liquidity, or investment suitability. For tokenized equity, it verifies the token product only and does not establish rights in the underlying share. See [binance-spot-verification.md](binance-spot-verification.md).
