@@ -2,7 +2,7 @@
 
 **Source of truth:** the four user-supplied Claude `.skill` packages received on 2026-11-16.  
 **Target branch:** `feature/phase-3-pdf-report-engine`.  
-**Status:** Dominican timezone windows, partial closing, Spanish PDF localization, and the current code test matrix are implemented and verified on the feature branch. Remaining original-skill requirements are still outstanding. Phase 3 is not merge-ready.
+**Status:** The core PDF/report implementation, Dominican timezone windows, partial closing, Spanish PDF localization, and static contracts for all four adapted skills are implemented. The latest exact-head matrix passed in run #822. Remaining source-derived requirements are documented as reservations; this is not a claim of complete behavioral parity.
 
 ## Executive finding
 
