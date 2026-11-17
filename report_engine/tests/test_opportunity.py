@@ -174,6 +174,66 @@ class OpportunityPdfTests(unittest.TestCase):
             self.assertEqual(result["issuer_mapping_status"], "manual_cik_not_independently_verified")
 
 
+
+    def test_audit_checks_recorded_binance_spot_product_consistency(self):
+        report = report_fixture()
+        candidate = {
+            "asset_class": "crypto", "name": "Bitcoin",
+            "symbol": "BTC", "quote_currency": "USDT",
+            "venue": {"name": "Binance", "product_id": "BTCUSDT", "market_type": "spot"},
+        }
+        evidence = {
+            "status": "verified", "venue": "Binance",
+            "product_id": "BTCUSDT", "market_type": "spot",
+            "observed_at_utc": "2026-11-17T15:45:00Z",
+            "source_url": "https://api.binance.com/api/v3/exchangeInfo",
+            "evidence_note": "Exact product metadata verified.",
+        }
+        instrument = build_instrument_record(candidate, evidence, now=NOW)
+        crypto_key = instrument["instrument_key"]
+        facts = [dict(item, instrument_key=crypto_key) for item in report["research_packet"]["facts"]]
+        report["instrument"] = instrument
+        report["research_packet"] = build_research_packet(
+            crypto_key, facts, now=NOW,
+            freshness_limits_hours={"revenue": 24},
+        )
+        report["fundamental_metrics"] = calculate_financial_ratios(
+            report["research_packet"]["facts"], instrument_key=crypto_key
+        )
+        report["scenarios"] = None
+        report["position_sizing"] = None
+        report["provider_status"] = {
+            "binance_spot": {
+                "status": "verified", "product_id": "BTCUSDT", "market_type": "spot",
+                "base_asset": "BTC", "quote_asset": "USDT",
+                "product_status": "TRADING", "is_spot_trading_allowed": True,
+                "observed_at_utc": "2026-11-17T15:45:00Z",
+                "source_url": "https://api.binance.com/api/v3/exchangeInfo",
+                "reason": None, "evidence_note": "Exact product metadata verified.",
+            }
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            pdf_dir = root / "reports" / "opportunities"
+            manifest_dir = root / "data" / "manifests" / "opportunities"
+            pdf_dir.mkdir(parents=True)
+            manifest = write_opportunity_manifest(
+                report, build_opportunity_report_pdf(report, pdf_dir), manifest_dir
+            )
+            result = audit_opportunity_manifest(manifest, root)
+            self.assertEqual(result["status"], "passed", result)
+            self.assertEqual(result["venue_mapping_status"], "passed")
+
+            import json
+            payload = json.loads(manifest.read_text(encoding="utf-8"))
+            payload["report"]["provider_status"]["binance_spot"]["product_id"] = "BTCBUSD"
+            manifest.write_text(json.dumps(payload), encoding="utf-8")
+            tampered = audit_opportunity_manifest(manifest, root)
+            self.assertEqual(tampered["status"], "failed")
+            self.assertEqual(tampered["venue_mapping_status"], "failed")
+            self.assertTrue(any("product ID" in item for item in tampered["findings"]))
+
+
     def test_opportunity_manifest_detects_scenario_recalculation_tampering(self):
         report = report_fixture()
         with tempfile.TemporaryDirectory() as directory:
