@@ -63,3 +63,12 @@ Remaining crypto/on-chain gaps include token supply, unlock schedules, holder co
 - A complete-looking packet is not equivalent to an investment thesis.
 - Missing evidence is disclosed rather than replaced by invented values.
 - Scenario probabilities, target prices, and expected returns are not produced by this contract.
+
+
+## Cross-source conflict handling
+
+The packet builder compares externally sourced facts only when they share the same instrument, research dimension, label, unit, and exact observation timestamp. Numeric values are normalized with decimal arithmetic so formatting-only differences such as `100` versus `100.00` do not create a false conflict. User/analyst assumptions are excluded from source-conflict detection.
+
+When distinct values are found, the packet records each value, contributing fact IDs, source names, and publication dates as an unresolved conflict. No source is automatically preferred, averaged, or overwritten. Conflicted fact IDs are included in data quality, and any unresolved conflict makes the packet `insufficient_evidence` until an analyst reconciles the discrepancy. Clinical-trial fact labels include the exact NCT identifier so distinct studies are not compared as if they were competing observations of one trial.
+
+This is a conservative same-label/same-period comparison, not semantic source reconciliation. Differently worded labels, different units, or different timestamps are not automatically equated; source-content authentication and analyst resolution remain outside the packet builder.
