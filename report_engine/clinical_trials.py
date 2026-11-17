@@ -190,7 +190,7 @@ class ClinicalTrialsGov:
             fact.update({
                 "fact_id": f"ctg-{nct}-{field}",
                 "dimension": "clinical_development",
-                "label": label,
+                "label": f"{nct} — {label}",
                 "value": value,
                 "unit": unit,
                 "source_reference": f"{nct}; {reference_path}",
