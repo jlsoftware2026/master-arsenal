@@ -49,6 +49,12 @@ The Local Engine may retain a source-linked raw-evidence manifest under `data/ma
 
 Disclose unavailable data and RSS feeds. Headlines are candidate context only, not proof of market causation. Scenario levels are conditional references, not forecasts, targets, or probabilities. Never fabricate values, events, citations, or analysis. Generate and independently inspect the PDF; if PDF generation or QA fails, fail the job and do not substitute another format.
 
+## Pre-investment and opportunity analysis
+
+Market research and portfolio accounting are separate capabilities. A user may request an opening outlook, screen an equity or cryptocurrency, and evaluate a hypothetical investment before making any Binance transaction. Do not require a transaction-history export to perform market or asset research. When the user has declared a pre-investment state, label account performance as not applicable and account balances/positions as not supplied; do not infer a zero balance from a missing CSV.
+
+For each candidate, identify the exact instrument and venue before analysis. Distinguish ordinary listed shares from tokenized equity products and from cryptocurrencies. Verify whether the instrument is currently available through the requested venue; do not assume a stock ticker is tradable on Binance. Separate company/sector fundamentals from market timing, and present bullish, base, and bearish scenarios with explicit assumptions, catalysts, invalidation conditions, data timestamps, and source links. The user’s sector knowledge (for example medicine, biotechnology, medical devices, and technology) can guide screening, but does not replace independent evidence or risk analysis.
+
 ## Status
 Adapted against the user-supplied original Claude skill package. The XNYS calendar and best-effort Yahoo Finance quote snapshot are integrated. Breadth and stock-level leaders/laggards remain unavailable. Transaction-history CSV activity can be summarized, but account equity, unrealized PnL and flow-adjusted returns remain unavailable.
 

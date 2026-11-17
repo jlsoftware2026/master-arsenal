@@ -57,7 +57,7 @@ def _decimal(value: str) -> Decimal:
 
 def _event_type(operation: str) -> str:
     value = re.sub(r"[^a-z0-9]+", " ", (operation or "").lower()).strip()
-    if "realized profit" in value or "realized pnl" in value or "realized pnl" in value:
+    if "realized profit" in value or "realized pnl" in value:
         return "realized_pnl"
     if "funding fee" in value or value == "funding":
         return "funding_fee"

@@ -50,6 +50,12 @@ The Local Engine may retain a source-linked raw-evidence manifest under `data/ma
 
 Disclose incomplete data and unavailable feeds. Headlines are candidate context only, not proof of market causation. Scenario levels are conditional references, not forecasts, targets, or probabilities. Never fabricate values, events, citations, or forecasts. Generate and independently inspect the PDF; if PDF generation or QA fails, fail the job and do not substitute another format.
 
+## Pre-investment and opportunity analysis
+
+A completed market recap must remain useful even when the user has not begun investing. Do not require transaction-history CSVs to research or assess candidate equities and cryptocurrencies. If the user declares a pre-investment state, show account performance as not applicable and account balances/positions as not supplied; a missing export alone must never be interpreted as proof of a zero balance.
+
+For every candidate, verify the exact instrument, asset class, and venue. Listed shares, tokenized equity products, and cryptocurrencies are different instruments and must not be conflated. Evaluate company or protocol fundamentals, sector catalysts, valuation/tokenomics, liquidity, technical conditions, and downside risks. Present bullish, base, and bearish scenarios with transparent assumptions and invalidation conditions. Do not fabricate target prices, probabilities, or expected returns.
+
 ## Status
 Adapted against the user-supplied original Claude skill package. U.S. market breadth, stock-level leaders/laggards, portfolio equity/PnL analytics and automated activation timing remain unavailable. Supported local transaction-history CSV activity is summarized by event and asset. Same-date opening-to-closing range scorecard is integrated when a valid same-date opening manifest exists; absence is marked not applicable. XNYS calendar/session classification and best-effort Yahoo quote snapshots are integrated.
 

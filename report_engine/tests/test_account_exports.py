@@ -90,6 +90,16 @@ class AccountExportTests(unittest.TestCase):
             self.assertEqual(result["status"], "partial")
             self.assertTrue(any("decimal separator" in item for item in result["parse_errors"]))
 
+    def test_empty_export_directory_is_not_misreported_as_zero_account_balance(self):
+        with TemporaryDirectory() as temp:
+            result = collect_binance_account_exports(temp, START, END)
+            self.assertEqual(result["status"], "unavailable")
+            self.assertEqual(result["events_in_window"], 0)
+            self.assertEqual(result["portfolio_equity_status"], "not_available")
+            self.assertEqual(result["flow_adjusted_return_status"], "not_available")
+            self.assertIn("No CSV exports", result["limitations"])
+            self.assertNotIn("zero balance", result["limitations"].lower())
+
     def test_missing_directory_is_unavailable_and_does_not_infer_account_data(self):
         with TemporaryDirectory() as temp:
             result = collect_binance_account_exports(Path(temp) / "missing", START, END)

@@ -47,6 +47,12 @@ The Local Engine may retain a source-linked raw-evidence manifest under `data/ma
 
 Do not treat an incomplete day as a closed session. Headlines are candidate context only, not proof of market causation. Scenario levels are conditional references, not forecasts, targets, or probabilities. Never fabricate values, events, citations, or forecasts. Generate and independently inspect the PDF; if PDF generation or QA fails, fail the job and do not substitute another format.
 
+## Pre-investment and opportunity analysis
+
+Intraday market context can support a prospective investment decision even when the user has no transaction history. Do not require a Binance CSV export for watchlist research, asset screening, or hypothetical scenario calculations. If the user declares a pre-investment state, account performance is not applicable and personal balances/positions are not supplied; never infer a zero balance solely from an absent export.
+
+Identify the exact instrument and venue for every candidate, distinguishing listed equities, tokenized equity products, and cryptocurrencies. Keep observed market data separate from fundamental interpretation and forward-looking scenarios. State data timestamps, source coverage, uncertainty, catalysts, downside risks, and the conditions that would invalidate the thesis. Do not present a market snapshot as a guaranteed prediction or an automatic trade instruction.
+
 ## Status
 Adapted against the user-supplied original Claude skill package. XNYS premarket/regular/postmarket classification is integrated; Yahoo market quotes are best-effort and partial, with breadth and stock-level leaders/laggards unavailable. Local transaction-history CSV activity can be summarized, but portfolio equity and flow-adjusted returns remain unavailable.
 
