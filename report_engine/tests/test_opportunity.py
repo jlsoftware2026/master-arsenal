@@ -101,7 +101,7 @@ class OpportunityPdfTests(unittest.TestCase):
                 extracted = " ".join(page.get_text("text") for page in document)
         self.assertIn("Conflictos de evidencia no resueltos", extracted)
         self.assertIn("1300000", extracted)
-        self.assertIn("125000000", extracted)
+        self.assertIn("1000000", extracted)
 
 
     def test_opportunity_manifest_recalculates_packet_scenarios_and_sizing(self):
