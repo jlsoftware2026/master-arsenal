@@ -1,7 +1,7 @@
 ---
 name: binance-revision-skills
 description: 'Audita, valida y mejora las tres Skills de análisis de mercado de Binance: Apertura de mercado, Cierre de mercado y Momento específico del mercado. Activar cuando el usuario solicite revisar, corregir, actualizar, comparar, probar o mantener cualquiera de esas Skills o el conjunto completo.'
-version: 0.9.0
+version: 1.0.0
 last_reviewed: 2026-11-17
 ---
 
@@ -99,10 +99,18 @@ For scenario or sizing outputs, independently verify:
 Mark missing assumptions, inconsistent arithmetic, hidden defaults, or unsupported forecasts as findings.
 
 
+## Opportunity report manifest and independent audit
+
+The Local Engine `skills.audit` job now scans `reports/opportunities` and `data/manifests/opportunities` and emits the `OPPORTUNITY-01` desk check. It verifies that each opportunity PDF has a fixed-path JSON manifest, checks the SHA-256 link and PDF structural QA, rebuilds the research packet from stored facts and freshness rules, and independently recalculates bull/base/bear scenarios and cash-only position sizing.
+
+Treat a missing/orphan manifest, hash mismatch, packet mismatch, or arithmetic mismatch as an audit finding. Do not overstate the result: this is an artifact-integrity, evidence-metadata, and calculation audit. It does not authenticate publishers, prove CIK/NCT/protocol mapping, independently verify issuer ownership or token rights, or validate the truth/scientific merit of source claims.
+
+
 ## Status
 Adapted against the user-supplied original Claude audit skill. The PDF records a desk-check matrix, severity levels, Spanish verdict, and change-history section. XNYS holiday/session-state classification is integrated and independently recalculated by the audit. The audit now validates Yahoo quote source URLs, timestamps not later than the report cutoff, and explicit unavailable-symbol lists. Overall U.S. breadth/stock-level leader coverage and full private-account portfolio reconciliation remain incomplete; transaction-history CSV activity can be imported with file-hash verification. Same-date opening-to-closing range-scenario reconciliation is implemented when a valid opening manifest exists; the audit must verify its evidence. Repository CI passed in GitHub Actions run 43925472913; the local audit still requires CI evidence to be attached because it does not query GitHub Actions. The uploaded original archives and extracted SKILL.md hashes were independently rechecked against the manifest during this development session. The ZIP payloads are not embedded in the repository, so a deployed runtime must still report archive integrity as NOT VERIFIED. The audit must not certify full source-skill parity.
 
 ## Version history
+- 1.0.0 — 2026-11-17: Added standalone opportunity PDF workflow and SHA-256 evidence-manifest audit controls.
 - 0.9.0 — 2026-11-17: Added explicit-assumption scenario and cash-only hypothetical position-risk calculation controls.
 - 0.1.0 — 2026-11-16: Initial ChatGPT/MASTER ARSENAL adaptation; preserves the original skill identity and documents the Local Engine/PDF workflow and current implementation gaps.
 
