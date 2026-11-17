@@ -134,7 +134,9 @@ class ResearchEvidenceTests(unittest.TestCase):
         self.assertEqual(packet["data_quality"]["disputed_fact_ids"], ["fact-001"])
 
     def test_estimated_fact_is_explicit_but_not_automatically_disputed(self):
-        estimated = sourced_fact(evidence_quality="estimated")
+        estimated = sourced_fact(
+            evidence_quality="estimated", as_of_utc="2026-11-17T15:30:00Z"
+        )
         packet = build_research_packet(KEY, [estimated], now=NOW,
                                        freshness_limits_hours={"revenue": 24})
         self.assertEqual(packet["data_quality"]["status"], "evidence_recorded")
