@@ -113,6 +113,7 @@ def calculate_peer_comparables(
         }
         peer_result["selection_criteria"] = normalized_criteria
         peer_results.append(peer_result)
+        seen.add(key)
 
     peer_count = len(peer_results)
     metrics: dict[str, dict[str, Any]] = {}
