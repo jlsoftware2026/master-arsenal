@@ -6,6 +6,7 @@ alone does not establish that a listed issuer owns or controls the intervention.
 from __future__ import annotations
 
 import json
+import math
 from datetime import datetime, timezone
 from typing import Any, Callable
 from urllib.request import Request, urlopen
@@ -68,8 +69,9 @@ class ClinicalTrialsGov:
         user_agent: str = "MASTER-ARSENAL/0.3 (public research client)",
         fetch_json: Callable[[str, dict[str, str], float], dict[str, Any]] | None = None,
     ) -> None:
-        if isinstance(timeout_seconds, bool) or not isinstance(timeout_seconds, (int, float)) or timeout_seconds <= 0:
-            raise ValueError("timeout_seconds must be positive")
+        if (isinstance(timeout_seconds, bool) or not isinstance(timeout_seconds, (int, float))
+                or not math.isfinite(float(timeout_seconds)) or timeout_seconds <= 0):
+            raise ValueError("timeout_seconds must be a finite positive number")
         if not isinstance(user_agent, str) or not user_agent.strip() or "\n" in user_agent or "\r" in user_agent:
             raise ValueError("user_agent must be a non-empty single-line string")
         self.timeout_seconds = float(timeout_seconds)
@@ -177,17 +179,21 @@ class ClinicalTrialsGov:
 
         facts: list[dict[str, Any]] = []
 
-        def add_fact(field: str, label: str, value: Any, unit: str, reference: str) -> None:
+        def add_fact(
+            field: str, label: str, value: Any, unit: str, reference: str,
+            *, protocol_section: bool = True,
+        ) -> None:
             if value is None or value == "":
                 return
             fact = dict(base_fact)
+            reference_path = f"protocolSection.{reference}" if protocol_section else reference
             fact.update({
                 "fact_id": f"ctg-{nct}-{field}",
                 "dimension": "clinical_development",
                 "label": label,
                 "value": value,
                 "unit": unit,
-                "source_reference": f"{nct}; protocolSection.{reference}",
+                "source_reference": f"{nct}; {reference_path}",
             })
             facts.append(normalize_research_fact(fact))
 
@@ -221,7 +227,7 @@ class ClinicalTrialsGov:
             )
         add_fact(
             "results_posted", "ClinicalTrials.gov results section present",
-            has_results, "boolean", "resultsSection"
+            has_results, "boolean", "resultsSection", protocol_section=False
         )
 
         return {
