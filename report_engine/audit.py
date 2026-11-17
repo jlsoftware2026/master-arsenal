@@ -87,9 +87,11 @@ def build_skills_audit_pdf(report: dict[str, Any], output_directory: Path | str)
             raise ValueError("Every desk check must declare a recognized severity")
 
     artifacts = report.get("artifacts", [])
+    opportunity_artifacts = report.get("opportunity_artifacts", [])
     findings = report.get("findings", [])
-    if not isinstance(artifacts, list) or not isinstance(findings, list):
-        raise ValueError("artifacts and findings must be lists")
+    if (not isinstance(artifacts, list) or not isinstance(opportunity_artifacts, list)
+            or not isinstance(findings, list)):
+        raise ValueError("artifacts, opportunity_artifacts, and findings must be lists")
     styles = report_styles()
     verified = sum(1 for item in artifacts if isinstance(item, dict) and item.get("qa_status") == "passed")
     unverified = len(artifacts) - verified
@@ -105,9 +107,11 @@ def build_skills_audit_pdf(report: dict[str, Any], output_directory: Path | str)
             ["Versión del motor de informes", str(report.get("report_engine_version", "No indicada"))],
             ["Identidad de las Skills adaptadas", _status_es((report.get("source_skill_integrity") or {}).get("adaptation_status", "not_verified"))],
             ["Contenido de archivos originales", _status_es((report.get("source_skill_integrity") or {}).get("status", "not_verified"))],
-            ["Informes encontrados", str(len(artifacts))],
+            ["Informes de mercado encontrados", str(len(artifacts))],
             ["Informes que superan QA estructural", str(verified)],
             ["Informes no verificados o fallidos", str(unverified)],
+            ["Informes de oportunidad encontrados", str(len(opportunity_artifacts))],
+            ["Auditoría de oportunidades", _status_es(report.get("opportunity_audit_status", "not_exercised"))],
             ["Estado estructural", status],
             ["Veredicto general", str(report.get("audit_verdict", "No aprobado"))],
         ], styles),
@@ -173,6 +177,29 @@ def build_skills_audit_pdf(report: dict[str, Any], output_directory: Path | str)
             paragraph("No había informes PDF de apertura, cierre o intradía disponibles. "
                       "Su exactitud NO ESTÁ VERIFICADA.", styles["body"]),
         ])
+
+    story.append(section_heading("Registro de auditoría de oportunidades de inversión", styles))
+    if opportunity_artifacts:
+        opportunity_rows = [[
+            str(item.get("filename", "Desconocido")),
+            _status_es(item.get("qa_status", "not_verified")),
+            str(item.get("fact_count", "N/A")),
+            _status_es(item.get("scenario_status", "not_applicable")),
+            _status_es(item.get("position_sizing_status", "not_applicable")),
+            str(item.get("manifest", "Manifiesto no indicado")),
+            str(item.get("issues", "No se suministraron hallazgos")),
+        ] for item in opportunity_artifacts if isinstance(item, dict)]
+        if opportunity_rows:
+            story.append(data_table(
+                ["PDF", "Auditoría", "Hechos", "Escenarios", "Dimensionamiento", "Manifiesto", "Hallazgos"],
+                opportunity_rows, styles,
+                widths=[30*mm, 17*mm, 12*mm, 18*mm, 22*mm, 32*mm, 43*mm],
+            ))
+    else:
+        story.append(paragraph(
+            "No se generaron informes de oportunidad en este espacio de trabajo; esta sección no fue ejercitada.",
+            styles["body"],
+        ))
     if findings:
         story.append(section_heading("Hallazgos", styles))
         rows = []
