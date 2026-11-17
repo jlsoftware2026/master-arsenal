@@ -390,7 +390,7 @@ def build_opportunity_report_pdf(report: dict[str, Any], output_directory: Path 
             story.append(data_table(
                 ["Métrica", "Valor", "Unidad", "Fórmula", "Observado UTC", "Fuente ID"],
                 biotech_rows, styles,
-                widths=[28*mm, 20*mm, 18*mm, 48*mm, 34*mm, 34*mm],
+                widths=[22*mm, 17*mm, 15*mm, 40*mm, 32*mm, 34*mm],
             ))
         if biotech_valuation.get("missing_metrics"):
             story.append(paragraph("Métricas no calculadas: " + _text(biotech_valuation["missing_metrics"]), styles["small"]))
@@ -401,7 +401,7 @@ def build_opportunity_report_pdf(report: dict[str, Any], output_directory: Path 
                 [[_text(item.get("nct_id")), _text(item.get("phase")), _text(item.get("status")),
                   _text(item.get("primary_completion_date")), _text(item.get("source_url"))]
                  for item in catalysts], styles,
-                widths=[23*mm, 25*mm, 30*mm, 38*mm, 66*mm],
+                widths=[22*mm, 20*mm, 24*mm, 32*mm, 50*mm],
             ))
         story.append(paragraph(_text(biotech_valuation.get("warnings")), styles["small"]))
 
