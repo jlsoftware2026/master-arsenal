@@ -1,7 +1,7 @@
 ---
 name: binance-cierre-mercado
 description: 'Informe de cierre y recapitulación diaria. Activar cuando el usuario diga “cierre de mercado”, “resumen de cierre” o solicite cómo terminó la sesión. Analiza el día de la fecha local de solicitud, tanto la sesión bursátil estadounidense como la actividad de la cuenta Binance.'
-version: 1.5.0
+version: 1.6.0
 last_reviewed: 2026-11-17
 ---
 
@@ -95,6 +95,10 @@ The closing-market PDF remains a time-specific market-session report. When the u
 
 The generated PDF has a SHA-256-bound evidence manifest. The `skills.audit` job checks the PDF/manifest link, rebuilds the evidence packet, and recalculates scenario and sizing arithmetic. This does not prove source-content truth or the correctness of issuer/trial/protocol attribution; disclose those remaining diligence limits.
 
+
+
+## Crypto tokenomics evidence
+For crypto candidates, use `ma.tokenomics/v1` only when source-attributed supply, price, unlock, or holder observations are available. Keep circulating, total, and maximum supply distinct; calculate market capitalization and fully diluted valuation only from same-UTC-date price and supply observations. Show known unlocks over 30/90/365 days as percentages of circulating supply, and explicitly state that unprovided schedule events may exist. Holder concentration must include a declared coverage percentage and remain partial when coverage is below 100%; wallet addresses are not automatically beneficial owners. Every observation must retain source name, HTTPS URL, source reference, and timestamp. Missing supply, unlock, or holder information must be disclosed as not supplied/not assessed, never treated as zero. This analysis does not establish token safety, governance quality, legal status, or investment suitability.
 
 ## Status
 Adapted against the user-supplied original Claude skill package. U.S. market breadth, stock-level leaders/laggards, portfolio equity/PnL analytics and automated activation timing remain unavailable. Supported local transaction-history CSV activity is summarized by event and asset. Same-date opening-to-closing range scorecard is integrated when a valid same-date opening manifest exists; absence is marked not applicable. XNYS calendar/session classification and best-effort Yahoo quote snapshots are integrated.
