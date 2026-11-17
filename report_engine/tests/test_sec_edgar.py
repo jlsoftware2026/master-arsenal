@@ -164,5 +164,94 @@ class SECEdgarTests(unittest.TestCase):
         self.assertTrue(seen["url"].endswith("CIK0000000123.json"))
 
 
+    def test_resolves_exact_ticker_exchange_and_issuer_name(self):
+        seen = {}
+        fixture = {
+            "fields": ["cik", "name", "ticker", "exchange"],
+            "data": [
+                [320193, "APPLE INC.", "AAPL", "Nasdaq"],
+                [1045810, "NVIDIA CORP", "NVDA", "Nasdaq"],
+            ],
+        }
+        def fake(url, headers, timeout):
+            seen.update(url=url, headers=headers)
+            return fixture
+        adapter = SECEdgarCompanyFacts("MASTER ARSENAL contact@example.org", fetch_json=fake)
+        result = adapter.resolve_ticker(
+            ticker="aapl", exchange="NASDAQ", issuer_name="Apple Inc",
+            retrieved_at=NOW,
+        )
+        self.assertEqual(result["status"], "resolved")
+        self.assertEqual(result["cik"], "0000320193")
+        self.assertEqual(result["issuer_name"], "APPLE INC.")
+        self.assertEqual(seen["url"], "https://www.sec.gov/files/company_tickers_exchange.json")
+        self.assertEqual(seen["headers"]["User-Agent"], "MASTER ARSENAL contact@example.org")
+
+    def test_ticker_lookup_does_not_ignore_exchange(self):
+        fixture = {
+            "fields": ["cik", "name", "ticker", "exchange"],
+            "data": [[123, "EXAMPLE CORP", "EXM", "Nasdaq"]],
+        }
+        adapter = SECEdgarCompanyFacts(
+            "MASTER ARSENAL contact@example.org", fetch_json=lambda *args: fixture
+        )
+        result = adapter.resolve_ticker(
+            ticker="EXM", exchange="NYSE", issuer_name="Example Corp", retrieved_at=NOW
+        )
+        self.assertEqual(result["status"], "not_found")
+        self.assertNotIn("cik", result)
+
+    def test_ticker_lookup_rejects_issuer_name_mismatch(self):
+        fixture = {
+            "fields": ["cik", "name", "ticker", "exchange"],
+            "data": [[123, "OTHER COMPANY INC", "EXM", "Nasdaq"]],
+        }
+        adapter = SECEdgarCompanyFacts(
+            "MASTER ARSENAL contact@example.org", fetch_json=lambda *args: fixture
+        )
+        result = adapter.resolve_ticker(
+            ticker="EXM", exchange="Nasdaq", issuer_name="Example Corp", retrieved_at=NOW
+        )
+        self.assertEqual(result["status"], "issuer_name_mismatch")
+        self.assertNotIn("cik", result)
+
+    def test_duplicate_exact_directory_records_are_ambiguous(self):
+        fixture = {
+            "fields": ["cik", "name", "ticker", "exchange"],
+            "data": [
+                [123, "EXAMPLE CORP", "EXM", "Nasdaq"],
+                [456, "EXAMPLE CORP", "EXM", "Nasdaq"],
+            ],
+        }
+        adapter = SECEdgarCompanyFacts(
+            "MASTER ARSENAL contact@example.org", fetch_json=lambda *args: fixture
+        )
+        result = adapter.resolve_ticker(
+            ticker="EXM", exchange="Nasdaq", issuer_name="Example Corp", retrieved_at=NOW
+        )
+        self.assertEqual(result["status"], "ambiguous")
+        self.assertEqual(len(result["candidates"]), 2)
+        self.assertNotIn("cik", result)
+
+    def test_ticker_lookup_requires_exact_identity_fields(self):
+        adapter = SECEdgarCompanyFacts(
+            "MASTER ARSENAL contact@example.org", fetch_json=lambda *args: {}
+        )
+        for fields in ({"ticker": "EXM"}, {"ticker": "EXM", "exchange": "Nasdaq"}):
+            with self.subTest(fields=fields), self.assertRaises(ValueError):
+                adapter.resolve_ticker(**fields)
+
+    def test_ticker_lookup_rejects_malformed_directory(self):
+        adapter = SECEdgarCompanyFacts(
+            "MASTER ARSENAL contact@example.org",
+            fetch_json=lambda *args: {"fields": ["ticker"], "data": []},
+        )
+        with self.assertRaisesRegex(ValueError, "required columns"):
+            adapter.resolve_ticker(
+                ticker="EXM", exchange="Nasdaq", issuer_name="Example Corp", retrieved_at=NOW
+            )
+
+
+
 if __name__ == "__main__":
     unittest.main()
