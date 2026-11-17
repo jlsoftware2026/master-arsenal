@@ -49,7 +49,8 @@ def _label(value: Any) -> str:
         "not_applicable": "No aplica", "not_automated": "No automatizado",
         "complete": "Completo", "partial": "Parcial", "ok": "Correcto",
         "passed": "Aprobado", "failed": "Fallido",
-        "not_verified": "No verificado", "previous_local_calendar_day": "Día calendario local anterior",
+        "not_verified": "No verificado", "on_time": "En horario", "delayed": "Retrasado",
+        "previous_local_calendar_day": "Día calendario local anterior",
         "explicit_local_cutoff": "Hora de corte local explícita",
         "execution_time_local_default": "Hora local de ejecución",
         "completed_historical_local_day": "Día local histórico completado",
@@ -326,6 +327,13 @@ def _build_session_pdf(report: dict[str, Any], output_directory: Path | str, kin
         f"{scheduled_local.strftime('%Y-%m-%d %H:%M %Z')}"
     )
     styles = report_styles()
+    briefing_rows = []
+    if kind == "opening":
+        briefing_rows = [
+            ("Vigencia temporal del briefing", _label(report.get("opening_briefing_status", "not_verified"))),
+            ("Referencia temporal bursátil (ET)", report.get("opening_briefing_reference_et", "No disponible")),
+            ("Nota de vigencia", report.get("opening_briefing_delay_reason", "No disponible")),
+        ]
     story = [
         Paragraph(title, styles["title"]),
         Paragraph("Análisis del día calendario local America/Santo_Domingo para BTCUSDT y ETHUSDT", styles["subtitle"]),
@@ -348,6 +356,7 @@ def _build_session_pdf(report: dict[str, Any], output_directory: Path | str, kin
             ("Análisis de la cuenta Binance", _label(report.get("binance_account_data_status", "unavailable"))),
             ("Cobertura del mercado bursátil estadounidense", _label(report.get("us_equity_market_data_status", "not_integrated"))),
             ("Horario de la sesión bursátil estadounidense", _label(report.get("us_equity_session_state", "not_available"))),
+            *briefing_rows,
             ("Actividad de cuenta Binance (CSV)", _label(report.get("binance_account_data_status", "unavailable"))),
             ("Última sesión bursátil completada (ET)", (report.get("us_equity_calendar") or {}).get("last_completed_session_date", "No disponible")),
             ("Próxima sesión bursátil (ET)", (report.get("us_equity_calendar") or {}).get("next_session_date", "No disponible")),
