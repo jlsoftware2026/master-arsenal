@@ -59,7 +59,7 @@ class AdaptedSkillContractTests(unittest.TestCase):
             "unfinished final candle",
             "Same-date opening forecast scorecard",
             "no opening forecast was available",
-            "Do not count deposits as profit or withdrawals as losses",
+            "flow-adjusted returns remain unavailable",
         ):
             with self.subTest(requirement=required):
                 self.assertIn(required, text)
