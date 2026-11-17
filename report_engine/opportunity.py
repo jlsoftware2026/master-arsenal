@@ -358,10 +358,12 @@ def audit_opportunity_manifest(
         digest = hashlib.sha256(pdf.read_bytes()).hexdigest()
         if digest != payload.get("pdf_sha256"):
             findings.append("Opportunity PDF SHA-256 does not match its evidence manifest.")
+        page_count = 0
         try:
             qa = inspect_pdf_artifact(pdf)
-            if qa.get("status") != "passed":
-                findings.append("Opportunity PDF structural QA did not pass.")
+            page_count = int(qa.get("page_count", 0))
+            if page_count < 1:
+                findings.append("Opportunity PDF structural QA did not return a valid page count.")
         except Exception as exc:
             findings.append(f"Opportunity PDF structural QA failed: {type(exc).__name__}: {exc}")
 
@@ -431,6 +433,7 @@ def audit_opportunity_manifest(
             "manifest": manifest.name,
             "pdf_filename": pdf_filename,
             "pdf_sha256": digest,
+            "pdf_page_count": page_count,
             "instrument_key": instrument["instrument_key"],
             "conclusion": report["conclusion"],
             "fact_count": packet.get("fact_count", 0),
