@@ -172,6 +172,81 @@ class LocalEngineTests(unittest.TestCase):
                          {"format": "pdf", "directory": "reports/intraday"})
         self.assertEqual(new_job("skills.audit")["output"],
                          {"format": "pdf", "directory": "reports/audit"})
+        self.assertEqual(new_job("investment.opportunity_report")["output"],
+                         {"format": "pdf", "directory": "reports/opportunities"})
+
+    def test_opportunity_report_job_generates_pdf_after_approval(self):
+        now = datetime.now(timezone.utc)
+        stamp = now.isoformat().replace("+00:00", "Z")
+        instrument_key = "listed_equity|exm|usd|example corp|nasdaq"
+        parameters = {
+            "instrument_candidate": {
+                "asset_class": "listed_equity", "name": "Example Corp",
+                "symbol": "EXM", "quote_currency": "USD",
+                "issuer": "Example Corp", "exchange": "NASDAQ",
+            },
+            "research_facts": [{
+                "fact_id": "local-fact-1", "instrument_key": instrument_key,
+                "dimension": "revenue", "label": "Reported revenue",
+                "value": "1000000", "unit": "USD",
+                "source_kind": "issuer_disclosure", "evidence_quality": "verified_source",
+                "source_name": "Example Corp filing",
+                "source_url": "https://www.sec.gov/Archives/edgar/data/123/filing/",
+                "source_reference": "FY2025 revenue table",
+                "as_of_utc": stamp, "retrieved_at_utc": stamp,
+            }],
+            "freshness_limits_hours": {"revenue": 24},
+            "conclusion": "potential_candidate_for_further_diligence",
+            "executive_summary": ["Evidence is preliminary.", "Further diligence remains necessary."],
+            "risks": ["Competitive pressure may affect margins."],
+            "thesis_invalidation": ["Revenue growth fails to materialize."],
+        }
+        job = self._approved_job("investment.opportunity_report", parameters)
+        result = JobRunner(self.manager).run(job["job_id"])
+        self.assertEqual(result["status"], "completed", result)
+        report = result["result"]
+        self.assertTrue(report["artifact_path"].startswith("reports/opportunities/"))
+        self.assertEqual(report["fact_count"], 1)
+        self.assertEqual(report["conclusion"], "potential_candidate_for_further_diligence")
+        self.assertEqual(report["data_quality_status"], "evidence_recorded")
+        self.assertEqual(report["venue_verification_status"], "not_verified")
+        self.assertTrue(report["read_only"])
+        self.assertTrue(report["hypothetical_only"])
+        artifact = self.manager.workspace.directory(report["artifact_path"])
+        self.assertTrue(artifact.is_file())
+        payload = artifact.read_bytes()
+        self.assertTrue(payload.startswith(b"%PDF-"))
+        self.assertIn(b"%%EOF", payload[-1024:])
+        self.assertEqual(report["sha256"], hashlib.sha256(payload).hexdigest())
+
+    def test_opportunity_report_requires_approval(self):
+        job = new_job("investment.opportunity_report", {
+            "instrument_candidate": {"asset_class": "crypto", "name": "Example",
+                                     "symbol": "EXM", "quote_currency": "USDT"},
+            "conclusion": "insufficient_evidence",
+        })
+        self.manager.submit(job)
+        self.assertEqual(self.manager.validate_pending(job["job_id"]), "awaiting_approval")
+        with self.assertRaises(JobValidationError):
+            JobRunner(self.manager).run(job["job_id"])
+
+    def test_opportunity_report_rejects_unsafe_output_directory(self):
+        job = new_job("investment.opportunity_report")
+        job["output"]["directory"] = "reports/../../outside"
+        with self.assertRaises(JobValidationError):
+            validate_job(job)
+
+    def test_opportunity_report_does_not_promote_empty_evidence(self):
+        job = self._approved_job("investment.opportunity_report", {
+            "instrument_candidate": {
+                "asset_class": "crypto", "name": "Example Token",
+                "symbol": "EXM", "quote_currency": "USDT",
+            },
+            "conclusion": "potential_candidate_for_further_diligence",
+        })
+        result = JobRunner(self.manager).run(job["job_id"])
+        self.assertEqual(result["status"], "failed")
+        self.assertIn("insufficient evidence", result["error"])
 
     def test_intraday_snapshot_job_generates_pdf(self):
         job = self._approved_job(
