@@ -228,6 +228,11 @@ class LocalEngineTests(unittest.TestCase):
         self.assertEqual(audit_result["status"], "completed", audit_result)
         self.assertEqual(audit_result["result"]["opportunity_reports_checked"], 1)
         self.assertEqual(audit_result["result"]["opportunity_audit_status"], "passed")
+        opportunity_audit = next(
+            item for item in audit_result["result"]["opportunity_artifacts"]
+            if item["filename"] == report["filename"]
+        )
+        self.assertEqual(opportunity_audit["fundamental_metrics_status"], "passed")
 
     def test_opportunity_report_requires_approval(self):
         job = new_job("investment.opportunity_report", {
