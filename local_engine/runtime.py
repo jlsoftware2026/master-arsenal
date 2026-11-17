@@ -1143,7 +1143,7 @@ class JobRunner:
         medium_unresolved = [
             item for item in desk_checks
             if item["severity"] == "Medio"
-            and item["status"] in {"failed", "not_implemented", "not_verified", "not_applicable", "not_exercised", "partial"}
+            and item["status"] in {"failed", "not_implemented", "not_verified", "not_exercised", "partial"}
         ]
         audit_verdict = (
             "No aprobado" if unresolved else
