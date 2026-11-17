@@ -187,6 +187,7 @@ def build_skills_audit_pdf(report: dict[str, Any], output_directory: Path | str)
             _status_es(item.get("fundamental_metrics_status", "not_applicable")),
             _status_es(item.get("fundamental_metrics_quality_status", "not_applicable")),
             _status_es(item.get("issuer_mapping_status", "not_applicable")),
+            _status_es(item.get("venue_mapping_status", "not_applicable")),
             _status_es(item.get("scenario_status", "not_applicable")),
             _status_es(item.get("position_sizing_status", "not_applicable")),
             str(item.get("manifest", "Manifiesto no indicado")),
@@ -194,9 +195,9 @@ def build_skills_audit_pdf(report: dict[str, Any], output_directory: Path | str)
         ] for item in opportunity_artifacts if isinstance(item, dict)]
         if opportunity_rows:
             story.append(data_table(
-                ["PDF", "Auditoría", "Hechos", "Auditoría ratios", "Calidad ratios", "Mapeo emisor", "Escenarios", "Dimensionamiento", "Manifiesto", "Hallazgos"],
+                ["PDF", "Auditoría", "Hechos", "Auditoría ratios", "Calidad ratios", "Mapeo emisor", "Verificación venue", "Escenarios", "Dimensionamiento", "Manifiesto", "Hallazgos"],
                 opportunity_rows, styles,
-                widths=[18*mm, 12*mm, 8*mm, 11*mm, 14*mm, 16*mm, 12*mm, 14*mm, 24*mm, 40*mm],
+                widths=[16*mm, 11*mm, 7*mm, 10*mm, 12*mm, 14*mm, 17*mm, 11*mm, 13*mm, 22*mm, 35*mm],
             ))
     else:
         story.append(paragraph(
