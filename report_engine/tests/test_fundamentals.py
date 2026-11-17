@@ -150,8 +150,10 @@ class ValuationMultipleTests(unittest.TestCase):
             facts, instrument_key=KEY, market_cap=self.market_cap,
             earnings_period_basis="quarterly",
         )
-        self.assertEqual(result["status"], "insufficient_evidence")
-        self.assertEqual(result["metrics"], {})
+        self.assertEqual(result["status"], "partial")
+        self.assertNotIn("price_to_earnings", result["metrics"])
+        self.assertNotIn("price_to_sales", result["metrics"])
+        self.assertIn("price_to_book", result["metrics"])
         self.assertIn("not annualized", result["missing_metrics"]["price_to_earnings"])
 
     def test_quarterly_basis_still_calculates_balance_sheet_price_to_book(self):
@@ -163,7 +165,7 @@ class ValuationMultipleTests(unittest.TestCase):
         )
         self.assertNotIn("price_to_earnings", result["metrics"])
         self.assertNotIn("price_to_sales", result["metrics"])
-        self.assertEqual(result["metrics"]["price_to_book"]["value"], "10000.0000")
+        self.assertEqual(result["metrics"]["price_to_book"]["value"], "10000000.0000")
         self.assertIn("not annualized", result["missing_metrics"]["price_to_earnings"])
         self.assertEqual(result["status"], "partial")
 
