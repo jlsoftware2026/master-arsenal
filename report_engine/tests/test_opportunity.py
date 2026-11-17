@@ -563,3 +563,59 @@ class OpportunityPdfTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class BiotechOpportunityIntegrationTests(unittest.TestCase):
+    def test_biotech_runway_is_rendered_and_independently_audited(self):
+        import json
+        import pymupdf as fitz
+        from report_engine.biotech_valuation import assess_biotech_valuation
+
+        report = report_fixture()
+        inputs = {
+            "instrument_key": KEY,
+            "development_stage": "clinical",
+            "analysis_cutoff_utc": "2026-11-17T16:00:00Z",
+            "cash": {
+                "value": "120000000", "currency": "USD",
+                "as_of_utc": "2026-11-17T15:00:00Z", "source_id": "cash-q3",
+                "source_url": "https://example.org/cash",
+                "evidence_quality": "verified_source",
+            },
+            "quarterly_net_cash_burn": {
+                "value": "30000000", "currency": "USD",
+                "as_of_utc": "2026-11-17T15:00:00Z", "source_id": "burn-q3",
+                "source_url": "https://example.org/cashflow",
+                "evidence_quality": "verified_source",
+            },
+            "clinical_catalysts": [{
+                "nct_id": "NCT01234567", "phase": ["PHASE3"],
+                "status": "RECRUITING", "primary_completion_date": "2027-06-30",
+                "source_url": "https://clinicaltrials.gov/study/NCT01234567",
+                "attribution_basis": "Issuer filing reference.",
+            }],
+        }
+        report["biotech_valuation_inputs"] = inputs
+        report["biotech_valuation"] = assess_biotech_valuation(**inputs)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            pdf_dir = root / "reports" / "opportunities"
+            manifest_dir = root / "data" / "manifests" / "opportunities"
+            pdf_dir.mkdir(parents=True)
+            pdf = build_opportunity_report_pdf(report, pdf_dir)
+            with fitz.open(pdf) as document:
+                extracted = " ".join(page.get_text("text") for page in document)
+            self.assertIn("Diligencia biotech", extracted)
+            self.assertIn("12.00", extracted)
+            manifest = write_opportunity_manifest(report, pdf, manifest_dir)
+            result = audit_opportunity_manifest(manifest, root)
+            self.assertEqual(result["status"], "passed", result)
+            self.assertEqual(result["biotech_valuation_status"], "passed")
+
+            payload = json.loads(manifest.read_text(encoding="utf-8"))
+            payload["report"]["biotech_valuation"]["metrics"]["cash_runway_months"]["value"] = "99.00"
+            manifest.write_text(json.dumps(payload), encoding="utf-8")
+            tampered = audit_opportunity_manifest(manifest, root)
+            self.assertEqual(tampered["status"], "failed")
+            self.assertEqual(tampered["biotech_valuation_status"], "failed")
+            self.assertTrue(any("biotech valuation/runway" in item for item in tampered["findings"]))
