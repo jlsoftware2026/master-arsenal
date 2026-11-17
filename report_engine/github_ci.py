@@ -147,6 +147,9 @@ class GitHubActionsEvidence:
                 "run_number": run.get("run_number"),
                 "run_url": run.get("html_url"),
             })
+            if run.get("status") != "completed":
+                result["reason"] = "The exact-commit GitHub Actions run is still in progress."
+                return result
             run_id = run.get("id")
             if isinstance(run_id, bool) or not isinstance(run_id, int) or run_id <= 0:
                 raise ValueError("GitHub Actions run ID is invalid")
@@ -175,9 +178,6 @@ class GitHubActionsEvidence:
             if run_complete and jobs_complete:
                 result["status"] = "passed"
                 result["reason"] = "Exact-commit pull-request workflow and all four OS/Python matrix jobs succeeded."
-            elif run.get("status") != "completed":
-                result["status"] = "not_verified"
-                result["reason"] = "The exact-commit GitHub Actions run is still in progress."
             else:
                 result["status"] = "failed"
                 result["reason"] = "The exact-commit workflow or one or more required matrix jobs did not succeed."
