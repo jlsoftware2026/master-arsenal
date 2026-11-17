@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 import math
 import os
+import re
 from datetime import datetime, timezone
 from typing import Any, Callable
 from urllib.request import Request, urlopen
@@ -203,7 +204,7 @@ class SECEdgarCompanyFacts:
             concept, row = selected
             form = row["form"]
             accession = row.get("accn")
-            if not isinstance(accession, str) or not re.fullmatch(r"\\d{10}-\\d{2}-\\d{6}", accession):
+            if not isinstance(accession, str) or not re.fullmatch(r"\d{10}-\d{2}-\d{6}", accession):
                 raise ValueError("SEC fact is missing a valid accession number")
             accession_compact = accession.replace("-", "")
             source_url = (
