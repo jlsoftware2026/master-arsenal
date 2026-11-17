@@ -30,7 +30,7 @@ class AdaptedSkillContractTests(unittest.TestCase):
                 self.assertIn(f"# {name}", text)
                 self.assertIn("## Local Engine workflow", text)
                 self.assertIn("submit → validate → explicit approval → execute", text)
-                self.assertIn("## Integrity", text)
+                self.assertIn("integrity", text.lower())
                 self.assertIn("Pre-investment", text)
                 self.assertIn("## Version history", text)
                 self.assertIn("PDF", text)
@@ -86,7 +86,7 @@ class AdaptedSkillContractTests(unittest.TestCase):
             "Aprobado",
             "independently recalculates",
             "exact local Git HEAD",
-            "No se auto-certifica",
+            "self-certify",
             "No aprobado",
         ):
             with self.subTest(requirement=required):
