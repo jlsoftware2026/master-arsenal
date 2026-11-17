@@ -52,6 +52,7 @@ The shared research-fact module is a data contract. Two read-only issuer/biotech
 - `report_engine/defillama.py`: DeFiLlama public API for protocol TVL, daily fees, protocol revenue, and token-holder revenue. Requires a caller-supplied protocol slug and protocol-to-instrument attribution basis; these metrics do not prove token-holder value capture.
 
 These adapters preserve source URLs, field references, observation/publication dates, and retrieval timestamps. Offline tests use fixtures and injected transports; they do not certify live endpoint availability. The adapters do not independently authenticate source content or validate the scientific/financial interpretation of each record.
+The derived financial-ratio calculator in `report_engine/fundamentals.py` operates only on same-period, same-currency issuer facts and preserves formulas and source fact IDs. It does not fill missing values, combine mismatched periods, or generate valuation multiples.
 
 Remaining crypto/on-chain gaps include token supply, unlock schedules, holder concentration, smart-contract audits, exploit history, governance quality, and broader regulatory analysis. Other gaps include issuer narrative filing analysis, source-content verification, conflict reconciliation, provider licensing/coverage checks, and peer/valuation calculations. Reports must not imply that a provider was queried merely because a valid source record can be constructed.
 
