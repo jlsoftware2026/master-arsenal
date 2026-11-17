@@ -23,13 +23,15 @@ The derived-ratio engine in `report_engine/fundamentals.py` calculates same-peri
 
 ## Identity and provenance
 
-The caller must provide an exact CIK and the already validated instrument key. The adapter does not map ticker symbols to CIKs. It verifies that the returned CIK matches the requested CIK, retains the SEC entity name, taxonomy concept, form, accession number, filing date, period end, source URL, and retrieval timestamp.
+The adapter supports two identity paths. The explicit path accepts a caller-supplied CIK and the already validated instrument key, then verifies that the returned CIK matches the request. The automatic listed-equity path resolves the exact ticker, exchange, and issuer name against the SEC `company_tickers_exchange.json` directory before requesting Company Facts. The lookup requires all three identity fields, rejects exchange mismatches, refuses ambiguous matches, and withholds a CIK when the SEC issuer name does not match the candidate issuer after conservative corporate-suffix normalization. It is restricted to `listed_equity`; tokenized equity continues to require an explicit CIK and documented underlying-issuer mapping. Both paths retain the SEC entity name, taxonomy concept, form, accession number, filing date, period end, source URL, and retrieval timestamp.
 
 10-K, 20-F, and 40-F facts are classified as audited-financial-statement sources; 10-Q, 6-K, and 8-K facts are classified as issuer disclosures. These labels identify filing types and do not replace analyst review of the actual filing. The adapter does not infer that every XBRL fact is audited simply because it is published by the SEC.
 
 ## Deliberate limitations
 
-- No ticker-to-CIK resolution or issuer/instrument matching.
+- The SEC itself periodically updates ticker associations but does not guarantee their accuracy or scope. A resolved directory row is a candidate mapping, not proof of security ownership, legal identity, or current exchange listing.
+- Exact ticker/exchange/name matching is intentionally conservative; a mismatch or ambiguous record requires manual issuer/CIK review.
+- The mapping directory is downloaded for each lookup; persistent caching and historical ticker mappings are not implemented.
 - No total-debt aggregation, free-cash-flow calculation, valuation multiples, peer analysis, or financial restatement reconciliation.
 - No attempt to add alternative XBRL concepts together.
 - No claim that missing XBRL concepts equal zero.
@@ -44,3 +46,20 @@ Set `MASTER_ARSENAL_SEC_USER_AGENT` to a descriptive application name and respon
 ## Verification
 
 Offline tests cover CIK normalization and response matching, User-Agent propagation, annual/quarterly period filtering, point-in-time facts, source attribution, and missing-value behavior. Live endpoint availability and the current SEC response are not certified by those offline tests.
+
+
+## Automatic listed-equity ticker resolution
+
+The opportunity workflow may use:
+
+`sec_edgar: { "resolve_ticker": true, "period": "annual" }`
+
+The resolver derives the ticker, exchange, and issuer name only from the normalized `listed_equity` instrument record. It queries the official SEC exchange-aware directory at `https://www.sec.gov/files/company_tickers_exchange.json` with the configured SEC User-Agent. A single exact ticker/exchange/issuer match is required before the CIK is used for Company Facts. `not_found`, `issuer_name_mismatch`, and `ambiguous` results fail closed; the workflow does not guess or select the first result.
+
+For a manually confirmed CIK (including tokenized-equity underlying issuers), retain the explicit configuration:
+
+`sec_edgar: { "cik": "0000000123", "issuer_name": "Example Corp", "period": "annual" }`
+
+Do not provide both `cik` and `resolve_ticker=true`. The lookup records the directory URL, retrieval timestamp, exact exchange, issuer name, and limitations in provider status and the opportunity manifest.
+
+The SEC documents both the exchange-aware ticker map and its limitation that ticker associations are periodically updated but not guaranteed for accuracy or scope: [Accessing EDGAR Data](https://www.sec.gov/search-filings/edgar-search-assistance/accessing-edgar-data). Offline fixtures validate parsing and fail-closed matching; they do not certify live endpoint availability or issuer identity.
