@@ -48,6 +48,9 @@ def _report(kind="opening"):
         "binance_account_data_status": "unavailable",
         "us_equity_market_data_status": "not_integrated",
         "opening_forecast_scorecard_status": "not_implemented" if kind == "closing" else "not_applicable",
+        "opening_briefing_status": "delayed" if kind == "opening" else "not_applicable",
+        "opening_briefing_reference_et": "2026-11-15T09:10:00-05:00" if kind == "opening" else None,
+        "opening_briefing_delay_reason": "Generado después de la apertura regular programada." if kind == "opening" else None,
         "activation_timing_status": "not_automated",
         "executive_summary": "BTC and ETH completed the Dominican local calendar day.",
         "technical_analysis": "Indicator calculations use a separate warm-up series.",
@@ -98,6 +101,11 @@ class SessionReportTests(unittest.TestCase):
             path = build_opening_report_pdf(_report("opening"), temp)
             self.assertEqual(path.name, "apertura-mercado_2026-11-15.pdf")
             self.assertTrue(path.read_bytes().startswith(b"%PDF-"))
+            import pymupdf as fitz
+            with fitz.open(path) as document:
+                text = " ".join(page.get_text("text") for page in document)
+            self.assertIn("Retrasado", text)
+            self.assertIn("Referencia temporal bursátil (ET)", text)
 
     def test_closing_pdf_uses_local_date_and_is_readable(self):
         with TemporaryDirectory() as temp:
