@@ -182,6 +182,9 @@ def build_research_packet(
     stale = [item["fact_id"] for item in normalized if item["freshness"]["status"] == "stale"]
     future = [item["fact_id"] for item in normalized if item["freshness"]["status"] == "future_dated"]
     unassessed = [item["fact_id"] for item in normalized if item["freshness"]["status"] == "not_assessed"]
+    disputed = [item["fact_id"] for item in normalized if item["evidence_quality"] == "disputed"]
+    unverified = [item["fact_id"] for item in normalized if item["evidence_quality"] == "unverified"]
+    estimated = [item["fact_id"] for item in normalized if item["evidence_quality"] == "estimated"]
     return {
         "schema": "ma.investment-research/v1",
         "instrument_key": instrument_key,
@@ -190,12 +193,15 @@ def build_research_packet(
         "dimensions_covered": dimensions_present,
         "facts": normalized,
         "data_quality": {
-            "status": "insufficient_evidence" if not normalized or stale or future else (
+            "status": "insufficient_evidence" if not normalized or stale or future or disputed or unverified else (
                 "freshness_not_assessed" if unassessed else "evidence_recorded"
             ),
             "stale_fact_ids": stale,
             "future_dated_fact_ids": future,
             "freshness_not_assessed_fact_ids": unassessed,
+            "disputed_fact_ids": disputed,
+            "unverified_fact_ids": unverified,
+            "estimated_fact_ids": estimated,
             "limitations": [
                 "This packet validates metadata and provenance fields; it does not independently verify source contents.",
                 "A source citation does not establish that a claim is true, material, or correctly interpreted.",
