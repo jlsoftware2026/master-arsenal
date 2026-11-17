@@ -942,6 +942,7 @@ def audit_opportunity_manifest(
             ),
             "peer_comparables_status": peer_status,
             "biotech_valuation_status": biotech_status,
+            "biotech_valuation_quality_status": (stored_biotech or {}).get("status", "not_applicable"),
             "peer_comparables_quality_status": (
                 (stored_peers or {}).get("status", "not_applicable")
             ),
