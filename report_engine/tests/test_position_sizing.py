@@ -5,6 +5,10 @@ from decimal import Decimal
 from report_engine.position_sizing import calculate_cash_position_size
 
 BASE = {
+    "instrument_key": "listed_equity|exm|usd|example corp|nasdaq",
+    "as_of_utc": "2026-11-17T16:00:00Z",
+    "entry_price_basis": "Hypothetical reference price for scenario analysis.",
+    "invalidation_basis": "Thesis invalidation below the support assumption.",
     "available_capital": "10000",
     "quote_currency": "USD",
     "entry_price": "100",
