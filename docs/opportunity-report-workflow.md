@@ -36,6 +36,10 @@ Scenario calculations require explicit hypothetical prices, assumptions, invalid
 
 The PDF is written only to `reports/opportunities`, checked for a valid PDF signature, and returned with a SHA-256 digest. The job requires the same explicit validation and approval steps as the existing market-report jobs. No caller-controlled shell, code, or output path is accepted.
 
-## Current audit boundary
+## Independent audit integration
 
-The opportunity PDF is structurally inspected by PyMuPDF when generated. Full integration of opportunity manifests and independent recalculation into the `skills.audit` job remains a separate acceptance item; until that is implemented, the market audit must not be described as independently auditing opportunity-report source facts or scenario arithmetic.
+Every generated opportunity PDF is accompanied by a JSON evidence manifest under `data/manifests/opportunities`. The manifest stores the normalized report input, research packet, provider statuses, scenario and sizing outputs, the PDF filename, and the PDF SHA-256 digest.
+
+The `skills.audit` job scans opportunity PDFs and manifests and runs `OPPORTUNITY-01`. It verifies the fixed manifest/PDF paths, PDF hash and structural QA, reconstructs the research packet from its facts and freshness policy, and independently recalculates any scenario and cash-only position-size outputs. Missing/orphan manifests or mismatched hashes/calculations are reported as audit findings.
+
+This is an independent arithmetic, provenance-metadata, and artifact-integrity check. It does not independently authenticate source publishers, prove CIK/NCT/protocol attribution, verify the contents of SEC or ClinicalTrials.gov filings, or establish that clinical or financial claims are true. Those remain analyst diligence requirements.
