@@ -50,8 +50,8 @@ class PeerComparablesTests(unittest.TestCase):
                         earnings=100, revenue=500, equity=1000)),
             peer(entity("listed_equity|p2", "Peer Two", market_cap=3000,
                         earnings=100, revenue=600, equity=1200)),
-            peer(entity("listed_equity|p3", "Peer Three", market_cap=4000,
-                        earnings=100, revenue=1000, equity=1600)),
+            peer(entity("listed_equity|p3", "Peer Three", market_cap=6000,
+                        earnings=100, revenue=1000, equity=2000)),
         ]
 
     def test_calculates_medians_and_candidate_premium_discount(self):
