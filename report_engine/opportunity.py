@@ -440,7 +440,7 @@ def build_opportunity_report_pdf(report: dict[str, Any], output_directory: Path 
             story.append(data_table(
                 ["Peer", "Instrumento", "Sector", "Modelo", "Geografía", "Tamaño", "Racional de selección"],
                 peer_rows, styles,
-                widths=[23*mm, 30*mm, 20*mm, 25*mm, 20*mm, 18*mm, 58*mm],
+                widths=[18*mm, 25*mm, 18*mm, 22*mm, 18*mm, 16*mm, 57*mm],
             ))
         story.append(paragraph(
             "La selección de comparables es suministrada por el analista y no se certifica automáticamente. "
