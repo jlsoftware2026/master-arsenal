@@ -315,6 +315,59 @@ class LocalEngineTests(unittest.TestCase):
         self.assertIn("ambiguous", result["error"])
 
 
+
+    def test_opportunity_report_can_verify_binance_spot_product_read_only(self):
+        stamp = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+        class FakeVerifier:
+            def verify_spot_product(self, candidate):
+                self.candidate = candidate
+                return {
+                    "status": "verified", "venue": "Binance",
+                    "product_id": "BTCUSDT", "market_type": "spot",
+                    "base_asset": "BTC", "quote_asset": "USDT",
+                    "product_status": "TRADING", "is_spot_trading_allowed": True,
+                    "observed_at_utc": stamp,
+                    "source_url": "https://api.binance.com/api/v3/exchangeInfo",
+                    "evidence_note": "Exact product fixture.",
+                }
+
+        parameters = {
+            "instrument_candidate": {
+                "asset_class": "crypto", "name": "Bitcoin",
+                "symbol": "BTC", "quote_currency": "USDT",
+            },
+            "binance_spot_check": True,
+            "conclusion": "insufficient_evidence",
+        }
+        with patch("local_engine.runtime.BinanceSpotProductVerifier", FakeVerifier):
+            job = self._approved_job("investment.opportunity_report", parameters)
+            result = JobRunner(self.manager).run(job["job_id"])
+        self.assertEqual(result["status"], "completed", result)
+        report = result["result"]
+        self.assertEqual(report["venue_verification_status"], "verified")
+        provider = report["provider_status"]["binance_spot"]
+        self.assertEqual(provider["product_id"], "BTCUSDT")
+        self.assertEqual(provider["product_status"], "TRADING")
+        self.assertTrue(provider["is_spot_trading_allowed"])
+        self.assertEqual(provider["source_url"], "https://api.binance.com/api/v3/exchangeInfo")
+
+    def test_opportunity_report_rejects_manual_and_automatic_venue_evidence_together(self):
+        parameters = {
+            "instrument_candidate": {
+                "asset_class": "crypto", "name": "Bitcoin",
+                "symbol": "BTC", "quote_currency": "USDT",
+            },
+            "venue_evidence": {"status": "not_verified", "venue": "Binance"},
+            "binance_spot_check": True,
+            "conclusion": "insufficient_evidence",
+        }
+        job = self._approved_job("investment.opportunity_report", parameters)
+        result = JobRunner(self.manager).run(job["job_id"])
+        self.assertEqual(result["status"], "failed")
+        self.assertIn("not both", result["error"])
+
+
     def test_opportunity_report_requires_approval(self):
         job = new_job("investment.opportunity_report", {
             "instrument_candidate": {"asset_class": "crypto", "name": "Example",
