@@ -156,3 +156,8 @@ A read-only ClinicalTrials.gov API v2 adapter is implemented in `report_engine/c
 ## DeFiLlama protocol metrics adapter
 
 A read-only DeFiLlama public API adapter is implemented in `report_engine/defillama.py` for caller-identified protocol slugs. It extracts the latest available TVL, daily fees, protocol revenue, and token-holder revenue observations, preserving exact endpoint/series provenance and UTC observation/retrieval timestamps. Fees, protocol revenue, and token-holder revenue are kept distinct; missing metrics are not zero-filled. The caller must supply an explicit protocol-to-instrument attribution basis, which is not independently verified. This adapter does not establish token-holder value capture, token supply/unlocks, security, governance, or regulatory status. Details: [defillama-adapter.md](defillama-adapter.md). Offline fixture tests do not certify live API availability.
+
+
+## Scenario calculation and hypothetical risk sizing
+
+Two deterministic calculators now exist: `report_engine/scenarios.py` computes long-only bull/base/bear price returns, downside to invalidation, and bull/base reward-to-risk from explicit hypothetical prices and rationales; `report_engine/position_sizing.py` computes a cash-only hypothetical maximum size under explicit capital, risk-budget, allocation, fee, and slippage assumptions. Neither generates probabilities, expected returns, price targets, or trading instructions; neither submits orders. Details and limitations: [scenario-and-risk-engine.md](scenario-and-risk-engine.md). Offline tests are added for arithmetic and validation.
