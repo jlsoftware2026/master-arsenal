@@ -11,7 +11,7 @@ from report_engine.opportunity import (
 from report_engine.research import build_research_packet
 from report_engine.scenarios import calculate_long_scenarios
 from report_engine.position_sizing import calculate_cash_position_size
-from report_engine.fundamentals import calculate_financial_ratios
+from report_engine.fundamentals import calculate_financial_ratios, calculate_valuation_multiples
 
 NOW = datetime(2026, 11, 17, 16, 0, tzinfo=timezone.utc)
 KEY = "listed_equity|exm|usd|example corp|nasdaq"
@@ -322,6 +322,82 @@ class OpportunityPdfTests(unittest.TestCase):
         report["research_packet"]["facts"][0]["instrument_key"] = "different"
         with tempfile.TemporaryDirectory() as directory:
             with self.assertRaisesRegex(ValueError, "research fact"):
+                build_opportunity_report_pdf(report, directory)
+
+
+    def test_valuation_multiples_are_rendered_and_independently_audited(self):
+        report = report_fixture()
+        facts = list(report["research_packet"]["facts"])
+        facts.extend([
+            {
+                "fact_id": "net-income-2025", "instrument_key": KEY,
+                "dimension": "net_income", "label": "FY net income",
+                "value": "100000", "unit": "USD",
+                "source_kind": "issuer_disclosure", "evidence_quality": "verified_source",
+                "source_name": "Issuer filing", "source_url": "https://example.com/filing",
+                "source_reference": "FY2025 net income",
+                "as_of_utc": "2025-12-31T23:59:59Z",
+                "retrieved_at_utc": "2026-11-17T15:30:00Z",
+            },
+            {
+                "fact_id": "equity-2025", "instrument_key": KEY,
+                "dimension": "stockholders_equity", "label": "FY book equity",
+                "value": "500000", "unit": "USD",
+                "source_kind": "issuer_disclosure", "evidence_quality": "verified_source",
+                "source_name": "Issuer filing", "source_url": "https://example.com/filing",
+                "source_reference": "FY2025 balance sheet",
+                "as_of_utc": "2025-12-31T23:59:59Z",
+                "retrieved_at_utc": "2026-11-17T15:30:00Z",
+            },
+        ])
+        report["research_packet"] = build_research_packet(
+            KEY, facts, now=NOW, freshness_limits_hours={"revenue": 24}
+        )
+        report["valuation_metrics"] = calculate_valuation_multiples(
+            report["research_packet"]["facts"],
+            instrument_key=KEY,
+            market_cap={
+                "value": "5000000", "unit": "USD",
+                "as_of_utc": "2026-11-17T15:45:00Z",
+                "source_id": "market-cap-fixture",
+                "source_url": "https://example.com/market-cap",
+            },
+            earnings_period_basis="annual",
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            pdf_dir = root / "reports" / "opportunities"
+            manifest_dir = root / "data" / "manifests" / "opportunities"
+            pdf_dir.mkdir(parents=True)
+            pdf = build_opportunity_report_pdf(report, pdf_dir)
+            import pymupdf as fitz
+            with fitz.open(pdf) as document:
+                extracted = " ".join(page.get_text("text") for page in document)
+            self.assertIn("Múltiplos de valoración", extracted)
+            self.assertIn("price_to_earnings", extracted)
+            manifest = write_opportunity_manifest(report, pdf, manifest_dir)
+            result = audit_opportunity_manifest(manifest, root)
+            self.assertEqual(result["status"], "passed", result)
+            self.assertEqual(result["valuation_metrics_status"], "passed")
+
+            import json
+            payload = json.loads(manifest.read_text(encoding="utf-8"))
+            payload["report"]["valuation_metrics"]["metrics"]["price_to_earnings"]["value"] = "999.0000"
+            manifest.write_text(json.dumps(payload), encoding="utf-8")
+            tampered = audit_opportunity_manifest(manifest, root)
+            self.assertEqual(tampered["status"], "failed")
+            self.assertEqual(tampered["valuation_metrics_status"], "failed")
+            self.assertTrue(any("valuation-multiple recalculation" in item for item in tampered["findings"]))
+
+    def test_opportunity_report_rejects_valuation_metrics_for_another_instrument(self):
+        report = report_fixture()
+        report["valuation_metrics"] = {
+            "schema": "ma.valuation-multiples/v1",
+            "instrument_key": "different",
+            "metrics": {}, "missing_metrics": {}, "status": "insufficient_evidence",
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaisesRegex(ValueError, "valuation_metrics must match"):
                 build_opportunity_report_pdf(report, directory)
 
 
