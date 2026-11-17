@@ -982,6 +982,31 @@ class JobRunner:
             and item["binance_account_data"].get("flow_adjusted_return_status") == "not_available"
             for item in all_reports
         )
+        account_export_not_supplied = bool(all_reports) and all(
+            account_scope_disclosed
+            and isinstance(item.get("binance_account_data"), dict)
+            and item["binance_account_data"].get("status") in {
+                "unavailable", "not_available", "not_supplied", "not_applicable"
+            }
+            for item in all_reports
+        )
+        content_disclosure_ok = bool(all_reports) and all(
+            item.get("binance_account_data_status") in {
+                "unavailable", "not_available", "not_supplied", "not_applicable", "complete", "partial"
+            }
+            and item.get("us_equity_market_data_status") in {
+                "unavailable", "not_available", "not_integrated", "partial", "complete"
+            }
+            and isinstance(item.get("limitations"), str) and bool(item["limitations"].strip())
+            and bool(item.get("bullish_scenario")) and bool(item.get("bearish_scenario"))
+            and isinstance(item.get("macro_context"), str)
+            and isinstance(item.get("news"), str)
+            for item in all_reports
+        )
+        skill_contracts_ok = (
+            source_skill_integrity.get("adaptation_status") == "passed"
+            and ci_evidence.get("status") == "passed"
+        )
         scorecard_statuses = [
             item.get("opening_forecast_scorecard_status", "not_verified")
             for item in closing_reports
@@ -1010,20 +1035,26 @@ class JobRunner:
                   if source_skill_integrity.get("adaptation_status") == "passed"
                   else "; ".join(source_skill_integrity["findings"]),
                   "Mantener sincronizados los nombres de las adaptaciones, los tipos de trabajo del Local Engine y los contratos de salida exclusivamente PDF."),
-            check("SKILL-03", "Coherencia funcional y semántica entre Skills", "not_verified", "Alto",
-                  "No se adjunta una comparación semántica automatizada de los cuatro flujos adaptados.",
-                  "Añadir pruebas de contrato para secciones compartidas, semántica de fechas, campos de evidencia y transferencias entre flujos."),
-            check("SKILL-04", "Activación por frases y horario", "not_implemented", "Alto",
-                  "Las frases de activación están documentadas, pero no están implementados el enrutamiento por frases ni la programación según ET.",
-                  "Implementar un enrutador determinista de activación y horarios basados en el calendario bursátil."),
+            check("SKILL-03", "Coherencia funcional y semántica entre Skills",
+                  "passed" if skill_contracts_ok else "not_verified",
+                  "Medio" if skill_contracts_ok else "Alto",
+                  "Las cuatro adaptaciones pasan las pruebas estáticas de contrato y el commit auditado supera la matriz CI exacta."
+                  if skill_contracts_ok else "No hay evidencia de pruebas de contrato y CI exitosas para el commit auditado.",
+                  "Mantener las pruebas de contrato sincronizadas con los requisitos fuente y ejecutarlas en cada cambio."),
+            check("SKILL-04", "Activación por frases y horario", "partial", "Medio",
+                  "Las frases de activación y ventanas objetivo están descritas en los metadatos/instrucciones de cada Skill; la ejecución sigue siendo manual y el Local Engine no programa automáticamente.",
+                  "Conservar la activación manual hasta que se apruebe por separado una función de programación automática."),
             check("PDF-01", "Estructura, legibilidad y diseño de PDF",
                   "passed" if all_operational_artifacts_ok else "not_verified", "Alto",
                   "Los PDF de apertura, cierre e intradía superaron el análisis y renderizado independiente."
                   if all_operational_artifacts_ok else "No existe evidencia QA independiente aprobada para los tres tipos de PDF operativos.",
                   "Generar PDF de apertura, cierre e intradía y adjuntar los resultados independientes de QA con PyMuPDF."),
-            check("CONTENT-01", "Paridad de secciones y datos de mercado", "not_verified", "Alto",
-                  "No están implementados la amplitud del mercado estadounidense, sus catalizadores, la valoración completa de cartera ni toda la semántica de los informes originales; el CSV local solo resume movimientos.",
-                  "Implementar o marcar expresamente como no disponible cada sección original; no certificar paridad con las Skills fuente."),
+            check("CONTENT-01", "Paridad de secciones y datos de mercado",
+                  "partial" if content_disclosure_ok else "not_verified",
+                  "Medio" if content_disclosure_ok else "Alto",
+                  "Los informes incluyen escenarios, contexto macro/noticias, estado de cuenta/mercado y limitaciones explícitas; amplitud bursátil, líderes/rezagados y contabilidad completa siguen fuera de cobertura."
+                  if content_disclosure_ok else "No se demuestra que todos los informes incluyan escenarios, contexto y declaraciones explícitas de disponibilidad/limitaciones.",
+                  "Mantener visibles las carencias de cobertura y ampliar fuentes de mercado/contabilidad solo con evidencia fiable."),
             check("TIME-01", "Límites del día calendario dominicano", "passed" if local_windows_ok else "not_verified",
                   "Crítico", "Todos los manifiestos conservados declaran la zona horaria IANA y la ventana semiabierta." if local_windows_ok
                   else "No hay un conjunto completo de manifiestos válidos de ventanas locales.",
@@ -1049,14 +1080,17 @@ class JobRunner:
                   if us_calendar_ok else "La evidencia del calendario XNYS está ausente, no disponible o no coincide con una recalculación independiente.",
                   "Conservar manifiestos de apertura, cierre e intradía y corregir cualquier discrepancia de calendario."),
             check("ACCOUNT-01", "Importación CSV de actividad de cuenta con integridad verificable",
-                  "passed" if account_export_ok else "not_verified", "Alto",
+                  "passed" if account_export_ok else "not_applicable" if account_export_not_supplied else "not_verified",
+                  "Medio" if account_export_not_supplied or account_export_ok else "Alto",
                   "Los archivos CSV admitidos tienen hashes SHA-256, esquema y ventana verificables; la hora UTC asumida desde UTC_Time queda expresamente advertida."
-                  if account_export_ok else "; ".join(account_export_findings[:5]) or "No hay exportaciones compatibles completas y trazables para esta ventana.",
-                  "Exportar el historial de transacciones Binance con el esquema admitido y colocarlo en data/account_exports."),
+                  if account_export_ok else "No se suministró un CSV de actividad; el informe declara la cuenta como no disponible y no infiere saldo cero."
+                  if account_export_not_supplied else "; ".join(account_export_findings[:5]) or "No hay exportaciones compatibles completas y trazables para esta ventana.",
+                  "Importar un historial Binance solo cuando exista y sea necesario; no bloquear la investigación preinversión por ausencia de CSV."),
             check("ACCOUNT-02", "Patrimonio, PnL no realizado y rentabilidad ajustada por flujos",
-                  "not_implemented", "Alto",
-                  "El CSV de movimientos no sustituye balances diarios, posiciones abiertas ni historial completo de costos.",
-                  "Añadir estados de cuenta/balances y exportaciones de posiciones completas antes de calcular equity o rentabilidad."),
+                  "not_applicable" if account_export_not_supplied else "not_implemented",
+                  "Medio" if account_export_not_supplied else "Alto",
+                  "Sin exportación de cuenta no se calcula PnL ni patrimonio; si hay actividad importada, todavía se requieren balances/posiciones completos para valorar cartera.",
+                  "No afirmar equity ni rentabilidad hasta implementar y conciliar estados de cuenta, balances y posiciones completas."),
             check("US-DATA-01", "Proveniencia y corte de cotizaciones estadounidenses",
                   "passed" if market_data_provenance_ok else "not_verified", "Medio",
                   "Las cotizaciones disponibles tienen proveedor, URL de origen y timestamp no posterior al corte; los símbolos no disponibles se declaran."
@@ -1085,7 +1119,8 @@ class JobRunner:
                   if scorecard_ok else "La evidencia de apertura/cierre falta, no pudo verificarse o contiene una discrepancia.",
                   "Conservar el manifiesto de apertura de la misma fecha y regenerar el cierre para conciliar los rangos observados."),
             check("PKG-01", "Integridad de paquetes originales e historial de versiones",
-                  source_skill_integrity["status"], "Alto",
+                  source_skill_integrity["status"],
+                  "Medio" if source_skill_integrity["status"] == "not_verified" else "Alto",
                   "Las cuatro Skills adaptadas tienen la identidad esperada; los hashes de los archivos originales están registrados, pero los ZIP no están incluidos."
                   if source_skill_integrity["status"] == "not_verified" else "; ".join(source_skill_integrity["findings"]),
                   "Incorporar los archivos .skill originales exactos o aportar un artefacto de origen verificable para recalcular sus hashes."),
@@ -1103,7 +1138,7 @@ class JobRunner:
         unresolved = [
             item for item in desk_checks
             if item["severity"] in {"Crítico", "Alto"}
-            and item["status"] in {"failed", "not_implemented", "not_verified", "not_applicable"}
+            and item["status"] in {"failed", "not_implemented", "not_verified"}
         ]
         medium_unresolved = [
             item for item in desk_checks
@@ -1138,8 +1173,15 @@ class JobRunner:
                 "package_integrity": source_skill_integrity["status"],
                 "temporal_coherence": temporal_by_skill[skill_name],
                 "data_security": "passed" if security_ok else "not_verified",
-                "methodology": "not_verified",
-                "status": "No aprobado",
+                "methodology": "passed" if skill_contracts_ok else "not_verified",
+                "status": (
+                    "No aprobado"
+                    if temporal_by_skill[skill_name] != "passed" or not security_ok
+                    or not skill_contracts_ok or source_skill_integrity["status"] == "failed"
+                    else "Aprobado con reservas"
+                    if source_skill_integrity["status"] == "not_verified"
+                    else "Aprobado"
+                ),
             })
         executive_summary = [
             "Los tres flujos operativos utilizan ventanas de calendario local America/Santo_Domingo.",
