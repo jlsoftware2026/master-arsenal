@@ -76,6 +76,9 @@ def _validate(report: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any], d
     conclusion = report.get("conclusion")
     if conclusion not in CONCLUSIONS_ES:
         raise ValueError(f"conclusion must be one of: {', '.join(CONCLUSIONS_ES)}")
+    packet_quality = (packet.get("data_quality") or {}).get("status")
+    if packet_quality == "insufficient_evidence" and conclusion == "potential_candidate_for_further_diligence":
+        raise ValueError("insufficient evidence cannot support a potential-candidate conclusion")
     scenarios = report.get("scenarios")
     if scenarios is not None:
         if not isinstance(scenarios, dict) or scenarios.get("schema") != "ma.price-scenarios/v1":
