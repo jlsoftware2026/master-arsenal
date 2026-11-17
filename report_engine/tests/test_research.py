@@ -185,11 +185,14 @@ class ResearchEvidenceTests(unittest.TestCase):
         self.assertEqual(len(conflict["variants"]), 2)
 
     def test_equivalent_numeric_values_do_not_create_false_conflict(self):
-        first = sourced_fact(value="125000000.00")
+        first = sourced_fact(
+            value="125000000.00", as_of_utc="2026-11-17T15:30:00Z"
+        )
         second = sourced_fact(
             fact_id="fact-002", value=125000000,
             source_name="Second issuer disclosure",
             source_url="https://example.org/annual-report",
+            as_of_utc="2026-11-17T15:30:00Z",
         )
         packet = build_research_packet(
             KEY, [first, second], now=NOW,
