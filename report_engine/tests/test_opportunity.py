@@ -11,6 +11,7 @@ from report_engine.opportunity import (
 from report_engine.research import build_research_packet
 from report_engine.scenarios import calculate_long_scenarios
 from report_engine.position_sizing import calculate_cash_position_size
+from report_engine.fundamentals import calculate_financial_ratios
 
 NOW = datetime(2026, 11, 17, 16, 0, tzinfo=timezone.utc)
 KEY = "listed_equity|exm|usd|example corp|nasdaq"
@@ -55,6 +56,7 @@ def report_fixture():
         "generated_at_utc": "2026-11-17T16:00:00Z",
         "freshness_limits_hours": {"revenue": 24},
         "instrument": instrument, "research_packet": packet,
+        "fundamental_metrics": calculate_financial_ratios(packet["facts"], instrument_key=KEY),
         "conclusion": "potential_candidate_for_further_diligence",
         "executive_summary": ["Evidence is preliminary.", "Further diligence is required."],
         "scenarios": scenarios, "position_sizing": sizing,
@@ -85,6 +87,7 @@ class OpportunityPdfTests(unittest.TestCase):
             result = audit_opportunity_manifest(manifest, root)
             self.assertEqual(result["status"], "passed", result)
             self.assertGreaterEqual(result["pdf_page_count"], 1)
+            self.assertEqual(result["fundamental_metrics_status"], "passed")
             self.assertEqual(result["scenario_status"], "passed")
             self.assertEqual(result["position_sizing_status"], "passed")
             self.assertEqual(result["fact_count"], 1)
