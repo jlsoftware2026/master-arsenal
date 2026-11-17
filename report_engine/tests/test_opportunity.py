@@ -561,9 +561,6 @@ class OpportunityPdfTests(unittest.TestCase):
                 build_opportunity_report_pdf(report, directory)
 
 
-if __name__ == "__main__":
-    unittest.main()
-
 
 class BiotechOpportunityIntegrationTests(unittest.TestCase):
     def test_biotech_runway_is_rendered_and_independently_audited(self):
@@ -619,3 +616,6 @@ class BiotechOpportunityIntegrationTests(unittest.TestCase):
             self.assertEqual(tampered["status"], "failed")
             self.assertEqual(tampered["biotech_valuation_status"], "failed")
             self.assertTrue(any("biotech valuation/runway" in item for item in tampered["findings"]))
+
+if __name__ == "__main__":
+    unittest.main()
