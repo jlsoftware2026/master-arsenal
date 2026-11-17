@@ -94,16 +94,18 @@ Prefer regulatory filings, issuer disclosures, audited financial statements, off
 - A candidate conclusion includes bull/base/bear cases, risks, invalidation conditions, data freshness, and uncertainty.
 - No orders, account actions, credential collection, or autonomous execution are introduced.
 
-## Delivery sequence
+## Delivery sequence and implementation status
 
-1. Preserve the current PDF/report pipeline and its read-only constraints.
-2. Add the pre-investment account state and opportunity-research data contract.
-3. Implement instrument identity/venue verification and a source-attributed candidate data model.
-4. Add equity fundamentals and crypto tokenomics adapters with explicit provider/coverage limitations.
-5. Add reproducible scenario and hypothetical position-sizing calculations with fixture tests.
-6. Integrate opportunity analysis into the four PDF skills and the independent audit.
-7. Validate the full cross-platform CI matrix before considering Phase 3 complete.
+1. Preserve the existing PDF/report pipeline and its read-only constraints. **In place.**
+2. Add the pre-investment account state and opportunity-research data contract. **In place.**
+3. Implement instrument identity/venue verification and a source-attributed candidate data model. **In place; live venue discovery remains a separate adapter.**
+4. Add source-backed fundamentals and sector-specific adapters. **Partially in place:** SEC EDGAR Company Facts for a bounded set of U.S. issuer metrics; ClinicalTrials.gov API v2 for exact NCT records; DeFiLlama for protocol TVL, daily fees, protocol revenue, and token-holder revenue. These adapters preserve provenance but do not resolve issuer mappings or independently validate source contents.
+5. Add reproducible scenario and hypothetical position-sizing calculations. **In place:** long-only bull/base/bear calculations and cash-only risk-budget sizing, both based on explicit caller-supplied assumptions.
+6. Integrate evidence, scenario, sizing, and audit controls into the four adapted skills. **In place at the skill-instruction level; PDF composition and end-to-end workflow integration remain outstanding.**
+7. Validate the full cross-platform CI matrix before considering Phase 3 complete. **Repeated matrix passes have been recorded; every new code change remains subject to current-head CI.**
 
 ## Current scope boundary
 
-The current Phase 3 implementation is a market-report/PDF foundation with Binance public market acquisition, limited U.S. market snapshots, and a privacy-conscious local transaction-history importer. It is not yet a complete equity/crypto fundamental research engine, a portfolio-accounting system, or a personalized recommendation engine. The steps above are the next implementation work; no live trading or account access is required.
+Phase 3 now includes the PDF/report foundation, Binance public market acquisition, limited U.S. market snapshots, pre-investment opportunity data contracts, exact instrument identity, source-attributed research facts, SEC/ClinicalTrials.gov/DeFiLlama adapters, and explicit scenario and cash-only sizing calculators. The four adapted skill instructions and independent-review checklist include the new safeguards.
+
+It is still **not** a complete fundamental research engine or portfolio-accounting system. Outstanding work includes live provider validation, exact issuer/security/CIK/NCT/protocol mapping from primary evidence, narrative SEC filing analysis, financial-statement normalization and valuation, token supply/unlocks/holder concentration/security/governance/regulatory research, source-content verification and conflict reconciliation, and full integration of these modules into the PDF report composers and Local Engine workflow. Missing provider coverage must remain visible. No live trading, private account access, or autonomous execution is introduced.
