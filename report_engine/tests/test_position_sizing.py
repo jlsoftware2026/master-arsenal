@@ -1,5 +1,6 @@
 """Tests for hypothetical cash-only position sizing."""
 import unittest
+from decimal import Decimal
 
 from report_engine.position_sizing import calculate_cash_position_size
 
@@ -68,5 +69,4 @@ class PositionSizingTests(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    from decimal import Decimal
     unittest.main()
