@@ -44,6 +44,10 @@ def study_fixture():
 
 
 class ClinicalTrialsTests(unittest.TestCase):
+    def test_rejects_non_finite_timeout(self):
+        with self.assertRaisesRegex(ValueError, "finite positive"):
+            ClinicalTrialsGov(timeout_seconds=float("inf"))
+
     def test_nct_id_validation(self):
         self.assertEqual(_nct_id("nct01234567"), "NCT01234567")
         for value in ("NCT123", "NCT012345678", "01234567", "NCTABCDEFGH"):
@@ -127,7 +131,6 @@ class ClinicalTrialsTests(unittest.TestCase):
         result = adapter.fetch_study(nct_id="NCT01234567", instrument_key=KEY,
                                      attribution_basis="Issuer filing reference.",
                                      retrieved_at=NOW)
-        self.assertEqual(result["facts"][0]["as_of_utc"], "2026-10-30T23:59:59Z") if False else None
         status_fact = next(f for f in result["facts"] if f["fact_id"].endswith("-status"))
         self.assertEqual(status_fact["as_of_utc"], "2024-01-10T23:59:59Z")
 
