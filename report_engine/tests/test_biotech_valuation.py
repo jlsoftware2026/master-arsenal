@@ -6,7 +6,7 @@ KEY = "listed_equity|exm|usd|example biotech|nasdaq"
 CUTOFF = "2026-11-17T16:00:00Z"
 
 def obs(value, source_id, currency="USD", as_of=CUTOFF, quality="verified_source"):
-    return {"value": str(value), "currency": currency, "as_of_utc": as_of,
+    return {"instrument_key": KEY, "value": str(value), "currency": currency, "as_of_utc": as_of,
             "source_id": source_id, "source_url": "https://example.org/source",
             "evidence_quality": quality}
 
