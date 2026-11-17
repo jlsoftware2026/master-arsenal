@@ -69,6 +69,24 @@ class InstrumentIdentityTests(unittest.TestCase):
         result = validate_venue_evidence(instrument, None, now=NOW)
         self.assertEqual(result["status"], "not_verified")
 
+
+    def test_not_verified_venue_evidence_preserves_source_timestamp(self):
+        candidate = {
+            "asset_class": "crypto", "name": "Bitcoin", "symbol": "BTC",
+            "quote_currency": "USDT",
+        }
+        evidence = {
+            "status": "not_verified", "venue": "Binance",
+            "observed_at_utc": "2026-11-17T13:30:00Z",
+            "source_url": "https://api.binance.com/api/v3/exchangeInfo",
+            "reason": "Binance metadata request failed.",
+        }
+        record = build_instrument_record(candidate, evidence, now=NOW)
+        self.assertEqual(record["venue_verification"]["status"], "not_verified")
+        self.assertEqual(record["venue_verification"]["observed_at_utc"], "2026-11-17T13:30:00Z")
+        self.assertEqual(record["venue_verification"]["source_url"], evidence["source_url"])
+
+
     def test_exact_current_product_evidence_verifies(self):
         candidate = {
             "asset_class": "crypto", "name": "Bitcoin", "symbol": "BTC",
