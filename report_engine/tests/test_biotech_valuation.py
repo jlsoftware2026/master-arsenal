@@ -68,5 +68,34 @@ class BiotechValuationTests(unittest.TestCase):
             assess_biotech_valuation(instrument_key=KEY, development_stage="device",
                 analysis_cutoff_utc=CUTOFF)
 
+
+    def test_cash_and_burn_must_share_period_end(self):
+        result = assess_biotech_valuation(instrument_key=KEY, development_stage="clinical",
+            analysis_cutoff_utc=CUTOFF, cash=obs(100, "cash"),
+            quarterly_net_cash_burn=obs(20, "burn", as_of="2026-09-30T23:59:59Z"))
+        self.assertNotIn("cash_runway_months", result["metrics"])
+        self.assertIn("same period-end", result["missing_metrics"]["cash_runway_months"])
+
+    def test_observation_for_different_instrument_is_rejected(self):
+        wrong = obs(100, "cash")
+        wrong["instrument_key"] = "different-instrument"
+        with self.assertRaisesRegex(ValueError, "instrument_key"):
+            assess_biotech_valuation(instrument_key=KEY, development_stage="clinical",
+                analysis_cutoff_utc=CUTOFF, cash=wrong,
+                quarterly_net_cash_burn=obs(20, "burn"))
+
+    def test_naive_observation_timestamp_is_rejected(self):
+        bad = obs(100, "cash", as_of="2026-11-17T15:00:00")
+        with self.assertRaisesRegex(ValueError, "timezone offset"):
+            assess_biotech_valuation(instrument_key=KEY, development_stage="clinical",
+                analysis_cutoff_utc=CUTOFF, cash=bad,
+                quarterly_net_cash_burn=obs(20, "burn"))
+
+    def test_clinical_catalyst_requires_documented_attribution(self):
+        with self.assertRaisesRegex(ValueError, "NCT ID and ClinicalTrials.gov"):
+            assess_biotech_valuation(instrument_key=KEY, development_stage="clinical",
+                analysis_cutoff_utc=CUTOFF, clinical_catalysts=[{
+                    "nct_id": "NCT01234567", "source_url": "https://clinicaltrials.gov/study/NCT01234567"}])
+
 if __name__ == "__main__":
     unittest.main()
