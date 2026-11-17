@@ -10,8 +10,9 @@ from typing import Any, Mapping
 from urllib.parse import urlparse
 
 DIMENSIONS = {
-    "business_model", "revenue", "growth", "margins", "cash_flow", "debt",
-    "liquidity", "valuation", "capital_allocation", "competition",
+    "business_model", "revenue", "growth", "margins", "operating_income",
+    "net_income", "cash_flow", "operating_cash_flow", "debt", "liquidity",
+    "total_assets", "cash_and_equivalents", "valuation", "capital_allocation", "competition",
     "clinical_development", "regulatory", "patents_ip", "reimbursement",
     "product_adoption", "customer_concentration", "technology_differentiation",
     "protocol_utility", "network_adoption", "developer_activity",
