@@ -30,6 +30,7 @@ from report_engine.clinical_trials import ClinicalTrialsGov
 from report_engine.defillama import DeFiLlamaProtocolResearch
 from report_engine.scenarios import calculate_long_scenarios
 from report_engine.position_sizing import calculate_cash_position_size
+from report_engine.fundamentals import calculate_financial_ratios
 from report_engine.opportunity import write_opportunity_manifest, audit_opportunity_manifest
 
 from report_engine import (
@@ -1343,6 +1344,11 @@ class JobRunner:
             instrument_key, facts, now=generated_at,
             freshness_limits_hours=freshness_limits,
         )
+        fundamental_metrics = (
+            calculate_financial_ratios(packet["facts"], instrument_key=instrument_key)
+            if instrument["asset_class"] in {"listed_equity", "tokenized_equity"}
+            else None
+        )
 
         scenarios = parameters.get("scenario_inputs")
         if scenarios is not None:
@@ -1360,6 +1366,7 @@ class JobRunner:
             "generated_at_utc": generated_at.isoformat().replace("+00:00", "Z"),
             "instrument": instrument,
             "research_packet": packet,
+            "fundamental_metrics": fundamental_metrics,
             "conclusion": parameters.get("conclusion", "insufficient_evidence"),
             "executive_summary": parameters.get("executive_summary", []),
             "scenarios": scenarios,
