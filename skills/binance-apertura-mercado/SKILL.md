@@ -67,6 +67,17 @@ When the user names an equity or biotech candidate for prospective investment re
 - These research modules provide evidence, not a buy/sell decision. Present positive evidence, counterevidence, unresolved questions, catalysts, and thesis-invalidation conditions separately from the market-opening snapshot.
 
 
+
+## Crypto protocol and token-economics evidence
+
+When a prospective crypto asset is explicitly in scope, use its validated instrument identity and only attach protocol metrics when the caller supplies the exact DeFiLlama protocol slug and a documented token/protocol attribution basis.
+
+- The DeFiLlama adapter may retrieve latest protocol TVL, daily fees, daily protocol revenue, and daily token-holder revenue. Keep these four concepts distinct and retain observation/retrieval timestamps.
+- TVL is not revenue, market capitalization, or token-holder value capture. Protocol fees and protocol revenue are not interchangeable; token-holder revenue is a separate measure and may be unavailable.
+- Missing metrics are not zero. Do not infer protocol ownership, token rights, or economic exposure from a shared ticker, brand, or protocol name.
+- Token supply, unlock schedules, holder concentration, security audits, exploit history, governance quality, and regulatory analysis are not covered by this adapter. Mark these dimensions not verified unless supported by separate primary evidence.
+- Use protocol fundamentals as a separate long-horizon research layer; do not confuse them with the previous local day's Binance market performance or opening conditions.
+
 ## Status
 Adapted against the user-supplied original Claude skill package. The XNYS calendar and best-effort Yahoo Finance quote snapshot are integrated. Breadth and stock-level leaders/laggards remain unavailable. Transaction-history CSV activity can be summarized, but account equity, unrealized PnL and flow-adjusted returns remain unavailable.
 
