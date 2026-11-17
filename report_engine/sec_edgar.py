@@ -30,6 +30,17 @@ METRICS = {
     },
     "operating_income": {"concepts": ("OperatingIncomeLoss",), "kind": "duration"},
     "net_income": {"concepts": ("NetIncomeLoss",), "kind": "duration"},
+    "gross_profit": {"concepts": ("GrossProfit",), "kind": "duration"},
+    "capital_expenditures": {
+        "concepts": ("PaymentsToAcquirePropertyPlantAndEquipment", "PaymentsToAcquireProductiveAssets"),
+        "kind": "duration",
+    },
+    "current_assets": {"concepts": ("AssetsCurrent",), "kind": "instant"},
+    "current_liabilities": {"concepts": ("LiabilitiesCurrent",), "kind": "instant"},
+    "stockholders_equity": {
+        "concepts": ("StockholdersEquity", "StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest"),
+        "kind": "instant",
+    },
     "operating_cash_flow": {
         "concepts": ("NetCashProvidedByUsedInOperatingActivities",),
         "kind": "duration",
