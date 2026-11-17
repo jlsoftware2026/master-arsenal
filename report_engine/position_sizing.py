@@ -5,6 +5,7 @@ never places orders. All outputs are planning estimates, not execution guarantee
 """
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from typing import Any
 
@@ -27,6 +28,10 @@ def _fmt(value: Decimal) -> str:
 
 def calculate_cash_position_size(
     *,
+    instrument_key: str,
+    as_of_utc: str,
+    entry_price_basis: str,
+    invalidation_basis: str,
     available_capital: Any,
     quote_currency: str,
     entry_price: Any,
@@ -39,8 +44,22 @@ def calculate_cash_position_size(
     exit_slippage_bps: Any = 0,
 ) -> dict[str, Any]:
     """Calculate a cash-only maximum hypothetical size under risk and allocation caps."""
+    if not isinstance(instrument_key, str) or not instrument_key.strip():
+        raise ValueError("instrument_key is required")
     if not isinstance(quote_currency, str) or not quote_currency.strip():
         raise ValueError("quote_currency is required")
+    for field, value in (("entry_price_basis", entry_price_basis),
+                         ("invalidation_basis", invalidation_basis)):
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError(f"{field} is required")
+    if not isinstance(as_of_utc, str):
+        raise ValueError("as_of_utc must be a timezone-aware ISO-8601 timestamp")
+    try:
+        as_of = datetime.fromisoformat(as_of_utc.strip().replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise ValueError("as_of_utc must be a timezone-aware ISO-8601 timestamp") from exc
+    if as_of.tzinfo is None or as_of.utcoffset() is None:
+        raise ValueError("as_of_utc must include a timezone offset")
     capital = _decimal(available_capital, "available_capital")
     entry = _decimal(entry_price, "entry_price")
     invalidation = _decimal(invalidation_price, "invalidation_price")
@@ -89,6 +108,10 @@ def calculate_cash_position_size(
     return {
         "schema": "ma.cash-position-size/v1",
         "analysis_type": "hypothetical_cash_only",
+        "instrument_key": instrument_key.strip(),
+        "as_of_utc": as_of.astimezone(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "entry_price_basis": entry_price_basis.strip(),
+        "invalidation_basis": invalidation_basis.strip(),
         "quote_currency": quote_currency.strip().upper(),
         "available_capital": str(capital),
         "entry_price": str(entry),
