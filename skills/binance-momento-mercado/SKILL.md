@@ -1,7 +1,7 @@
 ---
 name: binance-momento-mercado
 description: 'Informe de mercado a una hora concreta o snapshot intradía. Activar cuando el usuario diga “momento específico del mercado”, “estado del mercado ahora”, “resumen a esta hora”, “snapshot intradía” o solicite el comportamiento del día hasta una hora indicada. El análisis empieza al inicio del día local y termina en la hora de corte solicitada.'
-version: 1.5.0
+version: 1.6.0
 last_reviewed: 2026-11-17
 ---
 
@@ -92,6 +92,10 @@ An intraday snapshot is not a full investment thesis. When the user separately r
 
 The generated PDF has a SHA-256-bound evidence manifest. The `skills.audit` job checks PDF/manifest integrity, rebuilds the evidence packet, and recalculates scenario and sizing arithmetic. This does not authenticate source contents or independently prove issuer/trial/protocol attribution.
 
+
+
+## Crypto tokenomics evidence
+For crypto candidates, use `ma.tokenomics/v1` only when source-attributed supply, price, unlock, or holder observations are available. Keep circulating, total, and maximum supply distinct; calculate market capitalization and fully diluted valuation only from same-UTC-date price and supply observations. Show known unlocks over 30/90/365 days as percentages of circulating supply, and explicitly state that unprovided schedule events may exist. Holder concentration must include a declared coverage percentage and remain partial when coverage is below 100%; wallet addresses are not automatically beneficial owners. Every observation must retain source name, HTTPS URL, source reference, and timestamp. Missing supply, unlock, or holder information must be disclosed as not supplied/not assessed, never treated as zero. This analysis does not establish token safety, governance quality, legal status, or investment suitability.
 
 ## Status
 Adapted against the user-supplied original Claude skill package. XNYS premarket/regular/postmarket classification is integrated; Yahoo market quotes are best-effort and partial, with breadth and stock-level leaders/laggards unavailable. Local transaction-history CSV activity can be summarized, but portfolio equity and flow-adjusted returns remain unavailable.
