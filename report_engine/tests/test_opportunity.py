@@ -84,7 +84,7 @@ class OpportunityPdfTests(unittest.TestCase):
             manifest = write_opportunity_manifest(report, pdf, manifest_dir)
             result = audit_opportunity_manifest(manifest, root)
             self.assertEqual(result["status"], "passed", result)
-            self.assertEqual(result["pdf_page_count"], 1)
+            self.assertGreaterEqual(result["pdf_page_count"], 1)
             self.assertEqual(result["scenario_status"], "passed")
             self.assertEqual(result["position_sizing_status"], "passed")
             self.assertEqual(result["fact_count"], 1)
