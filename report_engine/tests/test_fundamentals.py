@@ -15,6 +15,8 @@ def fact(dimension, value, *, fact_id=None, period=PERIOD, unit="USD"):
         "value": str(value),
         "unit": unit,
         "as_of_utc": period,
+        "source_url": "https://example.org/filing",
+        "evidence_quality": "verified_source",
     }
 
 
