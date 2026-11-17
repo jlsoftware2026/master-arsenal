@@ -1,8 +1,8 @@
 ---
 name: binance-revision-skills
 description: 'Audita, valida y mejora las tres Skills de análisis de mercado de Binance: Apertura de mercado, Cierre de mercado y Momento específico del mercado. Activar cuando el usuario solicite revisar, corregir, actualizar, comparar, probar o mantener cualquiera de esas Skills o el conjunto completo.'
-version: 0.7.0
-last_reviewed: 2026-11-16
+version: 0.8.0
+last_reviewed: 2026-11-17
 ---
 
 # binance-revision-skills
@@ -53,6 +53,22 @@ Do not certify a skill based solely on its own assertions. The current automated
 The audit must verify that operational reports and asset research remain usable when the user has not made any transactions. Missing transaction exports must not block market/asset analysis and must not be interpreted as proof of a zero account balance. A user-declared pre-investment state should label personal performance as not applicable and balances/positions as not supplied.
 
 For each analyzed candidate, verify instrument identity and venue, and distinguish listed equity, tokenized equity, and cryptocurrency. Check that fundamental/sector evidence, valuation or tokenomics, market data, scenario assumptions, risk disclosures, source timestamps, and invalidation conditions are present. Flag unsupported target prices, fabricated probabilities, untraceable claims, and any recommendation that confuses observed data with forecasts.
+
+## Fundamental and clinical-evidence adapter audit
+
+When a report contains SEC or ClinicalTrials.gov evidence, independently check:
+
+1. Exact instrument identity and caller-supplied CIK/NCT-to-instrument mapping. A ticker match or lead-sponsor match is not enough.
+2. SEC response CIK matches the requested CIK; each financial fact retains its XBRL concept, form, accession, period end, filing date, source URL, and retrieval time.
+3. Annual and quarterly duration filters are not mixing year-to-date values with quarter-only values. Instantaneous balance-sheet facts are kept distinct from duration metrics.
+4. Missing SEC concepts are reported as missing, never as zero. Alternative XBRL concepts are not added together without a documented reconciliation.
+5. ClinicalTrials.gov NCT identifier matches the requested record; last-update and first-posted dates are retained; estimated enrollment/completion values remain labeled.
+6. Trial-to-issuer attribution has a primary-source rationale. Registry sponsorship alone does not establish ownership, licensing, or economic exposure.
+7. A registered trial, phase, recruitment status, or results-section presence is never treated as proof of efficacy, safety, regulatory approval, or positive results.
+8. Offline fixture tests are distinguished from live provider availability and independent review of filing/registry content.
+
+Mark unavailable CIK/NCT mappings, stale records, missing metrics, unsupported clinical interpretations, and absent source evidence as not verified. SEC and ClinicalTrials.gov adapters validate and preserve data provenance; they do not replace analyst review or a full financial/clinical diligence process.
+
 
 ## Status
 Adapted against the user-supplied original Claude audit skill. The PDF records a desk-check matrix, severity levels, Spanish verdict, and change-history section. XNYS holiday/session-state classification is integrated and independently recalculated by the audit. The audit now validates Yahoo quote source URLs, timestamps not later than the report cutoff, and explicit unavailable-symbol lists. Overall U.S. breadth/stock-level leader coverage and full private-account portfolio reconciliation remain incomplete; transaction-history CSV activity can be imported with file-hash verification. Same-date opening-to-closing range-scenario reconciliation is implemented when a valid opening manifest exists; the audit must verify its evidence. Repository CI passed in GitHub Actions run 43925472913; the local audit still requires CI evidence to be attached because it does not query GitHub Actions. The uploaded original archives and extracted SKILL.md hashes were independently rechecked against the manifest during this development session. The ZIP payloads are not embedded in the repository, so a deployed runtime must still report archive integrity as NOT VERIFIED. The audit must not certify full source-skill parity.
