@@ -75,6 +75,8 @@ def normalize_instrument(candidate: Mapping[str, Any]) -> dict[str, Any]:
         })
         record["network"] = _optional_text(candidate, "network")
         record["contract_address"] = _optional_text(candidate, "contract_address")
+        if record["contract_address"]:
+            record["contract_address"] = record["contract_address"].lower()
     else:
         record["network"] = _optional_text(candidate, "network")
         record["contract_address"] = _optional_text(candidate, "contract_address")
