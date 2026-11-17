@@ -2,6 +2,10 @@
 from __future__ import annotations
 
 import re
+import hashlib
+import json
+import os
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -11,6 +15,9 @@ from reportlab.platypus import Paragraph, Spacer
 
 from .pdf import data_table, key_value_table, paragraph, report_styles, section_heading, write_pdf_atomic
 from .qa import inspect_pdf_artifact
+from .research import build_research_packet
+from .scenarios import calculate_long_scenarios
+from .position_sizing import calculate_cash_position_size
 
 CONCLUSIONS_ES = {
     "potential_candidate_for_further_diligence": "Candidato potencial para diligencia adicional",
@@ -274,3 +281,168 @@ def build_opportunity_report_pdf(report: dict[str, Any], output_directory: Path 
         artifact.unlink(missing_ok=True)
         raise
     return artifact
+
+
+def write_opportunity_manifest(
+    report: dict[str, Any],
+    pdf_path: Path | str,
+    manifest_directory: Path | str,
+) -> Path:
+    """Write a fixed-schema, PDF-hash-bound sidecar for independent opportunity audit."""
+    _validate(report)
+    pdf = Path(pdf_path).resolve(strict=True)
+    if not pdf.is_file() or pdf.suffix.lower() != ".pdf":
+        raise ValueError("Opportunity manifest requires an existing PDF artifact")
+    payload = pdf.read_bytes()
+    if not payload.startswith(b"%PDF-") or b"%%EOF" not in payload[-1024:]:
+        raise ValueError("Opportunity PDF failed signature validation before manifest creation")
+    directory = Path(manifest_directory)
+    directory.mkdir(parents=True, exist_ok=True)
+    manifest = {
+        "schema": "ma.opportunity-evidence/v1",
+        "manifest_generated_at_utc": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "pdf_filename": pdf.name,
+        "pdf_sha256": hashlib.sha256(payload).hexdigest(),
+        "report": report,
+    }
+    destination = directory / f"{pdf.stem}.opportunity.json"
+    fd, temporary = tempfile.mkstemp(prefix=f".{destination.stem}.", suffix=".tmp", dir=directory)
+    os.close(fd)
+    try:
+        Path(temporary).write_text(
+            json.dumps(manifest, ensure_ascii=False, sort_keys=True, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        with open(temporary, "r+b") as stream:
+            os.fsync(stream.fileno())
+        os.replace(temporary, destination)
+    except Exception:
+        try:
+            os.unlink(temporary)
+        except OSError:
+            pass
+        raise
+    return destination
+
+
+def audit_opportunity_manifest(
+    manifest_path: Path | str,
+    workspace_root: Path | str,
+) -> dict[str, Any]:
+    """Independently revalidate the opportunity packet, calculations, and linked PDF."""
+    findings: list[str] = []
+    root = Path(workspace_root).resolve()
+    manifest_directory = (root / "data" / "manifests" / "opportunities").resolve()
+    try:
+        manifest = Path(manifest_path).resolve(strict=True)
+        if not manifest.is_relative_to(manifest_directory):
+            raise ValueError("Opportunity manifest escapes its fixed directory")
+        if manifest.stat().st_size > 20_000_000:
+            raise ValueError("Opportunity manifest exceeds the 20 MB safety limit")
+        payload = json.loads(manifest.read_text(encoding="utf-8"))
+        if not isinstance(payload, dict) or payload.get("schema") != "ma.opportunity-evidence/v1":
+            raise ValueError("Unsupported opportunity evidence manifest schema")
+        report = payload.get("report")
+        instrument, packet, generated = _validate(report)
+        manifest_generated = _utc(payload.get("manifest_generated_at_utc"), "manifest_generated_at_utc")
+        if manifest_generated < generated:
+            findings.append("Manifest generation timestamp precedes opportunity report generation.")
+
+        pdf_filename = payload.get("pdf_filename")
+        if not isinstance(pdf_filename, str) or Path(pdf_filename).name != pdf_filename or not pdf_filename.lower().endswith(".pdf"):
+            raise ValueError("Opportunity PDF filename is invalid")
+        pdf_directory = (root / "reports" / "opportunities").resolve()
+        pdf = (pdf_directory / pdf_filename).resolve(strict=True)
+        if not pdf.is_relative_to(pdf_directory) or not pdf.is_file():
+            raise ValueError("Linked opportunity PDF is missing or escapes its fixed directory")
+        digest = hashlib.sha256(pdf.read_bytes()).hexdigest()
+        if digest != payload.get("pdf_sha256"):
+            findings.append("Opportunity PDF SHA-256 does not match its evidence manifest.")
+        try:
+            qa = inspect_pdf_artifact(pdf)
+            if qa.get("status") != "passed":
+                findings.append("Opportunity PDF structural QA did not pass.")
+        except Exception as exc:
+            findings.append(f"Opportunity PDF structural QA failed: {type(exc).__name__}: {exc}")
+
+        freshness = report.get("freshness_limits_hours") or {}
+        rebuilt_packet = build_research_packet(
+            instrument["instrument_key"], packet.get("facts", []),
+            now=generated, freshness_limits_hours=freshness,
+        )
+        if rebuilt_packet != packet:
+            findings.append("Independent research-packet reconstruction differs from the stored packet.")
+
+        scenario = report.get("scenarios")
+        scenario_status = "not_applicable"
+        if scenario is not None:
+            inputs = scenario.get("hypothetical_inputs") or {}
+            cases = scenario.get("scenarios") or {}
+            try:
+                rebuilt_scenario = calculate_long_scenarios(
+                    instrument_key=instrument["instrument_key"],
+                    quote_currency=scenario["quote_currency"],
+                    reference_entry_price=inputs["reference_entry_price"],
+                    invalidation_price=inputs["invalidation_price"],
+                    bull_case={"price": cases["bull"]["price"], "assumptions": cases["bull"]["assumptions"]},
+                    base_case={"price": cases["base"]["price"], "assumptions": cases["base"]["assumptions"]},
+                    bear_case={"price": cases["bear"]["price"], "assumptions": cases["bear"]["assumptions"]},
+                    invalidation_basis=inputs["invalidation_basis"],
+                    horizon=scenario["horizon"],
+                    as_of_utc=scenario["as_of_utc"],
+                )
+                if rebuilt_scenario != scenario:
+                    findings.append("Independent bull/base/bear scenario recalculation differs from the stored result.")
+                else:
+                    scenario_status = "passed"
+            except Exception as exc:
+                findings.append(f"Scenario recalculation failed: {type(exc).__name__}: {exc}")
+                scenario_status = "failed"
+
+        sizing = report.get("position_sizing")
+        sizing_status = "not_applicable"
+        if sizing is not None:
+            try:
+                rebuilt_sizing = calculate_cash_position_size(
+                    instrument_key=sizing["instrument_key"],
+                    as_of_utc=sizing["as_of_utc"],
+                    entry_price_basis=sizing["entry_price_basis"],
+                    invalidation_basis=sizing["invalidation_basis"],
+                    available_capital=sizing["available_capital"],
+                    quote_currency=sizing["quote_currency"],
+                    entry_price=sizing["entry_price"],
+                    invalidation_price=sizing["invalidation_price"],
+                    risk_budget_pct=sizing["risk_budget_pct"],
+                    max_allocation_pct=sizing["max_allocation_pct"],
+                    entry_fee_bps=sizing["entry_fee_bps"],
+                    exit_fee_bps=sizing["exit_fee_bps"],
+                    entry_slippage_bps=sizing["entry_slippage_bps"],
+                    exit_slippage_bps=sizing["exit_slippage_bps"],
+                )
+                if rebuilt_sizing != sizing:
+                    findings.append("Independent cash-only position-size recalculation differs from the stored result.")
+                else:
+                    sizing_status = "passed"
+            except Exception as exc:
+                findings.append(f"Position-size recalculation failed: {type(exc).__name__}: {exc}")
+                sizing_status = "failed"
+
+        return {
+            "manifest": manifest.name,
+            "pdf_filename": pdf_filename,
+            "pdf_sha256": digest,
+            "instrument_key": instrument["instrument_key"],
+            "conclusion": report["conclusion"],
+            "fact_count": packet.get("fact_count", 0),
+            "data_quality_status": (packet.get("data_quality") or {}).get("status"),
+            "scenario_status": scenario_status,
+            "position_sizing_status": sizing_status,
+            "status": "passed" if not findings else "failed",
+            "findings": findings,
+        }
+    except Exception as exc:
+        return {
+            "manifest": Path(manifest_path).name,
+            "status": "failed",
+            "findings": findings + [f"{type(exc).__name__}: {exc}"],
+        }
