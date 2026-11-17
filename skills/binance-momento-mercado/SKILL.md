@@ -1,7 +1,7 @@
 ---
 name: binance-momento-mercado
 description: 'Informe de mercado a una hora concreta o snapshot intradía. Activar cuando el usuario diga “momento específico del mercado”, “estado del mercado ahora”, “resumen a esta hora”, “snapshot intradía” o solicite el comportamiento del día hasta una hora indicada. El análisis empieza al inicio del día local y termina en la hora de corte solicitada.'
-version: 0.8.0
+version: 0.9.0
 last_reviewed: 2026-11-17
 ---
 
@@ -76,10 +76,18 @@ When a prospective crypto asset is explicitly in scope, use its validated instru
 - Token supply, unlock schedules, holder concentration, security audits, exploit history, governance quality, and regulatory analysis are not covered by this adapter. Mark these dimensions not verified unless supported by separate primary evidence.
 - Use these metrics only for an explicitly named candidate; do not expand a time-specific intraday snapshot into a full protocol diligence report unless requested.
 
+## Scenario and hypothetical position-risk calculations
+
+Do not add scenario calculations or position sizing to a routine intraday snapshot unless the user explicitly requests prospective investment analysis. If requested, calculate bull/base/bear returns only from explicit hypothetical prices and written assumptions; never invent target prices, probabilities, or expected returns.
+
+Hypothetical sizing requires explicit capital, risk budget, allocation cap, entry/invalidation assumptions, and cost assumptions. The engine is cash-only and unlevered; it does not imply an actual position or submit an order. An invalidation price is not a guaranteed execution price. Missing required inputs mean no sizing result is produced.
+
+
 ## Status
 Adapted against the user-supplied original Claude skill package. XNYS premarket/regular/postmarket classification is integrated; Yahoo market quotes are best-effort and partial, with breadth and stock-level leaders/laggards unavailable. Local transaction-history CSV activity can be summarized, but portfolio equity and flow-adjusted returns remain unavailable.
 
 ## Version history
+- 0.9.0 — 2026-11-17: Added explicit-assumption scenario and cash-only hypothetical position-risk calculation controls.
 - 0.1.0 — 2026-11-16: Initial ChatGPT/MASTER ARSENAL adaptation; preserves the original skill identity and documents the Local Engine/PDF workflow and current implementation gaps.
 
 
