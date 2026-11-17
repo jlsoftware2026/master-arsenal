@@ -98,6 +98,8 @@ def normalize_research_fact(fact: Mapping[str, Any]) -> dict[str, Any]:
 
     is_assumption = source_kind in {"user_assumption", "analyst_assumption"}
     if is_assumption:
+        if quality != "estimated":
+            raise ValueError("assumptions must use evidence_quality='estimated'")
         record["assumption_note"] = _text(fact, "assumption_note")
         if fact.get("source_url") is not None:
             raise ValueError("assumptions must not be represented as externally sourced facts")
@@ -169,8 +171,10 @@ def build_research_packet(
         seen.add(fact["fact_id"])
         limit = limits.get(fact["dimension"])
         if limit is not None:
-            if isinstance(limit, bool) or not isinstance(limit, (int, float)) or limit < 0:
-                raise ValueError(f"freshness limit for {fact['dimension']} must be a non-negative number")
+            import math
+            if (isinstance(limit, bool) or not isinstance(limit, (int, float))
+                    or not math.isfinite(float(limit)) or limit < 0):
+                raise ValueError(f"freshness limit for {fact['dimension']} must be a finite non-negative number")
             max_age = timedelta(hours=float(limit))
         else:
             max_age = None
