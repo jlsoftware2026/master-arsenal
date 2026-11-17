@@ -256,6 +256,15 @@ def calculate_valuation_multiples(
             missing[name] = "Ambiguous multiple observations for the latest reporting period."
             continue
         fact = selected[0]
+        if not isinstance(fact.get("fact_id"), str) or not fact.get("fact_id").strip():
+            missing[name] = "Financial fact is missing a stable source fact ID."
+            continue
+        if not isinstance(fact.get("source_url"), str) or not fact.get("source_url").startswith("https://"):
+            missing[name] = "Financial fact is missing an HTTPS source URL."
+            continue
+        if fact.get("evidence_quality") not in {"verified_source", "estimated"}:
+            missing[name] = "Financial fact evidence quality is missing or unsupported."
+            continue
         if fact.get("unit") != currency:
             missing[name] = "Market capitalization and financial fact use different currencies."
             continue
