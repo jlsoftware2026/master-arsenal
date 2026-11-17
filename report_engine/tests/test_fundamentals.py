@@ -1,7 +1,7 @@
 """Tests for transparent same-period financial ratio calculations."""
 import unittest
 
-from report_engine.fundamentals import calculate_financial_ratios
+from report_engine.fundamentals import calculate_financial_ratios, calculate_valuation_multiples
 
 KEY = "listed_equity|exm|usd|example corp|nasdaq"
 PERIOD = "2025-12-31T23:59:59Z"
@@ -82,3 +82,92 @@ class FinancialRatioTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ValuationMultipleTests(unittest.TestCase):
+    def setUp(self):
+        self.market_cap = {
+            "value": "5000000000", "unit": "USD",
+            "as_of_utc": "2026-11-17T16:00:00Z",
+            "source_id": "market-cap-snapshot-001",
+            "source_url": "https://example.org/market-cap",
+        }
+
+    def test_calculates_pe_ps_pb_with_explicit_annual_facts(self):
+        facts = [
+            fact("net_income", 250000000, fact_id="net-income-2025"),
+            fact("revenue", 1000000000, fact_id="revenue-2025"),
+            fact("stockholders_equity", 2000000000, fact_id="equity-2025"),
+        ]
+        result = calculate_valuation_multiples(
+            facts, instrument_key=KEY, market_cap=self.market_cap,
+            earnings_period_basis="annual",
+        )
+        self.assertEqual(result["metrics"]["price_to_earnings"]["value"], "20.0000")
+        self.assertEqual(result["metrics"]["price_to_sales"]["value"], "5.0000")
+        self.assertEqual(result["metrics"]["price_to_book"]["value"], "2.5000")
+        self.assertEqual(result["status"], "complete")
+        self.assertEqual(result["metrics"]["price_to_earnings"]["market_cap_source_id"],
+                         "market-cap-snapshot-001")
+
+    def test_negative_earnings_are_not_given_a_pe_multiple(self):
+        facts = [fact("net_income", -100), fact("revenue", 1000),
+                 fact("stockholders_equity", 500)]
+        result = calculate_valuation_multiples(
+            facts, instrument_key=KEY, market_cap=self.market_cap,
+            earnings_period_basis="annual",
+        )
+        self.assertNotIn("price_to_earnings", result["metrics"])
+        self.assertIn("negative", result["missing_metrics"]["price_to_earnings"])
+
+    def test_currency_mismatch_is_not_combined(self):
+        facts = [fact("net_income", 100, unit="EUR"),
+                 fact("revenue", 1000), fact("stockholders_equity", 500)]
+        result = calculate_valuation_multiples(
+            facts, instrument_key=KEY, market_cap=self.market_cap,
+            earnings_period_basis="annual",
+        )
+        self.assertNotIn("price_to_earnings", result["metrics"])
+        self.assertIn("different currencies", result["missing_metrics"]["price_to_earnings"])
+
+    def test_ambiguous_latest_fact_is_not_selected(self):
+        facts = [fact("net_income", 100, fact_id="ni-1"),
+                 fact("net_income", 120, fact_id="ni-2"),
+                 fact("revenue", 1000), fact("stockholders_equity", 500)]
+        result = calculate_valuation_multiples(
+            facts, instrument_key=KEY, market_cap=self.market_cap,
+            earnings_period_basis="annual",
+        )
+        self.assertNotIn("price_to_earnings", result["metrics"])
+        self.assertIn("Ambiguous", result["missing_metrics"]["price_to_earnings"])
+
+    def test_quarterly_results_are_not_annualized(self):
+        facts = [fact("net_income", 100), fact("revenue", 1000),
+                 fact("stockholders_equity", 500)]
+        result = calculate_valuation_multiples(
+            facts, instrument_key=KEY, market_cap=self.market_cap,
+            earnings_period_basis="quarterly",
+        )
+        self.assertEqual(result["status"], "insufficient_evidence")
+        self.assertEqual(result["metrics"], {})
+        self.assertIn("not annualized", result["missing_metrics"]["price_to_earnings"])
+
+    def test_market_cap_requires_source_and_timestamp(self):
+        for field in ("source_id", "source_url", "as_of_utc"):
+            incomplete = dict(self.market_cap)
+            incomplete.pop(field)
+            with self.subTest(field=field):
+                with self.assertRaises(ValueError):
+                    calculate_valuation_multiples(
+                        [fact("net_income", 100)], instrument_key=KEY,
+                        market_cap=incomplete, earnings_period_basis="annual",
+                    )
+
+    def test_rejects_other_instrument_facts(self):
+        with self.assertRaisesRegex(ValueError, "instrument_key"):
+            calculate_valuation_multiples(
+                [fact("net_income", 100) | {"instrument_key": "other"}],
+                instrument_key=KEY, market_cap=self.market_cap,
+                earnings_period_basis="annual",
+            )
+
