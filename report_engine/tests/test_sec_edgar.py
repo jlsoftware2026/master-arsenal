@@ -10,6 +10,7 @@ KEY = "listed_equity|exm|usd|example corp|nasdaq"
 
 def companyfacts_fixture():
     return {
+        "cik": 123,
         "entityName": "EXAMPLE CORP",
         "facts": {
             "us-gaap": {
@@ -100,6 +101,15 @@ class SECEdgarTests(unittest.TestCase):
         adapter = SECEdgarCompanyFacts("MASTER ARSENAL contact@example.org",
                                        fetch_json=lambda *args: {"facts": {}})
         with self.assertRaisesRegex(ValueError, "entityName"):
+            adapter.fetch_facts(cik=123, instrument_key=KEY,
+                                issuer_name="Example Corp", retrieved_at=NOW)
+
+    def test_rejects_response_for_different_cik(self):
+        fixture = companyfacts_fixture()
+        fixture["cik"] = 999
+        adapter = SECEdgarCompanyFacts("MASTER ARSENAL contact@example.org",
+                                       fetch_json=lambda *args: fixture)
+        with self.assertRaisesRegex(ValueError, "does not match"):
             adapter.fetch_facts(cik=123, instrument_key=KEY,
                                 issuer_name="Example Corp", retrieved_at=NOW)
 
