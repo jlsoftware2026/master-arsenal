@@ -20,6 +20,8 @@ from .scenarios import calculate_long_scenarios
 from .position_sizing import calculate_cash_position_size
 from .fundamentals import calculate_financial_ratios
 
+from .sec_edgar import SEC_TICKER_EXCHANGE_URL, SECEdgarCompanyFacts
+
 CONCLUSIONS_ES = {
     "potential_candidate_for_further_diligence": "Candidato potencial para diligencia adicional",
     "wait_for_confirmation": "Esperar confirmación",
@@ -48,6 +50,12 @@ def _text(value: Any) -> str:
     if isinstance(value, dict):
         return "; ".join(f"{key}: {_text(item)}" for key, item in value.items())
     return str(value)
+
+
+def _issuer_identity_key(value: Any) -> str:
+    if not isinstance(value, str):
+        return ""
+    return SECEdgarCompanyFacts._normalize_issuer_name(value)
 
 
 def _safe_component(value: str) -> str:
@@ -398,6 +406,53 @@ def audit_opportunity_manifest(
         except Exception as exc:
             findings.append(f"Opportunity PDF structural QA failed: {type(exc).__name__}: {exc}")
 
+        issuer_mapping_status = "not_applicable"
+        provider_status = report.get("provider_status")
+        sec_provider = provider_status.get("sec_edgar") if isinstance(provider_status, dict) else None
+        if isinstance(sec_provider, dict):
+            resolution = sec_provider.get("ticker_resolution")
+            if resolution is None:
+                issuer_mapping_status = "manual_cik_not_independently_verified"
+            else:
+                issuer_mapping_status = "passed"
+                mapping_issues: list[str] = []
+                if not isinstance(resolution, dict) or resolution.get("status") != "resolved":
+                    mapping_issues.append("Recorded SEC ticker resolution is not in resolved state.")
+                else:
+                    if instrument.get("asset_class") != "listed_equity":
+                        mapping_issues.append("Automatic SEC ticker resolution is only valid for listed_equity.")
+                    if resolution.get("ticker") != instrument.get("symbol"):
+                        mapping_issues.append("SEC ticker resolution symbol does not match the normalized instrument.")
+                    if str(resolution.get("exchange", "")).casefold() != str(instrument.get("exchange", "")).casefold():
+                        mapping_issues.append("SEC ticker resolution exchange does not match the normalized instrument.")
+                    if _issuer_identity_key(resolution.get("issuer_name")) != _issuer_identity_key(instrument.get("issuer")):
+                        mapping_issues.append("SEC ticker resolution issuer name does not match the normalized instrument.")
+                    if resolution.get("source_url") != SEC_TICKER_EXCHANGE_URL:
+                        mapping_issues.append("SEC ticker resolution source URL is not the official exchange-aware directory.")
+                    try:
+                        mapping_retrieved = _utc(resolution.get("retrieved_at_utc"), "SEC ticker mapping retrieved_at_utc")
+                        if mapping_retrieved > generated:
+                            mapping_issues.append("SEC ticker mapping retrieval timestamp is later than report generation.")
+                    except Exception as exc:
+                        mapping_issues.append(f"SEC ticker mapping timestamp is invalid: {type(exc).__name__}.")
+                    resolved_cik = sec_provider.get("cik")
+                    if not isinstance(resolved_cik, str) or len(resolved_cik) != 10 or not resolved_cik.isdigit():
+                        mapping_issues.append("SEC provider CIK is not a zero-padded 10-digit identifier.")
+                    else:
+                        for fact in packet.get("facts", []):
+                            if not isinstance(fact, dict):
+                                continue
+                            if str(fact.get("fact_id", "")).startswith("sec-"):
+                                if not str(fact.get("fact_id", "")).startswith(f"sec-{resolved_cik}-"):
+                                    mapping_issues.append("SEC fact ID CIK does not match the resolved provider CIK.")
+                                    break
+                                if f"CIK {resolved_cik};" not in str(fact.get("source_reference", "")):
+                                    mapping_issues.append("SEC fact source reference does not match the resolved provider CIK.")
+                                    break
+                if mapping_issues:
+                    issuer_mapping_status = "failed"
+                    findings.extend(mapping_issues)
+
         freshness = report.get("freshness_limits_hours") or {}
         rebuilt_packet = build_research_packet(
             instrument["instrument_key"], packet.get("facts", []),
@@ -482,6 +537,7 @@ def audit_opportunity_manifest(
             "fact_count": packet.get("fact_count", 0),
             "data_quality_status": (packet.get("data_quality") or {}).get("status"),
             "fundamental_metrics_status": fundamental_status,
+            "issuer_mapping_status": issuer_mapping_status,
             "fundamental_metrics_quality_status": (
                 (stored_fundamentals or {}).get("status", "not_applicable")
             ),
