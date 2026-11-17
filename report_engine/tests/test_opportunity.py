@@ -12,6 +12,7 @@ from report_engine.research import build_research_packet
 from report_engine.scenarios import calculate_long_scenarios
 from report_engine.position_sizing import calculate_cash_position_size
 from report_engine.fundamentals import calculate_financial_ratios, calculate_valuation_multiples
+from report_engine.tokenomics import calculate_tokenomics
 
 NOW = datetime(2026, 11, 17, 16, 0, tzinfo=timezone.utc)
 KEY = "listed_equity|exm|usd|example corp|nasdaq"
@@ -103,6 +104,83 @@ class OpportunityPdfTests(unittest.TestCase):
         self.assertIn("1300000", extracted)
         self.assertIn("1000000", extracted)
 
+
+    def test_crypto_opportunity_pdf_and_audit_recalculate_tokenomics(self):
+        report = report_fixture()
+        instrument = build_instrument_record({
+            "asset_class": "crypto", "name": "Example Token",
+            "symbol": "EXM", "quote_currency": "USD",
+            "network": "Ethereum", "contract_address": "0xABC",
+        })
+        key = instrument["instrument_key"]
+        facts = [dict(item, instrument_key=key) for item in report["research_packet"]["facts"]]
+        report["instrument"] = instrument
+        report["research_packet"] = build_research_packet(
+            key, facts, now=NOW, freshness_limits_hours={"revenue": 24}
+        )
+        report["fundamental_metrics"] = None
+        report["valuation_metrics"] = None
+        report["scenarios"] = None
+        report["position_sizing"] = None
+        report["conclusion"] = "wait_for_confirmation"
+        inputs = {
+            "instrument_key": key, "as_of_utc": "2026-11-17T16:00:00Z",
+            "circulating_supply": {
+                "instrument_key": key, "value": "60", "unit": "token",
+                "as_of_utc": "2026-11-17T15:00:00Z",
+                "source_name": "Protocol docs", "source_url": "https://example.org/supply",
+                "source_reference": "Supply table", "fact_id": "circ",
+            },
+            "total_supply": {
+                "instrument_key": key, "value": "80", "unit": "token",
+                "as_of_utc": "2026-11-17T15:00:00Z",
+                "source_name": "Protocol docs", "source_url": "https://example.org/supply",
+                "source_reference": "Supply table", "fact_id": "total",
+            },
+            "max_supply": {
+                "instrument_key": key, "value": "100", "unit": "token",
+                "as_of_utc": "2026-11-17T15:00:00Z",
+                "source_name": "Protocol docs", "source_url": "https://example.org/supply",
+                "source_reference": "Supply table", "fact_id": "max",
+            },
+            "price": {
+                "instrument_key": key, "value": "2.50", "quote_currency": "USD",
+                "as_of_utc": "2026-11-17T15:00:00Z",
+                "source_name": "Exchange data", "source_url": "https://example.org/price",
+                "source_reference": "Spot ticker", "fact_id": "price",
+            },
+            "unlock_events": [{
+                "event_id": "unlock-1", "amount": "5",
+                "unlock_at_utc": "2026-12-01T00:00:00Z",
+                "as_of_utc": "2026-11-17T15:00:00Z",
+                "source_name": "Vesting schedule", "source_url": "https://example.org/vesting",
+                "source_reference": "Schedule row 1",
+            }],
+        }
+        report["tokenomics_inputs"] = inputs
+        report["tokenomics"] = calculate_tokenomics(**inputs)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            pdf_dir = root / "reports" / "opportunities"
+            manifest_dir = root / "data" / "manifests" / "opportunities"
+            pdf_dir.mkdir(parents=True)
+            pdf = build_opportunity_report_pdf(report, pdf_dir)
+            manifest = write_opportunity_manifest(report, pdf, manifest_dir)
+            result = audit_opportunity_manifest(manifest, root)
+            self.assertEqual(result["status"], "passed", result)
+            self.assertEqual(result["tokenomics_status"], "passed")
+            import pymupdf as fitz
+            with fitz.open(pdf) as document:
+                extracted = " ".join(page.get_text("text") for page in document)
+            self.assertIn("Calendario de desbloqueos conocidos", extracted)
+            self.assertIn("Concentración de tenedores observada", extracted)
+
+    def test_tokenomics_is_rejected_for_non_crypto_instrument(self):
+        report = report_fixture()
+        report["tokenomics"] = {"schema": "ma.tokenomics/v1", "instrument_key": KEY}
+        report["tokenomics_inputs"] = {"instrument_key": KEY}
+        with self.assertRaisesRegex(ValueError, "only supported for crypto"):
+            build_opportunity_report_pdf(report, tempfile.mkdtemp())
 
     def test_opportunity_manifest_recalculates_packet_scenarios_and_sizing(self):
         report = report_fixture()
