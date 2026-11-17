@@ -77,6 +77,13 @@ class OpportunityPdfTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "does not match instrument"):
                 build_opportunity_report_pdf(report, directory)
 
+    def test_insufficient_evidence_cannot_support_potential_candidate(self):
+        report = report_fixture()
+        report["research_packet"] = build_research_packet(KEY, [], now=NOW)
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaisesRegex(ValueError, "insufficient evidence"):
+                build_opportunity_report_pdf(report, directory)
+
     def test_rejects_unknown_conclusion(self):
         report = report_fixture()
         report["conclusion"] = "strong_buy"
