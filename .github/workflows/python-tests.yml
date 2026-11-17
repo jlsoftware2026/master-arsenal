@@ -2,7 +2,7 @@ name: Python tests
 
 on:
   push:
-    branches: [main, develop, feature/local-engine-phase-2-foundation]
+    branches: [main, develop, feature/local-engine-phase-2-foundation, feature/phase-3-pdf-report-engine]
   pull_request:
     branches: [main, develop]
 
