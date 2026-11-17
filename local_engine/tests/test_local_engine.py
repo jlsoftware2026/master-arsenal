@@ -212,12 +212,22 @@ class LocalEngineTests(unittest.TestCase):
         self.assertEqual(report["venue_verification_status"], "not_verified")
         self.assertTrue(report["read_only"])
         self.assertTrue(report["hypothetical_only"])
+        self.assertTrue(report["manifest_path"].startswith("data/manifests/opportunities/"))
+        manifest = self.manager.workspace.directory(report["manifest_path"])
+        self.assertTrue(manifest.is_file())
+        self.assertEqual(report["manifest_sha256"], hashlib.sha256(manifest.read_bytes()).hexdigest())
         artifact = self.manager.workspace.directory(report["artifact_path"])
         self.assertTrue(artifact.is_file())
         payload = artifact.read_bytes()
         self.assertTrue(payload.startswith(b"%PDF-"))
         self.assertIn(b"%%EOF", payload[-1024:])
         self.assertEqual(report["sha256"], hashlib.sha256(payload).hexdigest())
+
+        audit_job = self._approved_job("skills.audit", {})
+        audit_result = JobRunner(self.manager).run(audit_job["job_id"])
+        self.assertEqual(audit_result["status"], "completed", audit_result)
+        self.assertEqual(audit_result["result"]["opportunity_reports_checked"], 1)
+        self.assertEqual(audit_result["result"]["opportunity_audit_status"], "passed")
 
     def test_opportunity_report_requires_approval(self):
         job = new_job("investment.opportunity_report", {
