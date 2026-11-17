@@ -64,6 +64,11 @@ class SessionAcquisitionTests(unittest.TestCase):
         self.context = patch("report_engine.session_acquisition.collect_market_context", return_value={
             "macro_context": "No macro items.", "news": "No news items.",
             "macro_sources": [], "news_sources": [], "context_status": "complete",
+            "context_sources": [
+                {"publisher": f"Feed {index}", "kind": "news", "status": "ok",
+                 "retrieved_at_utc": "2026-11-15T00:00:00Z", "matching_items": 0}
+                for index in range(6)
+            ],
             "context_limitations": "Fixture context only.",
         })
         self.context.start()
@@ -80,6 +85,7 @@ class SessionAcquisitionTests(unittest.TestCase):
         self.assertEqual(len(report["executive_summary"]), 7)
         self.assertIn("2026-11-14", summary)
         self.assertIn("día calendario local completado", summary)
+        self.assertIn("6 de 6 feeds consultados", summary)
         opening = acquire_session_report_evidence(FakeClient(), START.date(), report_kind="opening")
         opening_summary = " ".join(opening["executive_summary"])
         self.assertEqual(len(opening["executive_summary"]), 7)
@@ -96,6 +102,25 @@ class SessionAcquisitionTests(unittest.TestCase):
             self.assertIsNotNone(item["indicators"]["ema_200"])
             self.assertEqual(item["performance"]["open"], "100")
             self.assertEqual(item["performance"]["close"], "123")
+
+    def test_opening_briefing_is_flagged_delayed_after_scheduled_session_open(self):
+        from datetime import datetime as RealDateTime
+
+        class FrozenDateTime(RealDateTime):
+            @classmethod
+            def now(cls, tz=None):
+                value = cls(2026, 11, 16, 15, 0, tzinfo=timezone.utc)
+                return value if tz is None else value.astimezone(tz)
+
+        with patch("report_engine.session_acquisition.datetime", FrozenDateTime):
+            report = acquire_session_report_evidence(
+                FakeClient(), date(2026, 11, 14), report_kind="opening"
+            )
+        self.assertEqual(report["us_equity_calendar"]["session_state"], "closed")
+        self.assertEqual(report["opening_briefing_status"], "delayed")
+        self.assertEqual(report["opening_briefing_reference_et"], "2026-11-14T09:10:00-05:00")
+        self.assertIn("después de la apertura regular", report["opening_briefing_delay_reason"])
+        self.assertIn("briefing: delayed", " ".join(report["executive_summary"]))
 
     def test_opening_calendar_reference_classifies_premarket_and_dst(self):
         report = acquire_session_report_evidence(
