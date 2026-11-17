@@ -1,7 +1,7 @@
 ---
 name: binance-momento-mercado
 description: 'Informe de mercado a una hora concreta o snapshot intradía. Activar cuando el usuario diga “momento específico del mercado”, “estado del mercado ahora”, “resumen a esta hora”, “snapshot intradía” o solicite el comportamiento del día hasta una hora indicada. El análisis empieza al inicio del día local y termina en la hora de corte solicitada.'
-version: 1.3.0
+version: 1.4.0
 last_reviewed: 2026-11-17
 ---
 
@@ -87,7 +87,7 @@ Hypothetical sizing requires explicit capital, risk budget, allocation cap, entr
 
 ## Dedicated investment opportunity PDF workflow
 
-An intraday snapshot is not a full investment thesis. When the user separately requests a candidate-level pre-investment report, use the approved Local Engine job `investment.opportunity_report`. The job requires exact instrument identity, explicit provider configuration and caller-supplied assumptions; it writes a standalone PDF to the fixed `reports/opportunities` directory after validation/approval. Never infer CIK, NCT, protocol slug, issuer ownership, or token rights.
+An intraday snapshot is not a full investment thesis. When the user separately requests a candidate-level pre-investment report, use the approved Local Engine job `investment.opportunity_report`. The job requires exact instrument identity, explicit provider configuration and caller-supplied assumptions; it writes a standalone PDF to the fixed `reports/opportunities` directory after validation/approval. Never infer CIK, NCT, protocol slug, issuer ownership, or token rights. When `binance_spot_check` is enabled, verify exact base/quote product identity, trading status, and Spot permission; do not treat listed shares as Spot products or infer underlying rights from tokenized-equity listings.
 
 The generated PDF has a SHA-256-bound evidence manifest. The `skills.audit` job checks PDF/manifest integrity, rebuilds the evidence packet, and recalculates scenario and sizing arithmetic. This does not authenticate source contents or independently prove issuer/trial/protocol attribution.
 
@@ -96,6 +96,7 @@ The generated PDF has a SHA-256-bound evidence manifest. The `skills.audit` job 
 Adapted against the user-supplied original Claude skill package. XNYS premarket/regular/postmarket classification is integrated; Yahoo market quotes are best-effort and partial, with breadth and stock-level leaders/laggards unavailable. Local transaction-history CSV activity can be summarized, but portfolio equity and flow-adjusted returns remain unavailable.
 
 ## Version history
+- 1.4.0 — 2026-11-17: Added optional read-only Binance Spot product verification with exact identity and status checks.
 - 1.3.0 — 2026-11-17: Added cross-source conflict detection and disclosure in opportunity reports.
 - 1.2.0 — 2026-11-17: Added opt-in SEC ticker-to-CIK resolution with exact exchange/issuer matching and fail-closed ambiguity handling.
 - 1.1.0 — 2026-11-17: Added same-period SEC-derived financial ratios and independent ratio recalculation in opportunity reports.
