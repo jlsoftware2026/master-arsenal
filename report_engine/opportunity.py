@@ -83,34 +83,6 @@ def _validate(report: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any], d
         raise ValueError("research_packet must use schema ma.investment-research/v1")
     if packet.get("instrument_key") != key:
         raise ValueError("research_packet instrument_key does not match instrument")
-    conflicts = data_quality.get("conflicts") or []
-    if conflicts:
-        conflict_rows = [[
-            _text(item.get("dimension")),
-            _text(item.get("label")),
-            _text(item.get("unit")),
-            _text(item.get("as_of_utc")),
-            _text([
-                f"{variant.get('value')} ({', '.join(variant.get('sources') or [])})"
-                for variant in item.get("variants", [])
-            ]),
-            _text(item.get("resolution_status")),
-        ] for item in conflicts if isinstance(item, dict)]
-        story.extend([
-            section_heading("Conflictos de evidencia no resueltos", styles),
-            paragraph(
-                "Se detectaron valores externos diferentes para la misma métrica, unidad y periodo. "
-                "No se selecciona automáticamente una fuente ni se promedian los valores; la discrepancia "
-                "requiere revisión y reconciliación antes de apoyar una conclusión de inversión.",
-                styles["body"],
-            ),
-            data_table(
-                ["Dimensión", "Métrica", "Unidad", "Periodo", "Valores / fuentes", "Estado"],
-                conflict_rows, styles,
-                widths=[18*mm, 28*mm, 14*mm, 25*mm, 65*mm, 17*mm],
-            ),
-        ])
-
     fundamental_metrics = report.get("fundamental_metrics")
     if fundamental_metrics is not None:
         if (not isinstance(fundamental_metrics, dict)
@@ -227,6 +199,34 @@ def build_opportunity_report_pdf(report: dict[str, Any], output_directory: Path 
         story.extend([
             section_heading("Hechos y observaciones de investigación", styles),
             paragraph("No se proporcionaron hechos de investigación verificables.", styles["body"]),
+        ])
+
+    conflicts = data_quality.get("conflicts") or []
+    if conflicts:
+        conflict_rows = [[
+            _text(item.get("dimension")),
+            _text(item.get("label")),
+            _text(item.get("unit")),
+            _text(item.get("as_of_utc")),
+            _text([
+                f"{variant.get('value')} ({', '.join(variant.get('sources') or [])})"
+                for variant in item.get("variants", [])
+            ]),
+            _text(item.get("resolution_status")),
+        ] for item in conflicts if isinstance(item, dict)]
+        story.extend([
+            section_heading("Conflictos de evidencia no resueltos", styles),
+            paragraph(
+                "Se detectaron valores externos diferentes para la misma métrica, unidad y periodo. "
+                "No se selecciona automáticamente una fuente ni se promedian los valores; la discrepancia "
+                "requiere revisión y reconciliación antes de apoyar una conclusión de inversión.",
+                styles["body"],
+            ),
+            data_table(
+                ["Dimensión", "Métrica", "Unidad", "Periodo", "Valores / fuentes", "Estado"],
+                conflict_rows, styles,
+                widths=[18*mm, 28*mm, 14*mm, 25*mm, 65*mm, 17*mm],
+            ),
         ])
 
     fundamental_metrics = report.get("fundamental_metrics")
