@@ -431,6 +431,9 @@ class OpportunityPdfTests(unittest.TestCase):
         report["research_packet"] = build_research_packet(
             KEY, facts, now=NOW, freshness_limits_hours={"revenue": 24}
         )
+        report["fundamental_metrics"] = calculate_financial_ratios(
+            report["research_packet"]["facts"], instrument_key=KEY
+        )
         report["valuation_metrics"] = calculate_valuation_multiples(
             report["research_packet"]["facts"],
             instrument_key=KEY,
