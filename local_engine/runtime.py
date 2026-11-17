@@ -24,6 +24,7 @@ from report_engine.account_exports import collect_binance_account_exports
 from report_engine.timezone import REPORT_TIMEZONE, current_local_report_date
 from report_engine.us_market_calendar import classify_us_equity_session
 from report_engine.instruments import build_instrument_record
+from report_engine.binance_venue import BinanceSpotProductVerifier
 from report_engine.research import build_research_packet
 from report_engine.sec_edgar import SECEdgarCompanyFacts
 from report_engine.clinical_trials import ClinicalTrialsGov
@@ -1241,7 +1242,7 @@ class JobRunner:
         """Build a pre-investment PDF from explicit identities and approved public-source lookups."""
         parameters = job["parameters"]
         allowed = {
-            "instrument_candidate", "venue_evidence", "research_facts",
+            "instrument_candidate", "venue_evidence", "binance_spot_check", "research_facts",
             "freshness_limits_hours", "sec_edgar", "clinical_trials",
             "defillama", "scenario_inputs", "position_sizing_inputs",
             "conclusion", "executive_summary", "risks", "thesis_invalidation",
@@ -1253,13 +1254,44 @@ class JobRunner:
         candidate = parameters.get("instrument_candidate")
         if not isinstance(candidate, dict):
             raise ValueError("instrument_candidate must be an asset identity object")
-        instrument = build_instrument_record(candidate, parameters.get("venue_evidence"))
+        binance_spot_check = parameters.get("binance_spot_check", False)
+        if not isinstance(binance_spot_check, bool):
+            raise ValueError("binance_spot_check must be boolean")
+        venue_evidence = parameters.get("venue_evidence")
+        binance_spot_result = None
+        if binance_spot_check:
+            if venue_evidence is not None:
+                raise ValueError("Supply venue_evidence or binance_spot_check=true, not both")
+            binance_spot_result = BinanceSpotProductVerifier().verify_spot_product(candidate)
+            candidate = dict(candidate)
+            if binance_spot_result.get("status") == "verified":
+                candidate["venue"] = {
+                    "name": "Binance",
+                    "product_id": binance_spot_result["product_id"],
+                    "market_type": "spot",
+                }
+            venue_evidence = binance_spot_result
+        instrument = build_instrument_record(candidate, venue_evidence)
         instrument_key = instrument["instrument_key"]
         facts = parameters.get("research_facts", [])
         if not isinstance(facts, list) or len(facts) > 500:
             raise ValueError("research_facts must be a list containing at most 500 facts")
         facts = list(facts)
         provider_status: dict[str, Any] = {}
+        if binance_spot_result is not None:
+            provider_status["binance_spot"] = {
+                "status": binance_spot_result.get("status"),
+                "product_id": binance_spot_result.get("product_id"),
+                "market_type": binance_spot_result.get("market_type"),
+                "base_asset": binance_spot_result.get("base_asset"),
+                "quote_asset": binance_spot_result.get("quote_asset"),
+                "product_status": binance_spot_result.get("product_status"),
+                "is_spot_trading_allowed": binance_spot_result.get("is_spot_trading_allowed"),
+                "observed_at_utc": binance_spot_result.get("observed_at_utc"),
+                "source_url": binance_spot_result.get("source_url"),
+                "reason": binance_spot_result.get("reason"),
+                "evidence_note": binance_spot_result.get("evidence_note"),
+            }
 
         sec_config = parameters.get("sec_edgar")
         if sec_config is not None:
