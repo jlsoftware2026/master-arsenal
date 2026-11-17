@@ -170,3 +170,137 @@ def calculate_financial_ratios(
             "Missing, mismatched, ambiguous, or zero-denominator inputs are not filled or guessed.",
         ],
     }
+
+
+def calculate_valuation_multiples(
+    facts: list[Mapping[str, Any]],
+    *,
+    instrument_key: str,
+    market_cap: Mapping[str, Any],
+    earnings_period_basis: str,
+) -> dict[str, Any]:
+    """Calculate P/E, P/S and P/B only from explicit, currency-matched inputs.
+
+    earnings_period_basis must be explicitly supplied as annual or quarterly.
+    Quarterly inputs are rejected rather than annualized or silently mixed.
+    Market capitalization must carry source provenance and an observation time.
+    """
+    if not isinstance(instrument_key, str) or not instrument_key.strip():
+        raise ValueError("instrument_key is required")
+    if earnings_period_basis not in {"annual", "quarterly"}:
+        raise ValueError("earnings_period_basis must be annual or quarterly")
+    if not isinstance(facts, list) or not isinstance(market_cap, Mapping):
+        raise ValueError("facts must be a list and market_cap must be a mapping")
+    if earnings_period_basis != "annual":
+        return {
+            "schema": "ma.valuation-multiples/v1",
+            "instrument_key": instrument_key,
+            "status": "insufficient_evidence",
+            "metrics": {},
+            "missing_metrics": {
+                "price_to_earnings": "Quarterly earnings are not annualized; annual facts are required.",
+                "price_to_sales": "Quarterly revenue is not annualized; annual facts are required.",
+                "price_to_book": "Book value may be calculated from a current balance sheet independently of earnings period.",
+            },
+        }
+
+    def parse_number(value: Any) -> Decimal | None:
+        try:
+            number = Decimal(str(value))
+        except (InvalidOperation, ValueError, TypeError):
+            return None
+        return number if number.is_finite() else None
+
+    cap = parse_number(market_cap.get("value"))
+    currency = market_cap.get("unit")
+    cap_as_of = market_cap.get("as_of_utc")
+    cap_source_id = market_cap.get("source_id")
+    cap_source_url = market_cap.get("source_url")
+    if cap is None or cap <= 0:
+        raise ValueError("market_cap.value must be a finite positive number")
+    if not isinstance(currency, str) or not currency.strip():
+        raise ValueError("market_cap.unit currency is required")
+    if not isinstance(cap_as_of, str) or not cap_as_of.strip():
+        raise ValueError("market_cap.as_of_utc is required")
+    if not isinstance(cap_source_id, str) or not cap_source_id.strip():
+        raise ValueError("market_cap.source_id is required")
+    if not isinstance(cap_source_url, str) or not cap_source_url.startswith("https://"):
+        raise ValueError("market_cap.source_url must be HTTPS")
+
+    grouped: dict[str, list[Mapping[str, Any]]] = {}
+    for fact in facts:
+        if not isinstance(fact, Mapping):
+            raise ValueError("each fact must be a mapping")
+        if fact.get("instrument_key") != instrument_key:
+            raise ValueError("all financial facts must match the requested instrument_key")
+        dimension = fact.get("dimension")
+        if isinstance(dimension, str):
+            grouped.setdefault(dimension, []).append(fact)
+
+    metrics: dict[str, dict[str, Any]] = {}
+    missing: dict[str, str] = {}
+    definitions = {
+        "price_to_earnings": ("net_income", "annual earnings", True),
+        "price_to_sales": ("revenue", "annual revenue", True),
+        "price_to_book": ("stockholders_equity", "latest reported book equity", False),
+    }
+    for name, (dimension, label, duration) in definitions.items():
+        candidates = grouped.get(dimension, [])
+        dated = [item for item in candidates if isinstance(item.get("as_of_utc"), str)]
+        if not dated:
+            missing[name] = f"Missing {label} fact."
+            continue
+        latest = max(item["as_of_utc"] for item in dated)
+        selected = [item for item in dated if item["as_of_utc"] == latest]
+        if len(selected) != 1:
+            missing[name] = "Ambiguous multiple observations for the latest reporting period."
+            continue
+        fact = selected[0]
+        if fact.get("unit") != currency:
+            missing[name] = "Market capitalization and financial fact use different currencies."
+            continue
+        value = parse_number(fact.get("value"))
+        if value is None:
+            missing[name] = "Financial fact is not a finite numeric value."
+            continue
+        if value <= 0:
+            missing[name] = "Metric is zero or negative; conventional valuation multiple is not meaningful."
+            continue
+        ratio = cap / value
+        metrics[name] = {
+            "value": _fmt(ratio),
+            "unit": "x",
+            "formula": f"market_capitalization / {dimension}",
+            "market_cap_as_of_utc": cap_as_of,
+            "financial_period_end_utc": fact["as_of_utc"],
+            "market_cap_source_id": cap_source_id,
+            "financial_source_fact_id": fact.get("fact_id"),
+            "market_cap_source_url": cap_source_url,
+            "financial_source_url": fact.get("source_url"),
+            "status": "calculated",
+            "interpretation_limit": (
+                "Compares current market capitalization with the latest reported financial figure; "
+                "the market-cap date and reporting period may differ."
+            ),
+        }
+
+    return {
+        "schema": "ma.valuation-multiples/v1",
+        "instrument_key": instrument_key,
+        "market_cap": {
+            "value": str(cap), "unit": currency, "as_of_utc": cap_as_of,
+            "source_id": cap_source_id, "source_url": cap_source_url,
+        },
+        "earnings_period_basis": earnings_period_basis,
+        "metrics": metrics,
+        "missing_metrics": missing,
+        "status": "insufficient_evidence" if not metrics else ("complete" if not missing else "partial"),
+        "limitations": [
+            "P/E and P/S use explicitly declared annual net income and revenue; quarterly data is never annualized.",
+            "P/B uses the latest reported stockholders' equity, not tangible book value.",
+            "Market capitalization must be independently sourced; this function does not infer shares outstanding or price.",
+            "Market-cap observation date and financial reporting period may differ.",
+            "Negative earnings and negative/zero book equity do not produce conventional valuation multiples.",
+            "Multiples are not investment recommendations and require peer, growth, capital-structure, and sector context.",
+        ],
+    }
