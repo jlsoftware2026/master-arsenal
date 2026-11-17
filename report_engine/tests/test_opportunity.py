@@ -577,13 +577,13 @@ class BiotechOpportunityIntegrationTests(unittest.TestCase):
             "development_stage": "clinical",
             "analysis_cutoff_utc": "2026-11-17T16:00:00Z",
             "cash": {
-                "value": "120000000", "currency": "USD",
+                "instrument_key": KEY, "value": "120000000", "currency": "USD",
                 "as_of_utc": "2026-11-17T15:00:00Z", "source_id": "cash-q3",
                 "source_url": "https://example.org/cash",
                 "evidence_quality": "verified_source",
             },
             "quarterly_net_cash_burn": {
-                "value": "30000000", "currency": "USD",
+                "instrument_key": KEY, "value": "30000000", "currency": "USD",
                 "as_of_utc": "2026-11-17T15:00:00Z", "source_id": "burn-q3",
                 "source_url": "https://example.org/cashflow",
                 "evidence_quality": "verified_source",
