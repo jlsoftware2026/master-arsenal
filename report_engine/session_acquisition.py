@@ -115,6 +115,37 @@ def acquire_session_report_evidence(
         "El horario de activación de apertura/cierre no está automatizado; el scorecard compara escenarios solo cuando existe un manifiesto de apertura íntegro de la misma fecha.",
     ]
 
+    # Collect source status before composing the executive summary so the
+    # opening/closing PDF reports the actual feed outcomes, not an empty default.
+    context = collect_market_context(window.start_utc, window.end_utc)
+    report.update(context)
+    report["generated_at_utc"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+    if report_kind == "opening":
+        calendar_open_utc = (
+            calendar_evidence.get("session_open_utc")
+            if calendar_evidence.get("is_session_date")
+            else calendar_evidence.get("next_session_open_utc")
+        )
+        if calendar_evidence.get("status") != "ok" or not calendar_open_utc:
+            report["opening_briefing_status"] = "not_verified"
+            report["opening_briefing_delay_reason"] = (
+                "No se pudo verificar la hora de apertura de la próxima sesión estadounidense."
+            )
+        else:
+            scheduled_open = datetime.fromisoformat(calendar_open_utc.replace("Z", "+00:00"))
+            generated_at = datetime.fromisoformat(report["generated_at_utc"].replace("Z", "+00:00"))
+            delayed = generated_at >= scheduled_open
+            report["opening_briefing_status"] = "delayed" if delayed else "on_time"
+            report["opening_briefing_delay_reason"] = (
+                f"Generado después de la apertura regular programada ({calendar_open_utc}); "
+                f"la referencia bursátil sigue fijada en {calendar_evidence.get('as_of_et')}."
+                if delayed else
+                f"Generado antes de la apertura regular programada ({calendar_open_utc}); "
+                f"referencia bursátil {calendar_evidence.get('as_of_et')}."
+            )
+        report["opening_briefing_reference_et"] = calendar_evidence.get("as_of_et")
+
     changes = []
     for symbol in ("BTCUSDT", "ETHUSDT"):
         performance = report["symbols"][symbol]["performance"]
@@ -158,6 +189,11 @@ def acquire_session_report_evidence(
         f"Contexto macroeconómico/noticias: {available_feeds} de {len(feeds)} feeds consultados con estado correcto; "
         "los titulares son contexto y no prueban causalidad."
     )
+    if report_kind == "opening":
+        summary_points[0] += (
+            f" Estado temporal del briefing: {report.get('opening_briefing_status', 'not_verified')}; "
+            f"{report.get('opening_briefing_delay_reason', 'No se pudo verificar la vigencia temporal.')}"
+        )
     market_items = [
         item for category in ("indices", "volatility", "rates", "dollar", "commodities")
         for item in market_evidence.get("groups", {}).get(category, [])
@@ -220,9 +256,6 @@ def acquire_session_report_evidence(
         "Las rupturas falsas, la baja liquidez, los choques de volatilidad, el spread/deslizamiento y los eventos fuera "
         "de los feeds configurados pueden invalidar estos escenarios de referencia."
     )
-    context = collect_market_context(window.start_utc, window.end_utc)
-    report.update(context)
-    report["generated_at_utc"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     report["limitations"] = (
         "El contexto RSS está limitado por fecha, pero no es exhaustivo. Los datos bursátiles son cotizaciones best-effort de Yahoo Finance "
         "y pueden estar retrasados o incompletos; no son un feed de ejecución. La amplitud bursátil y líderes/rezagados por acción no están incluidos. "
