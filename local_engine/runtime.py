@@ -33,6 +33,7 @@ from report_engine.scenarios import calculate_long_scenarios
 from report_engine.position_sizing import calculate_cash_position_size
 from report_engine.fundamentals import calculate_financial_ratios
 from report_engine.opportunity import write_opportunity_manifest, audit_opportunity_manifest
+from report_engine.github_ci import GitHubActionsEvidence, resolve_git_head_sha, resolve_github_repository
 
 from report_engine import (
     build_skills_audit_pdf, build_opportunity_report_pdf, generate_closing_report_pdf,
@@ -619,11 +620,6 @@ class JobRunner:
                         "recommendation": "Regenerar el archivo e inspeccionar la evidencia de origen.",
                     })
                 artifacts.append(item)
-        findings.append({
-            "severity": "Alto", "title": "No se adjuntó evidencia de CI ni de pruebas en vivo",
-            "evidence": "El espacio de trabajo local no contiene un manifiesto confiable de ejecuciones de CI.",
-            "recommendation": "Adjuntar resultados verificados de GitHub Actions y comprobaciones independientes de endpoints en vivo antes de certificar la cobertura de pruebas.",
-        })
         manifest_directory = self.manager.workspace.directory("data/manifests")
         manifest_paths = sorted(manifest_directory.glob("*.evidence.json"))
         evidence_manifests = []
@@ -963,6 +959,16 @@ class JobRunner:
             for item in closing_reports
         )
         source_skill_integrity = verify_original_skill_packages(Path(__file__).resolve().parents[1])
+        repository_root = Path(__file__).resolve().parents[1]
+        ci_repository = resolve_github_repository(repository_root)
+        ci_commit_sha = resolve_git_head_sha(repository_root)
+        ci_evidence = GitHubActionsEvidence().verify(ci_repository, ci_commit_sha)
+        if ci_evidence["status"] != "passed":
+            findings.append({
+                "severity": "Alto", "title": "No se verificó CI multiplataforma para el commit local",
+                "evidence": ci_evidence.get("reason") or "No hay evidencia de CI exacta para el commit local.",
+                "recommendation": "Ejecutar la matriz PR en Ubuntu/Windows con Python 3.11/3.12 para el commit exacto y volver a auditar.",
+            })
         account_scope_disclosed = bool(all_reports) and all(
             isinstance(item.get("binance_account_data"), dict)
             and item["binance_account_data"].get("portfolio_equity_status") == "not_available"
@@ -1076,9 +1082,12 @@ class JobRunner:
                   "Las cuatro Skills adaptadas tienen la identidad esperada; los hashes de los archivos originales están registrados, pero los ZIP no están incluidos."
                   if source_skill_integrity["status"] == "not_verified" else "; ".join(source_skill_integrity["findings"]),
                   "Incorporar los archivos .skill originales exactos o aportar un artefacto de origen verificable para recalcular sus hashes."),
-            check("CI-01", "Evidencia CI multiplataforma del commit auditado", "not_verified", "Alto",
-                  "No se adjunta un manifiesto CI verificable a esta auditoría local.",
-                  "Adjuntar la ejecución de Actions del commit final en Ubuntu/Windows con Python 3.11/3.12 e inspeccionar todos los trabajos."),
+            check("CI-01", "Evidencia CI multiplataforma del commit auditado",
+                  ci_evidence["status"], "Alto",
+                  (f"Repositorio: {ci_evidence.get('repository')}; commit: {ci_evidence.get('commit_sha')}; "
+                   f"run: {ci_evidence.get('run_id')}; {ci_evidence.get('reason')}; "
+                   f"trabajos: {ci_evidence.get('jobs')}."),
+                  "Corregir cualquier fallo o ejecutar la matriz completa para el commit local exacto; no reutilizar resultados de otro SHA."),
             check("OPPORTUNITY-01", "Integridad y recálculo de informes de oportunidad",
                   opportunity_audit_status, "Medio" if opportunity_audit_status == "not_exercised" else "Alto",
                   (f"Se auditaron {len(opportunity_artifacts)} artefactos de oportunidad; estado: {opportunity_audit_status}."),
@@ -1131,7 +1140,7 @@ class JobRunner:
             "Las velas sin completar se excluyen y se conserva por separado el límite de la última vela cerrada.",
             "El esquema de evidencia v2 registra ventanas locales/UTC y hashes SHA-256; el QA de PDF y las pruebas de escritorio son independientes.",
             "Los metadatos de las Skills adaptadas están versionados; los hashes de los archivos originales están registrados, pero el contenido ZIP no se verifica dentro del repositorio.",
-            "El calendario XNYS, las cotizaciones best-effort de Yahoo Finance y el scorecard de apertura/cierre se verifican desde sus marcas de tiempo y manifiestos. La importación local de movimientos Binance CSV está integrada; siguen pendientes amplitud/acciones líderes, valoración completa de cartera y el manifiesto de CI externo, que queda NO VERIFICADO.",
+            "El calendario XNYS, las cotizaciones best-effort de Yahoo Finance y el scorecard de apertura/cierre se verifican desde sus marcas de tiempo y manifiestos. La importación local de movimientos Binance CSV está integrada; siguen pendientes amplitud/acciones líderes y valoración completa de cartera. CI se consulta de forma independiente contra GitHub Actions y se vincula al SHA local exacto.",
         ]
         changes_applied = [
             "Implementación de adquisición por día local dominicano y validación PDF para apertura, cierre e intradía.",
