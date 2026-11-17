@@ -1,7 +1,7 @@
 ---
 name: binance-cierre-mercado
 description: 'Informe de cierre y recapitulación diaria. Activar cuando el usuario diga “cierre de mercado”, “resumen de cierre” o solicite cómo terminó la sesión. Analiza el día de la fecha local de solicitud, tanto la sesión bursátil estadounidense como la actividad de la cuenta Binance.'
-version: 1.4.0
+version: 1.5.0
 last_reviewed: 2026-11-17
 ---
 
@@ -67,6 +67,7 @@ When the user names an equity or biotech candidate for prospective investment re
 - Treat registry fields as sponsor-submitted data. Trial registration, phase, recruitment status, and the existence of a results section are not proof of efficacy, safety, approval, or commercial success. Do not call trial results positive without analyzing the posted outcomes and source context.
 - Keep filing period-end, filing/publication date, registry last-update date, and retrieval timestamp distinct. Apply explicit freshness rules; if CIK/NCT mapping or source evidence is missing, state that the relevant diligence is not verified.
 - Inspect the research packet's unresolved source conflicts. Different sourced values for the same labeled metric, unit, and observation period must be disclosed with source provenance; do not choose a preferred value or average them. A conflict keeps the packet insufficient until reconciled. Analyst/user assumptions are not source conflicts.
+- For crypto candidates, optionally enable the public read-only Binance Spot product check. It verifies exact base/quote/product identity, `TRADING` status, and explicit Spot permission. It is not account eligibility or liquidity verification. Listed equity is never treated as a Spot share; tokenized equity remains not verified by ticker-only matching and needs separately sourced contract/issuer/rights evidence.
 - These research modules provide evidence, not a buy/sell decision. Separate the completed/partial market-session recap from longer-term fundamentals, catalysts, and thesis-invalidation conditions.
 
 
@@ -99,6 +100,7 @@ The generated PDF has a SHA-256-bound evidence manifest. The `skills.audit` job 
 Adapted against the user-supplied original Claude skill package. U.S. market breadth, stock-level leaders/laggards, portfolio equity/PnL analytics and automated activation timing remain unavailable. Supported local transaction-history CSV activity is summarized by event and asset. Same-date opening-to-closing range scorecard is integrated when a valid same-date opening manifest exists; absence is marked not applicable. XNYS calendar/session classification and best-effort Yahoo quote snapshots are integrated.
 
 ## Version history
+- 1.5.0 — 2026-11-17: Added crypto-only Binance Spot product verification and explicit tokenized-equity safeguards.
 - 1.4.0 — 2026-11-17: Added optional read-only Binance Spot product verification with exact identity and status checks.
 - 1.3.0 — 2026-11-17: Added cross-source conflict detection and disclosure in opportunity reports.
 - 1.2.0 — 2026-11-17: Added opt-in SEC ticker-to-CIK resolution with exact exchange/issuer matching and fail-closed ambiguity handling.
