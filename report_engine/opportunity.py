@@ -18,7 +18,7 @@ from .qa import inspect_pdf_artifact
 from .research import build_research_packet
 from .scenarios import calculate_long_scenarios
 from .position_sizing import calculate_cash_position_size
-from .fundamentals import calculate_financial_ratios
+from .fundamentals import calculate_financial_ratios, calculate_valuation_multiples
 
 from .sec_edgar import SEC_TICKER_EXCHANGE_URL, SECEdgarCompanyFacts
 from .binance_venue import BINANCE_SPOT_EXCHANGE_INFO_URL
@@ -90,6 +90,12 @@ def _validate(report: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any], d
                 or fundamental_metrics.get("schema") != "ma.financial-ratios/v1"
                 or fundamental_metrics.get("instrument_key") != key):
             raise ValueError("fundamental_metrics must match the instrument and use ma.financial-ratios/v1")
+    valuation_metrics = report.get("valuation_metrics")
+    if valuation_metrics is not None:
+        if (not isinstance(valuation_metrics, dict)
+                or valuation_metrics.get("schema") != "ma.valuation-multiples/v1"
+                or valuation_metrics.get("instrument_key") != key):
+            raise ValueError("valuation_metrics must match the instrument and use ma.valuation-multiples/v1")
     facts = packet.get("facts")
     if not isinstance(facts, list):
         raise ValueError("research_packet.facts must be a list")
@@ -253,6 +259,42 @@ def build_opportunity_report_pdf(report: dict[str, Any], output_directory: Path 
                 "Métricas no calculadas: " + _text(fundamental_metrics["missing_metrics"]),
                 styles["small"],
             ))
+
+    valuation_metrics = report.get("valuation_metrics")
+    if valuation_metrics is not None:
+        valuation_rows = [[
+            name,
+            f"{item.get('value')} {item.get('unit')}",
+            item.get("formula"),
+            item.get("financial_period_end_utc"),
+            item.get("financial_source_fact_id"),
+            item.get("market_cap_source_id"),
+        ] for name, item in (valuation_metrics.get("metrics") or {}).items()]
+        story.append(section_heading("Múltiplos de valoración", styles))
+        market_cap = valuation_metrics.get("market_cap") or {}
+        story.append(paragraph(
+            f"Capitalización bursátil: {_text(market_cap.get('value'))} {_text(market_cap.get('unit'))}; "
+            f"observada en UTC: {_text(market_cap.get('as_of_utc'))}; "
+            f"fuente: {_text(market_cap.get('source_id'))}; URL: {_text(market_cap.get('source_url'))}. "
+            f"Base de resultados declarada: {_text(valuation_metrics.get('earnings_period_basis'))}. "
+            f"Estado: {_text(valuation_metrics.get('status'))}.",
+            styles["body"],
+        ))
+        if valuation_rows:
+            story.append(data_table(
+                ["Múltiplo", "Valor", "Fórmula", "Periodo financiero", "Hecho fuente", "Fuente capitalización"],
+                valuation_rows, styles,
+                widths=[25*mm, 18*mm, 37*mm, 29*mm, 34*mm, 31*mm],
+            ))
+        else:
+            story.append(paragraph("No hay evidencia suficiente para calcular múltiplos de valoración.", styles["body"]))
+        if valuation_metrics.get("missing_metrics"):
+            story.append(paragraph(
+                "Múltiplos no calculados: " + _text(valuation_metrics["missing_metrics"]),
+                styles["small"],
+            ))
+        if valuation_metrics.get("limitations"):
+            story.append(paragraph("Limitaciones: " + _text(valuation_metrics["limitations"]), styles["small"]))
 
     source_rows = []
     for fact in facts:
@@ -550,6 +592,26 @@ def audit_opportunity_manifest(
             else:
                 fundamental_status = "passed"
 
+        stored_valuation = report.get("valuation_metrics")
+        valuation_status = "not_applicable"
+        if stored_valuation is not None:
+            try:
+                market_cap = stored_valuation.get("market_cap")
+                rebuilt_valuation = calculate_valuation_multiples(
+                    packet.get("facts", []),
+                    instrument_key=instrument["instrument_key"],
+                    market_cap=market_cap,
+                    earnings_period_basis=stored_valuation.get("earnings_period_basis"),
+                )
+                if rebuilt_valuation != stored_valuation:
+                    findings.append("Independent valuation-multiple recalculation differs from the stored metrics.")
+                    valuation_status = "failed"
+                else:
+                    valuation_status = "passed"
+            except Exception as exc:
+                findings.append(f"Valuation-multiple recalculation failed: {type(exc).__name__}: {exc}")
+                valuation_status = "failed"
+
         scenario = report.get("scenarios")
         scenario_status = "not_applicable"
         if scenario is not None:
@@ -614,6 +676,10 @@ def audit_opportunity_manifest(
             "fact_count": packet.get("fact_count", 0),
             "data_quality_status": (packet.get("data_quality") or {}).get("status"),
             "fundamental_metrics_status": fundamental_status,
+            "valuation_metrics_status": valuation_status,
+            "valuation_metrics_quality_status": (
+                (stored_valuation or {}).get("status", "not_applicable")
+            ),
             "issuer_mapping_status": issuer_mapping_status,
             "venue_mapping_status": venue_mapping_status,
             "fundamental_metrics_quality_status": (
