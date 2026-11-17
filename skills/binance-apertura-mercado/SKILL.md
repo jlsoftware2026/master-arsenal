@@ -1,7 +1,7 @@
 ---
 name: binance-apertura-mercado
 description: 'Informe de apertura/premercado. Activar cuando el usuario diga “apertura de mercado”, “brief de apertura” o solicite el panorama antes de la apertura. Analiza la sesión bursátil estadounidense que abrirá hoy y el comportamiento de la cuenta Binance durante la sesión/día anterior. El día de referencia de la cuenta es el día calendario anterior a la fecha local de solicitud.'
-version: 0.8.0
+version: 0.9.0
 last_reviewed: 2026-11-17
 ---
 
@@ -78,10 +78,18 @@ When a prospective crypto asset is explicitly in scope, use its validated instru
 - Token supply, unlock schedules, holder concentration, security audits, exploit history, governance quality, and regulatory analysis are not covered by this adapter. Mark these dimensions not verified unless supported by separate primary evidence.
 - Use protocol fundamentals as a separate long-horizon research layer; do not confuse them with the previous local day's Binance market performance or opening conditions.
 
+## Scenario and hypothetical position-risk calculations
+
+When the user explicitly requests a forward-looking investment scenario, the scenario engine may calculate bull/base/bear price returns and reward-to-risk only from caller-supplied hypothetical entry, invalidation, and scenario prices with written assumptions. Never invent target prices, probabilities, expected returns, or a forecast.
+
+Hypothetical position sizing is permitted only when the user explicitly supplies available capital, risk budget, maximum allocation, entry/invalidation assumptions, and cost assumptions. The calculator is cash-only and unlevered. Do not infer that the user owns the asset or has placed an order. State that an invalidation level is not a guaranteed execution price and actual losses can exceed the estimate. If any required input is absent, do not fill it with a guessed default; report that sizing is not calculated.
+
+
 ## Status
 Adapted against the user-supplied original Claude skill package. The XNYS calendar and best-effort Yahoo Finance quote snapshot are integrated. Breadth and stock-level leaders/laggards remain unavailable. Transaction-history CSV activity can be summarized, but account equity, unrealized PnL and flow-adjusted returns remain unavailable.
 
 ## Version history
+- 0.9.0 — 2026-11-17: Added explicit-assumption scenario and cash-only hypothetical position-risk calculation controls.
 - 0.1.0 — 2026-11-16: Initial ChatGPT/MASTER ARSENAL adaptation; preserves the original skill identity and documents the Local Engine/PDF workflow and current implementation gaps.
 
 
