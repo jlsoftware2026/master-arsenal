@@ -70,6 +70,20 @@ When a report contains SEC or ClinicalTrials.gov evidence, independently check:
 Mark unavailable CIK/NCT mappings, stale records, missing metrics, unsupported clinical interpretations, and absent source evidence as not verified. SEC and ClinicalTrials.gov adapters validate and preserve data provenance; they do not replace analyst review or a full financial/clinical diligence process.
 
 
+
+## Crypto protocol evidence audit
+
+For DeFiLlama evidence, independently check:
+
+1. Exact protocol slug and caller-supplied protocol-to-token/issuer attribution basis.
+2. TVL, daily fees, protocol revenue, and token-holder revenue are separate fields and retain their own endpoint, source reference, observation timestamp, and retrieval timestamp.
+3. TVL is not represented as revenue, token market capitalization, or token-holder value capture.
+4. Missing series remain missing, not zero. A missing token-holder revenue series is not evidence that holders receive no value.
+5. The report does not imply that token supply, unlocks, holder concentration, security, exploit history, governance, or regulatory risks were assessed by the DeFiLlama adapter.
+6. Aggregated protocol metrics are checked against provider methodology and, where material, primary protocol disclosures.
+
+Mark unverified protocol/token attribution, missing source coverage, stale observations, or unsupported token-economics claims as not verified.
+
 ## Status
 Adapted against the user-supplied original Claude audit skill. The PDF records a desk-check matrix, severity levels, Spanish verdict, and change-history section. XNYS holiday/session-state classification is integrated and independently recalculated by the audit. The audit now validates Yahoo quote source URLs, timestamps not later than the report cutoff, and explicit unavailable-symbol lists. Overall U.S. breadth/stock-level leader coverage and full private-account portfolio reconciliation remain incomplete; transaction-history CSV activity can be imported with file-hash verification. Same-date opening-to-closing range-scenario reconciliation is implemented when a valid opening manifest exists; the audit must verify its evidence. Repository CI passed in GitHub Actions run 43925472913; the local audit still requires CI evidence to be attached because it does not query GitHub Actions. The uploaded original archives and extracted SKILL.md hashes were independently rechecked against the manifest during this development session. The ZIP payloads are not embedded in the repository, so a deployed runtime must still report archive integrity as NOT VERIFIED. The audit must not certify full source-skill parity.
 
