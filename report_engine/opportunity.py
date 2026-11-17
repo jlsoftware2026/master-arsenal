@@ -143,9 +143,25 @@ def _validate(report: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any], d
     return instrument, packet, generated
 
 
+def _validate_valuation_calculation(report: dict[str, Any], instrument: dict[str, Any],
+                                    packet: dict[str, Any]) -> None:
+    stored = report.get("valuation_metrics")
+    if stored is None:
+        return
+    rebuilt = calculate_valuation_multiples(
+        packet.get("facts", []),
+        instrument_key=instrument["instrument_key"],
+        market_cap=stored.get("market_cap"),
+        earnings_period_basis=stored.get("earnings_period_basis"),
+    )
+    if rebuilt != stored:
+        raise ValueError("valuation_metrics do not match an independent calculation from the supplied evidence")
+
+
 def build_opportunity_report_pdf(report: dict[str, Any], output_directory: Path | str) -> Path:
     """Render a source-attributed opportunity report from validated structured evidence."""
     instrument, packet, generated = _validate(report)
+    _validate_valuation_calculation(report, instrument, packet)
     asset = _safe_component(instrument.get("asset_class", "asset"))
     symbol = _safe_component(instrument.get("symbol", "candidate"))
     report_date = generated.strftime("%Y-%m-%d")
@@ -470,7 +486,8 @@ def write_opportunity_manifest(
     manifest_directory: Path | str,
 ) -> Path:
     """Write a fixed-schema, PDF-hash-bound sidecar for independent opportunity audit."""
-    _validate(report)
+    instrument, packet, _ = _validate(report)
+    _validate_valuation_calculation(report, instrument, packet)
     pdf = Path(pdf_path).resolve(strict=True)
     if not pdf.is_file() or pdf.suffix.lower() != ".pdf":
         raise ValueError("Opportunity manifest requires an existing PDF artifact")
