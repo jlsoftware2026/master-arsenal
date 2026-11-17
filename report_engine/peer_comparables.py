@@ -67,6 +67,9 @@ def _analyze_entity(entity: Mapping[str, Any], label: str) -> dict[str, Any]:
         "instrument_key": key,
         "asset_class": asset_class,
         "name": name,
+        "facts": [dict(item) for item in facts],
+        "market_cap": dict(entity.get("market_cap") or {}),
+        "earnings_period_basis": entity.get("earnings_period_basis"),
         "valuation_metrics": multiples,
     }
 
@@ -173,6 +176,7 @@ def calculate_peer_comparables(
         "peer_selection_method": "explicit_analyst_selected",
         "peer_count": peer_count,
         "minimum_peer_count": minimum_peer_count,
+        "candidate": candidate_result,
         "candidate_valuation_metrics": candidate_result["valuation_metrics"],
         "peers": peer_results,
         "metrics": metrics,
