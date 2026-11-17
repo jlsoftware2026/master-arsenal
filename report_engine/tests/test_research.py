@@ -140,6 +140,23 @@ class ResearchEvidenceTests(unittest.TestCase):
         self.assertEqual(packet["data_quality"]["status"], "evidence_recorded")
         self.assertEqual(packet["data_quality"]["estimated_fact_ids"], ["fact-001"])
 
+    def test_assumption_cannot_be_labeled_verified_source(self):
+        fact = {
+            "fact_id": "assumption-1", "instrument_key": KEY,
+            "dimension": "valuation", "label": "Illustrative multiple",
+            "value": 18, "unit": "x", "source_kind": "analyst_assumption",
+            "evidence_quality": "verified_source", "assumption_note": "Scenario input.",
+            "as_of_utc": "2026-11-17T15:00:00Z",
+            "retrieved_at_utc": "2026-11-17T15:00:00Z",
+        }
+        with self.assertRaisesRegex(ValueError, "must use evidence_quality"):
+            normalize_research_fact(fact)
+
+    def test_rejects_non_finite_freshness_limit(self):
+        with self.assertRaisesRegex(ValueError, "finite non-negative"):
+            build_research_packet(KEY, [sourced_fact()], now=NOW,
+                                  freshness_limits_hours={"revenue": float("inf")})
+
     def test_unassessed_freshness_is_explicit(self):
         packet = build_research_packet(KEY, [sourced_fact()], now=NOW)
         self.assertEqual(packet["data_quality"]["status"], "freshness_not_assessed")
