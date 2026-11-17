@@ -21,6 +21,7 @@ from .position_sizing import calculate_cash_position_size
 from .fundamentals import calculate_financial_ratios
 
 from .sec_edgar import SEC_TICKER_EXCHANGE_URL, SECEdgarCompanyFacts
+from .binance_venue import BINANCE_SPOT_EXCHANGE_INFO_URL
 
 CONCLUSIONS_ES = {
     "potential_candidate_for_further_diligence": "Candidato potencial para diligencia adicional",
@@ -482,6 +483,53 @@ def audit_opportunity_manifest(
                     issuer_mapping_status = "failed"
                     findings.extend(mapping_issues)
 
+        venue_mapping_status = "not_applicable"
+        binance_provider = provider_status.get("binance_spot") if isinstance(provider_status, dict) else None
+        venue_verification = instrument.get("venue_verification") or {}
+        if isinstance(binance_provider, dict):
+            venue_mapping_status = "passed"
+            venue_issues: list[str] = []
+            provider_venue_status = binance_provider.get("status")
+            if provider_venue_status not in {"verified", "unavailable", "not_verified"}:
+                venue_issues.append("Recorded Binance Spot provider status is invalid.")
+            if venue_verification.get("status") != provider_venue_status:
+                venue_issues.append("Instrument venue-verification status does not match Binance provider status.")
+            if provider_venue_status == "verified":
+                declared = instrument.get("venue") or {}
+                expected_product = f"{instrument.get('symbol', '').upper()}{instrument.get('quote_currency', '').upper()}"
+                if instrument.get("asset_class") != "crypto":
+                    venue_issues.append("Automatic Binance Spot verification is only valid for crypto candidates.")
+                if declared.get("name") != "Binance" or declared.get("product_id") != expected_product or declared.get("market_type") != "spot":
+                    venue_issues.append("Verified Binance Spot product identity does not match the normalized instrument.")
+                if binance_provider.get("product_id") != expected_product:
+                    venue_issues.append("Binance Spot provider product ID does not match the candidate base/quote.")
+                if binance_provider.get("base_asset") != instrument.get("symbol"):
+                    venue_issues.append("Binance Spot provider base asset does not match the instrument symbol.")
+                if binance_provider.get("quote_asset") != instrument.get("quote_currency"):
+                    venue_issues.append("Binance Spot provider quote asset does not match the instrument quote currency.")
+                if binance_provider.get("product_status") != "TRADING" or binance_provider.get("is_spot_trading_allowed") is not True:
+                    venue_issues.append("Binance Spot product is not recorded as TRADING with Spot permission enabled.")
+            if binance_provider.get("source_url") not in {None, BINANCE_SPOT_EXCHANGE_INFO_URL}:
+                venue_issues.append("Binance Spot evidence source URL is not the official exchangeInfo endpoint.")
+            provider_observed = binance_provider.get("observed_at_utc")
+            instrument_observed = venue_verification.get("observed_at_utc")
+            if provider_observed != instrument_observed:
+                venue_issues.append("Binance Spot provider and instrument observation timestamps differ.")
+            if provider_observed:
+                try:
+                    if _utc(provider_observed, "Binance Spot observed_at_utc") > generated:
+                        venue_issues.append("Binance Spot observation timestamp is later than report generation.")
+                except Exception as exc:
+                    venue_issues.append(f"Binance Spot observation timestamp is invalid: {type(exc).__name__}.")
+            if provider_venue_status in {"unavailable", "not_verified"}:
+                if binance_provider.get("reason") != venue_verification.get("reason"):
+                    venue_issues.append("Binance Spot provider reason does not match the instrument venue evidence.")
+            if venue_issues:
+                venue_mapping_status = "failed"
+                findings.extend(venue_issues)
+        elif venue_verification.get("status") in {"verified", "unavailable"}:
+            venue_mapping_status = "manual_venue_evidence_not_independently_verified"
+
         freshness = report.get("freshness_limits_hours") or {}
         rebuilt_packet = build_research_packet(
             instrument["instrument_key"], packet.get("facts", []),
@@ -567,6 +615,7 @@ def audit_opportunity_manifest(
             "data_quality_status": (packet.get("data_quality") or {}).get("status"),
             "fundamental_metrics_status": fundamental_status,
             "issuer_mapping_status": issuer_mapping_status,
+            "venue_mapping_status": venue_mapping_status,
             "fundamental_metrics_quality_status": (
                 (stored_fundamentals or {}).get("status", "not_applicable")
             ),
