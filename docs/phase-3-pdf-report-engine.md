@@ -123,8 +123,7 @@ The mandatory single-download executable JAR requirement is recorded in `docs/di
 
 
 ## Cross-platform verification
-The latest full four-job matrix passed on commit `49c493759f9b2dc31ce3e9595701a4449f37ff75` in GitHub Actions run `44167289999`: Ubuntu/Windows × Python 3.11/3.12. Each environment passed 27 Binance Data Engine tests, 35 Local Engine tests, and 203 PDF Report Engine tests (265 tests per environment). This includes the SEC exchange-aware ticker-to-CIK resolver, fail-closed identity matching, approval-gated opportunity workflow integration, opportunity-manifest issuer-mapping consistency audit, and all existing PDF/report, market-data, calendar, privacy, and arithmetic tests. Live SEC, Binance, RSS, ClinicalTrials.gov, DeFiLlama, and Yahoo availability is not certified by offline CI. Any later code change must rerun the full matrix.
-
+The latest full four-job matrix passed on commit `717131939ca7a8ddf339fafa49078a30507a621f` in GitHub Actions run `44168463512`: Ubuntu/Windows × Python 3.11/3.12. Each environment passed 27 Binance Data Engine tests, 35 Local Engine tests, and 208 PDF Report Engine tests (270 tests per environment). This includes the SEC exchange-aware ticker-to-CIK resolver, fail-closed identity matching, approval-gated opportunity workflow integration, opportunity-manifest issuer-mapping consistency audit, same-period financial-ratio calculations, cross-source conflict detection and PDF disclosure, and all existing report, market-data, calendar, privacy, and arithmetic tests. Live SEC, Binance, RSS, ClinicalTrials.gov, DeFiLlama, and Yahoo availability is not certified by offline CI. Any later code change must rerun the full matrix.
 
 ## Pre-investment research scope (owner-approved direction)
 
