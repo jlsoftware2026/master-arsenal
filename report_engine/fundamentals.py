@@ -191,19 +191,6 @@ def calculate_valuation_multiples(
         raise ValueError("earnings_period_basis must be annual or quarterly")
     if not isinstance(facts, list) or not isinstance(market_cap, Mapping):
         raise ValueError("facts must be a list and market_cap must be a mapping")
-    if earnings_period_basis != "annual":
-        return {
-            "schema": "ma.valuation-multiples/v1",
-            "instrument_key": instrument_key,
-            "status": "insufficient_evidence",
-            "metrics": {},
-            "missing_metrics": {
-                "price_to_earnings": "Quarterly earnings are not annualized; annual facts are required.",
-                "price_to_sales": "Quarterly revenue is not annualized; annual facts are required.",
-                "price_to_book": "Book value may be calculated from a current balance sheet independently of earnings period.",
-            },
-        }
-
     def parse_number(value: Any) -> Decimal | None:
         try:
             number = Decimal(str(value))
@@ -245,6 +232,13 @@ def calculate_valuation_multiples(
         "price_to_book": ("stockholders_equity", "latest reported book equity", False),
     }
     for name, (dimension, label, duration) in definitions.items():
+        if duration and earnings_period_basis != "annual":
+            missing[name] = (
+                "Quarterly earnings are not annualized; annual facts are required."
+                if dimension == "net_income"
+                else "Quarterly revenue is not annualized; annual facts are required."
+            )
+            continue
         candidates = grouped.get(dimension, [])
         dated = [item for item in candidates if isinstance(item.get("as_of_utc"), str)]
         if not dated:
