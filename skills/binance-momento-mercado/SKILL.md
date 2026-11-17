@@ -1,7 +1,7 @@
 ---
 name: binance-momento-mercado
 description: 'Informe de mercado a una hora concreta o snapshot intradía. Activar cuando el usuario diga “momento específico del mercado”, “estado del mercado ahora”, “resumen a esta hora”, “snapshot intradía” o solicite el comportamiento del día hasta una hora indicada. El análisis empieza al inicio del día local y termina en la hora de corte solicitada.'
-version: 0.9.0
+version: 1.0.0
 last_reviewed: 2026-11-17
 ---
 
@@ -83,10 +83,18 @@ Do not add scenario calculations or position sizing to a routine intraday snapsh
 Hypothetical sizing requires explicit capital, risk budget, allocation cap, entry/invalidation assumptions, and cost assumptions. The engine is cash-only and unlevered; it does not imply an actual position or submit an order. An invalidation price is not a guaranteed execution price. Missing required inputs mean no sizing result is produced.
 
 
+## Dedicated investment opportunity PDF workflow
+
+An intraday snapshot is not a full investment thesis. When the user separately requests a candidate-level pre-investment report, use the approved Local Engine job `investment.opportunity_report`. The job requires exact instrument identity, explicit provider configuration and caller-supplied assumptions; it writes a standalone PDF to the fixed `reports/opportunities` directory after validation/approval. Never infer CIK, NCT, protocol slug, issuer ownership, or token rights.
+
+The generated PDF has a SHA-256-bound evidence manifest. The `skills.audit` job checks PDF/manifest integrity, rebuilds the evidence packet, and recalculates scenario and sizing arithmetic. This does not authenticate source contents or independently prove issuer/trial/protocol attribution.
+
+
 ## Status
 Adapted against the user-supplied original Claude skill package. XNYS premarket/regular/postmarket classification is integrated; Yahoo market quotes are best-effort and partial, with breadth and stock-level leaders/laggards unavailable. Local transaction-history CSV activity can be summarized, but portfolio equity and flow-adjusted returns remain unavailable.
 
 ## Version history
+- 1.0.0 — 2026-11-17: Added standalone opportunity PDF workflow and SHA-256 evidence-manifest audit controls.
 - 0.9.0 — 2026-11-17: Added explicit-assumption scenario and cash-only hypothetical position-risk calculation controls.
 - 0.1.0 — 2026-11-16: Initial ChatGPT/MASTER ARSENAL adaptation; preserves the original skill identity and documents the Local Engine/PDF workflow and current implementation gaps.
 
