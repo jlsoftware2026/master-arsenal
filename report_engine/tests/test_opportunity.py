@@ -12,6 +12,7 @@ from report_engine.research import build_research_packet
 from report_engine.scenarios import calculate_long_scenarios
 from report_engine.position_sizing import calculate_cash_position_size
 from report_engine.fundamentals import calculate_financial_ratios, calculate_valuation_multiples
+from report_engine.peer_comparables import calculate_peer_comparables
 from report_engine.tokenomics import calculate_tokenomics
 
 NOW = datetime(2026, 11, 17, 16, 0, tzinfo=timezone.utc)
@@ -479,6 +480,84 @@ class OpportunityPdfTests(unittest.TestCase):
         }
         with tempfile.TemporaryDirectory() as directory:
             with self.assertRaisesRegex(ValueError, "valuation_metrics must match"):
+                build_opportunity_report_pdf(report, directory)
+
+
+    def test_peer_comparables_are_rendered_and_independently_audited(self):
+        def entity(key, name, market_cap, net_income, revenue, equity):
+            return {
+                "instrument_key": key, "asset_class": "listed_equity", "name": name,
+                "facts": [
+                    {"fact_id": key + "-ni", "instrument_key": key, "dimension": "net_income",
+                     "value": str(net_income), "unit": "USD", "as_of_utc": "2025-12-31T23:59:59Z",
+                     "source_url": "https://example.org/filing", "evidence_quality": "verified_source"},
+                    {"fact_id": key + "-rev", "instrument_key": key, "dimension": "revenue",
+                     "value": str(revenue), "unit": "USD", "as_of_utc": "2025-12-31T23:59:59Z",
+                     "source_url": "https://example.org/filing", "evidence_quality": "verified_source"},
+                    {"fact_id": key + "-eq", "instrument_key": key, "dimension": "stockholders_equity",
+                     "value": str(equity), "unit": "USD", "as_of_utc": "2025-12-31T23:59:59Z",
+                     "source_url": "https://example.org/filing", "evidence_quality": "verified_source"},
+                ],
+                "market_cap": {
+                    "value": str(market_cap), "unit": "USD",
+                    "as_of_utc": "2026-11-17T15:45:00Z",
+                    "source_id": key + "-market-cap",
+                    "source_url": "https://example.org/market-cap",
+                },
+                "earnings_period_basis": "annual",
+            }
+
+        def selected_peer(key, name, market_cap, net_income, revenue, equity):
+            result = entity(key, name, market_cap, net_income, revenue, equity)
+            result["selection_criteria"] = {
+                "sector": "Healthcare", "business_model": "Branded therapeutics",
+                "geography": "United States", "market_cap_band": "Large cap",
+                "revenue_model": "Product sales", "accounting_basis": "US GAAP",
+                "rationale": "Comparable commercial-stage portfolio and operating model.",
+            }
+            return result
+
+        report = report_fixture()
+        candidate = entity(KEY, "Example Corp", 5000, 100, 1000, 2000)
+        peers = [
+            selected_peer("listed_equity|peer1", "Peer One", 2000, 100, 500, 1000),
+            selected_peer("listed_equity|peer2", "Peer Two", 3000, 100, 600, 1200),
+            selected_peer("listed_equity|peer3", "Peer Three", 6000, 100, 1000, 2000),
+        ]
+        report["peer_comparables"] = calculate_peer_comparables(candidate, peers)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            pdf_dir = root / "reports" / "opportunities"
+            manifest_dir = root / "data" / "manifests" / "opportunities"
+            pdf_dir.mkdir(parents=True)
+            pdf = build_opportunity_report_pdf(report, pdf_dir)
+            import pymupdf as fitz
+            with fitz.open(pdf) as document:
+                extracted = " ".join(page.get_text("text") for page in document)
+            self.assertIn("Comparables de valoración", extracted)
+            self.assertIn("Peer One", extracted)
+            manifest = write_opportunity_manifest(report, pdf, manifest_dir)
+            result = audit_opportunity_manifest(manifest, root)
+            self.assertEqual(result["status"], "passed", result)
+            self.assertEqual(result["peer_comparables_status"], "passed")
+
+            import json
+            payload = json.loads(manifest.read_text(encoding="utf-8"))
+            payload["report"]["peer_comparables"]["metrics"]["price_to_earnings"]["median"] = "999.0000"
+            manifest.write_text(json.dumps(payload), encoding="utf-8")
+            tampered = audit_opportunity_manifest(manifest, root)
+            self.assertEqual(tampered["status"], "failed")
+            self.assertEqual(tampered["peer_comparables_status"], "failed")
+            self.assertTrue(any("peer-comparables recalculation" in item for item in tampered["findings"]))
+
+    def test_opportunity_report_rejects_peer_comparables_for_another_instrument(self):
+        report = report_fixture()
+        report["peer_comparables"] = {
+            "schema": "ma.peer-comparables/v1",
+            "candidate_instrument_key": "different",
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaisesRegex(ValueError, "peer_comparables must match"):
                 build_opportunity_report_pdf(report, directory)
 
 
