@@ -92,6 +92,59 @@ class OpportunityPdfTests(unittest.TestCase):
             self.assertEqual(result["position_sizing_status"], "passed")
             self.assertEqual(result["fact_count"], 1)
 
+
+    def test_audit_checks_recorded_sec_ticker_mapping_consistency(self):
+        report = report_fixture()
+        report["provider_status"] = {
+            "sec_edgar": {
+                "cik": "0000000123",
+                "ticker_resolution": {
+                    "status": "resolved", "ticker": "EXM", "exchange": "NASDAQ",
+                    "issuer_name": "EXAMPLE CORP",
+                    "source_url": "https://www.sec.gov/files/company_tickers_exchange.json",
+                    "retrieved_at_utc": "2026-11-17T15:45:00Z",
+                },
+            },
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            pdf_dir = root / "reports" / "opportunities"
+            manifest_dir = root / "data" / "manifests" / "opportunities"
+            pdf_dir.mkdir(parents=True)
+            manifest = write_opportunity_manifest(
+                report, build_opportunity_report_pdf(report, pdf_dir), manifest_dir
+            )
+            result = audit_opportunity_manifest(manifest, root)
+            self.assertEqual(result["status"], "passed", result)
+            self.assertEqual(result["issuer_mapping_status"], "passed")
+
+            import json
+            payload = json.loads(manifest.read_text(encoding="utf-8"))
+            payload["report"]["provider_status"]["sec_edgar"]["ticker_resolution"]["exchange"] = "NYSE"
+            manifest.write_text(json.dumps(payload), encoding="utf-8")
+            tampered = audit_opportunity_manifest(manifest, root)
+            self.assertEqual(tampered["status"], "failed")
+            self.assertEqual(tampered["issuer_mapping_status"], "failed")
+            self.assertTrue(any("exchange does not match" in item for item in tampered["findings"]))
+
+    def test_manual_sec_cik_is_disclosed_as_not_independently_verified(self):
+        report = report_fixture()
+        report["provider_status"] = {
+            "sec_edgar": {"cik": "0000000123", "ticker_resolution": None}
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            pdf_dir = root / "reports" / "opportunities"
+            manifest_dir = root / "data" / "manifests" / "opportunities"
+            pdf_dir.mkdir(parents=True)
+            manifest = write_opportunity_manifest(
+                report, build_opportunity_report_pdf(report, pdf_dir), manifest_dir
+            )
+            result = audit_opportunity_manifest(manifest, root)
+            self.assertEqual(result["status"], "passed", result)
+            self.assertEqual(result["issuer_mapping_status"], "manual_cik_not_independently_verified")
+
+
     def test_opportunity_manifest_detects_scenario_recalculation_tampering(self):
         report = report_fixture()
         with tempfile.TemporaryDirectory() as directory:
