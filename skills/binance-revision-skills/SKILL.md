@@ -133,3 +133,10 @@ Adapted against the user-supplied original Claude audit skill. The PDF records a
 - 0.7.0 — 2026-11-16: Added SHA-256 and schema checks for local Binance transaction-history CSV imports; portfolio equity and flow-adjusted returns remain outside supported scope.
 
 - 1.6.0 — 2026-11-17: Added read-only GitHub Actions verification bound to the exact local commit and all four required CI matrix jobs; the audit never self-certifies from within CI.
+
+
+## Biotech and clinical-stage issuer controls
+
+When the requested candidate or market catalyst is a biotechnology/pharmaceutical issuer, separate preclinical, clinical-stage, and commercial-stage evidence. Do not apply sales multiples to pre-revenue pipeline assets or P/E to negative earnings. Show cash runway only when sourced cash and positive quarterly net cash burn are available in the same currency with timestamps and source references; distinguish net cash burn from gross operating expense and label runway as a constant-burn estimate, not a forecast. For commercial-stage issuers, any price-to-sales multiple must use sourced market capitalization and annual revenue and disclose that it ignores debt, cash, growth, margins, and revenue quality.
+
+ClinicalTrials.gov phase, recruitment status, registered endpoints, and expected completion dates are catalyst context only. Do not infer efficacy, safety, approval, issuer ownership, technical/regulatory success probabilities, risk-adjusted NPV, or pipeline asset value from registry fields. Preserve exact NCT identifiers, source URLs, observation/update dates, and the caller-supplied basis for issuer/trial attribution. If key financial or clinical evidence is missing, stale, or contradictory, state that limitation and reduce the conclusion to insufficient evidence or wait for confirmation as appropriate.
