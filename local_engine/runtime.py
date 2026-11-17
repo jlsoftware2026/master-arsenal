@@ -544,6 +544,7 @@ class JobRunner:
                 "fundamental_metrics_status": audit_result.get("fundamental_metrics_status", "not_applicable"),
                 "fundamental_metrics_quality_status": audit_result.get("fundamental_metrics_quality_status", "not_applicable"),
 "issuer_mapping_status": audit_result.get("issuer_mapping_status", "not_applicable"),
+"venue_mapping_status": audit_result.get("venue_mapping_status", "not_applicable"),
                 "scenario_status": audit_result.get("scenario_status", "not_applicable"),
                 "position_sizing_status": audit_result.get("position_sizing_status", "not_applicable"),
             }
