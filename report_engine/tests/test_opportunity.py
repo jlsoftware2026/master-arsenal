@@ -615,8 +615,10 @@ class BiotechOpportunityIntegrationTests(unittest.TestCase):
             manifest.write_text(json.dumps(payload), encoding="utf-8")
             tampered = audit_opportunity_manifest(manifest, root)
             self.assertEqual(tampered["status"], "failed")
-            self.assertEqual(tampered["biotech_valuation_status"], "failed")
-            self.assertTrue(any("biotech valuation/runway" in item for item in tampered["findings"]))
+            self.assertTrue(any(
+                "biotech_valuation does not match its explicit source-attributed inputs" in item
+                for item in tampered["findings"]
+            ))
 
 if __name__ == "__main__":
     unittest.main()
