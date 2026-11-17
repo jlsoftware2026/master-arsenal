@@ -540,6 +540,7 @@ class JobRunner:
                 "sha256": hashlib.sha256(resolved.read_bytes()).hexdigest(),
                 "instrument_key": audit_result.get("instrument_key"),
                 "fact_count": audit_result.get("fact_count", 0),
+                "fundamental_metrics_status": audit_result.get("fundamental_metrics_status", "not_applicable"),
                 "scenario_status": audit_result.get("scenario_status", "not_applicable"),
                 "position_sizing_status": audit_result.get("position_sizing_status", "not_applicable"),
             }
