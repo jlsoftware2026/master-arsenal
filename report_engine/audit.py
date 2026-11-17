@@ -184,6 +184,7 @@ def build_skills_audit_pdf(report: dict[str, Any], output_directory: Path | str)
             str(item.get("filename", "Desconocido")),
             _status_es(item.get("qa_status", "not_verified")),
             str(item.get("fact_count", "N/A")),
+            _status_es(item.get("fundamental_metrics_status", "not_applicable")),
             _status_es(item.get("scenario_status", "not_applicable")),
             _status_es(item.get("position_sizing_status", "not_applicable")),
             str(item.get("manifest", "Manifiesto no indicado")),
@@ -191,9 +192,9 @@ def build_skills_audit_pdf(report: dict[str, Any], output_directory: Path | str)
         ] for item in opportunity_artifacts if isinstance(item, dict)]
         if opportunity_rows:
             story.append(data_table(
-                ["PDF", "Auditoría", "Hechos", "Escenarios", "Dimensionamiento", "Manifiesto", "Hallazgos"],
+                ["PDF", "Auditoría", "Hechos", "Ratios", "Escenarios", "Dimensionamiento", "Manifiesto", "Hallazgos"],
                 opportunity_rows, styles,
-                widths=[30*mm, 17*mm, 12*mm, 18*mm, 22*mm, 32*mm, 43*mm],
+                widths=[25*mm, 15*mm, 10*mm, 16*mm, 16*mm, 20*mm, 30*mm, 42*mm],
             ))
     else:
         story.append(paragraph(
