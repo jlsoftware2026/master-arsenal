@@ -1,0 +1,39 @@
+MASTER ARSENAL — WINDOWS QUICK START
+=====================================
+
+SYSTEM REQUIREMENTS
+- Windows 10 version 22H2 (build 19045) or Windows 11, 64-bit.
+- Internet access for live market research and external data providers.
+- No separate Python installation is required by this packaged build.
+- This Python-first build does not currently require Java.
+
+LOCAL ENGINE
+1. Open Start Menu > MASTER ARSENAL - Local Engine Console.
+2. Initialize the workspace:
+   ma-local.exe init
+3. Create a health-check job:
+   ma-local.exe new-job engine.health_check --output health-check-job.json
+4. Submit it:
+   ma-local.exe submit health-check-job.json
+5. Copy the canonical job UUID printed by submit and validate it:
+   ma-local.exe validate YOUR-JOB-UUID
+6. If the job requests approval, approve it explicitly:
+   ma-local.exe approve YOUR-JOB-UUID
+7. Run it:
+   ma-local.exe run YOUR-JOB-UUID
+
+The default workspace and persistent data are stored under:
+%LOCALAPPDATA%\MASTER-ARSENAL\workspace
+
+BINANCE DATA ENGINE
+Open Start Menu > MASTER ARSENAL - Binance Console.
+Example:
+ma-binance.exe snapshot --symbols BTCUSDT ETHUSDT --interval 1h --limit 250 --market spot --output snapshot.json
+
+IMPORTANT
+- Live market data requires internet access.
+- If a network or data provider is unavailable, MALE must report the failure; it must not fabricate current data.
+- MALE is read-only. It does not place orders or store exchange API keys.
+- The current product is pre-investment research and decision support, not portfolio accounting.
+- Missing transaction-history CSV files are not an error and do not imply a zero account balance.
+- Reports, evidence, settings, and workspace data are stored separately from the application installation.
