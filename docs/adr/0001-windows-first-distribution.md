@@ -1,22 +1,24 @@
 # ADR-0001: Windows-first MALE distribution architecture
 
-- **Status:** Accepted — user approved the self-contained Windows EXE/installer distribution contract on 2026-11-18
+- **Status:** Accepted — self-contained Windows package approved; Windows 10 x64 and Windows 11 x64 support approved in principle, subject to release validation
 - **Date:** 2026-11-18
 - **Scope:** Phase 4 distribution foundation
 - **Target branch:** `feature/phase-4-distribution-foundation`
-- **Platform baseline:** Windows 11 x64; Windows 10 x64 remains a compatibility candidate pending validation and explicit support decision
+- **Supported platform target:** Windows 10 22H2 x64 and Windows 11 x64, subject to clean-machine compatibility validation
 
 ## Context
 
 MASTER ARSENAL is currently a Python application with the Binance Data Engine, Local Engine, and PDF Report Engine. The Phase 4 user-facing goal is a single-download Windows application that starts MALE on a clean PC without requiring preinstalled Java, Python, pip, or manual PATH configuration.
 
-A JAR alone cannot meet this requirement: a JVM must already be running before Java code inside the JAR can execute. The user has approved replacing the literal single-JAR download requirement with one self-contained Windows EXE/installer/application package that bundles the required runtimes. The existing JAR may remain an internal component, but it is not the user-facing launcher.
+A JAR alone cannot meet this requirement: a JVM must already be running before Java code inside the JAR can execute. The user approved replacing the literal single-JAR download requirement with one self-contained Windows EXE/installer/application package that bundles the required runtimes. The existing JAR may remain an internal component, but it is not the user-facing launcher.
 
 The developer's current machine has Java and Python installed. Those installations are useful for development and testing, but must not be treated as end-user prerequisites.
 
+The application is an internet-connected research tool. Live market research, public-provider acquisition, current market snapshots, and update checks require network connectivity. The user explicitly confirmed that the product is not intended to perform live research without internet access. This does not mean the installer should download or install runtimes dynamically: the selected package should bundle its pinned runtimes and dependencies so the application does not rely on a separate Java/Python installation or pip-based first-run provisioning.
+
 ## Decision
 
-Adopt a **self-contained Windows x64 application package** as the user-facing Phase 4 deliverable.
+Adopt a **self-contained Windows x64 application package** as the user-facing Phase 4 deliverable, targeting both Windows 10 22H2 x64 and Windows 11 x64.
 
 The package must:
 - Be distributed as one user-downloadable Windows installer/EXE or self-contained application package.
@@ -27,19 +29,22 @@ The package must:
 - Verify runtime and dependency artifacts before extraction or execution.
 - Preserve reports, evidence, settings, and logs across application upgrades.
 - Retain the existing read-only, pre-investment, no-trading, and no-credential-storage boundaries.
+- Require internet connectivity for live market-data acquisition and other workflows that depend on external providers; show a clear, actionable network diagnostic when connectivity is unavailable.
+- Avoid mandatory runtime downloads or pip installation during first launch.
 
-This approval resolves the user-facing artifact decision. It does not approve an untested implementation, select exact runtime patch builds, or waive the technical, security, licensing, CI, and clean-machine validation gates below.
+This approval resolves the user-facing artifact and target-OS decisions. It does not approve an untested implementation, select exact runtime patch builds, or waive the technical, security, licensing, CI, and clean-machine validation gates below.
 
 ## Decision drivers
 
 1. Provide a zero-prerequisite Windows user experience: no preinstalled Java, Python, pip, or manual PATH configuration.
-2. Preserve the existing Java/Python development workflow without making developer-machine installations runtime dependencies.
-3. Keep Java, Python, and application dependencies private to the application package or managed runtime.
-4. Support Windows x64 first; macOS is not a Phase 4 acceptance requirement.
+2. Support both Windows 10 22H2 x64 and Windows 11 x64, verified on clean environments.
+3. Preserve the existing Java/Python development workflow without making developer-machine installations runtime dependencies.
+4. Keep Java, Python, and application dependencies private to the application package or managed runtime.
 5. Pin every runtime and dependency artifact and verify SHA-256 (and publisher signatures where available) before use.
 6. Keep persistent reports, evidence, settings, and logs outside replaceable application/runtime directories.
-7. Preserve the existing read-only, no-trading, no-credential-storage, pre-investment boundaries.
-8. Avoid administrator privileges unless a separately approved requirement makes them unavoidable.
+7. Make internet dependency explicit for live research, while keeping bundled runtime startup independent of pip or ad-hoc runtime downloads.
+8. Preserve the existing read-only, no-trading, no-credential-storage, pre-investment boundaries.
+9. Avoid administrator privileges unless a separately approved requirement makes them unavoidable.
 
 ## Options considered
 
@@ -58,8 +63,8 @@ A native Windows launcher/installer or self-contained Windows application packag
 - Requires a Windows-specific packaging and release pipeline.
 - Increases package size because supported runtimes and dependencies are bundled.
 - Requires careful runtime licensing, provenance, integrity verification, and update design.
-- Must be tested on clean Windows machines, not only the developer's configured PC.
-- Initial setup may require network access unless a complete offline package is produced.
+- Must be tested on clean Windows 10 and Windows 11 machines, not only the developer's configured PC.
+- Live market-data and provider-dependent workflows require internet access; unavailable connectivity must be reported, not silently treated as valid market data.
 
 ### B. Executable JAR with Java prerequisite — rejected for Phase 4 delivery
 
@@ -85,6 +90,8 @@ This contradicts the Phase 4 goal of removing manual runtime, virtual-environmen
 - Store persistent user data separately (initial proposal: `%LOCALAPPDATA%\\MASTER-ARSENAL\\`), with reports, evidence, settings, and logs preserved across upgrades.
 - Never write secrets or user account exports into the Git repository or application package.
 - Keep rollback to the previous known-good runtime/application version until the new version passes startup and smoke checks.
+- Treat network connectivity as a required capability for live market-data acquisition and provider-dependent research. Detect network/provider failures, expose source-specific diagnostics, and never convert unavailable or stale data into a successful live-market result.
+- The installer/package should contain the runtime and dependency bundle. A first-run network connection may be needed for live market workflows, not to compensate for missing Java/Python installations.
 
 ## Runtime and dependency packaging notes
 
@@ -105,33 +112,34 @@ The exact CPython patch version, Java vendor/build, dependency lock, and bundle 
 
 ## Platform contract
 
-- **Initial supported platform:** Windows 11 x64.
-- **Compatibility candidate:** Windows 10 x64, only if the CI and clean-machine test matrix proves compatibility and the user explicitly accepts its support status.
+- **Supported target operating systems:** Windows 10 22H2 x64 and Windows 11 x64.
+- **Validation requirement:** clean-machine installation, launch, upgrade, and smoke tests on both OS families. If a specific Windows edition/build fails, document the limitation rather than implying universal compatibility.
 - **Not in Phase 4 acceptance:** macOS, Linux, ARM64, and 32-bit Windows.
 - **Java runtime:** bundled Java 21 x64 runtime; exact vendor/build to be selected after compatibility and licensing review.
 - **Python runtime:** private CPython Windows x64 runtime/embeddable bundle; exact patch release pinned at release time.
+- Windows 10 support must be evaluated against its OS lifecycle and applicable servicing/security-update status. The application must not imply that installing MALE restores operating-system security support.
 
 ## Required prototype and validation
 
 1. Build the proposed Windows package on controlled Windows CI.
-2. Prove the package starts on a clean Windows 11 x64 machine with neither Java nor Python installed.
+2. Prove the package starts on clean Windows 10 22H2 x64 and Windows 11 x64 machines with neither Java nor Python installed.
 3. Prove the package launches MALE using only its bundled Java/Python runtimes and dependency bundle.
-4. Prove a harmless read-only health-check job completes and produces expected diagnostics/artifacts.
-5. Prove a failed download, checksum mismatch, interrupted extraction, or failed startup leaves the previous installation and persistent user data intact.
-6. Prove an upgrade preserves reports, evidence manifests, settings, and logs.
-7. Prove unsupported OS/architecture and insufficient disk-space cases fail clearly and safely.
-8. Record exact artifact hashes, runtime versions, licensing notices, and provenance in a release manifest.
-9. Test install, launch, upgrade, uninstall, and data-retention behavior on clean Windows environments.
+4. Prove a harmless read-only health-check job completes and produces expected diagnostics/artifacts without requiring live market-provider access.
+5. Prove live market-data workflows succeed with internet connectivity and fail clearly, safely, and without fabricating data when connectivity/provider access is unavailable.
+6. Prove a failed download, checksum mismatch, interrupted extraction, or failed startup leaves the previous installation and persistent user data intact.
+7. Prove an upgrade preserves reports, evidence manifests, settings, and logs.
+8. Prove unsupported OS/architecture and insufficient disk-space cases fail clearly and safely.
+9. Record exact artifact hashes, runtime versions, licensing notices, and provenance in a release manifest.
+10. Test install, launch, upgrade, uninstall, and data-retention behavior on clean Windows environments for both supported OS targets.
 
 ## Remaining decisions
 
-1. **Windows 10 support:** Should Windows 10 x64 be a supported target, or should Phase 4 formally support Windows 11 x64 only?
-2. **Initial setup:** Is an internet connection acceptable for first-time runtime provisioning, with a complete offline installer considered as a later enhancement?
-
-These two decisions do not block correcting the approved artifact contract or beginning a scoped Windows packaging prototype, but they must be resolved before declaring the final supported-platform and installation contract.
+No additional user decision is required to include Windows 10 22H2 x64 and Windows 11 x64 as Phase 4 target platforms or to require internet for live market research. The exact supported Windows builds/editions, runtime versions, installer technology, and any provider-specific network requirements remain implementation and validation details to be resolved through the prototype and release gates.
 
 ## Consequences
 
-The user-facing distribution contract is now approved: Phase 4 targets one self-contained Windows EXE/installer/package bundling Java and Python. Implementation may proceed on the Phase 4 branch, subject to the technical and security gates in this ADR.
+The user-facing distribution contract is approved: Phase 4 targets one self-contained Windows EXE/installer/package bundling Java and Python, with Windows 10 22H2 x64 and Windows 11 x64 as supported targets subject to clean-machine validation. Live market research requires internet connectivity; the runtime bundle itself must not depend on end users installing Java, Python, or pip.
+
+Implementation may proceed on the Phase 4 branch, subject to the technical and security gates in this ADR.
 
 This is a release milestone, not the final phase of MASTER ARSENAL. Future enhancements, additional releases, and possible macOS support remain possible. The current pre-investment, read-only scope remains unchanged; full portfolio accounting, transaction-history ingestion, OpenJarvis integration, and planned Pro upgrades remain future roadmap items.
