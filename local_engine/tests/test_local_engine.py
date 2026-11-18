@@ -734,12 +734,12 @@ class OriginalSkillIntegrityTests(unittest.TestCase):
 
     def test_all_four_adaptations_match_recorded_original_skill_identities(self):
         result = verify_original_skill_packages(self.REPOSITORY_ROOT)
-        self.assertEqual(result["status"], "not_verified", result["findings"])
+        self.assertEqual(result["status"], "passed", result["findings"])
         self.assertEqual(len(result["packages"]), 4)
         self.assertEqual(result["adaptation_status"], "passed")
         self.assertEqual(len(result["manifest_sha256"]), 64)
-        self.assertTrue(all(item["status"] == "not_verified" for item in result["packages"]))
-        self.assertTrue(any("los ZIP no están incluidos en este repositorio" in item for item in result["findings"]))
+        self.assertTrue(all(item["status"] == "passed" for item in result["packages"]))
+        self.assertEqual(result["findings"], [])
 
     def test_adaptation_identity_mismatch_is_rejected(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -747,6 +747,8 @@ class OriginalSkillIntegrityTests(unittest.TestCase):
             shutil.copytree(self.REPOSITORY_ROOT / "docs" / "original-skills-source",
                             root / "docs" / "original-skills-source")
             shutil.copytree(self.REPOSITORY_ROOT / "skills", root / "skills")
+            shutil.copytree(self.REPOSITORY_ROOT / "artifacts" / "original-skills",
+                            root / "artifacts" / "original-skills")
             adapted = root / "skills" / "binance-apertura-mercado" / "SKILL.md"
             original = adapted.read_text(encoding="utf-8")
             adapted.write_text(original.replace(
