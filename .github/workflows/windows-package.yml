@@ -61,12 +61,21 @@ jobs:
           $LocalExe = Join-Path $InstallDir "ma-local\ma-local.exe"
           $BinanceExe = Join-Path $InstallDir "ma-binance\ma-binance.exe"
           if (-not (Test-Path $LocalExe) -or -not (Test-Path $BinanceExe)) { throw "Installed executables are missing." }
+          $OriginalPath = $env:PATH
+          $OriginalPythonHome = $env:PYTHONHOME
+          $OriginalPythonPath = $env:PYTHONPATH
+          $env:PATH = "$env:SystemRoot\System32;$env:SystemRoot"
+          Remove-Item Env:PYTHONHOME -ErrorAction SilentlyContinue
+          Remove-Item Env:PYTHONPATH -ErrorAction SilentlyContinue
           & $LocalExe --help
-          if ($LASTEXITCODE -ne 0) { throw "Installed Local Engine help failed." }
+          if ($LASTEXITCODE -ne 0) { throw "Installed Local Engine help failed without Python/Java on PATH." }
           & $BinanceExe --help
-          if ($LASTEXITCODE -ne 0) { throw "Installed Binance help failed." }
+          if ($LASTEXITCODE -ne 0) { throw "Installed Binance help failed without Python/Java on PATH." }
           & $LocalExe init
-          if ($LASTEXITCODE -ne 0) { throw "Installed default workspace initialization failed." }
+          if ($LASTEXITCODE -ne 0) { throw "Installed default workspace initialization failed without Python/Java on PATH." }
+          $env:PATH = $OriginalPath
+          if ($null -ne $OriginalPythonHome) { $env:PYTHONHOME = $OriginalPythonHome }
+          if ($null -ne $OriginalPythonPath) { $env:PYTHONPATH = $OriginalPythonPath }
           $PersistentWorkspace = Join-Path $env:LOCALAPPDATA "MASTER-ARSENAL\workspace"
           if (-not (Test-Path (Join-Path $PersistentWorkspace "jobs\inbox"))) { throw "Persistent workspace was not initialized." }
           & (Join-Path $InstallDir "unins000.exe") /VERYSILENT
