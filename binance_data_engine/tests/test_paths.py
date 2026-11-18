@@ -10,8 +10,8 @@ class DefaultSnapshotPathTests(unittest.TestCase):
             {"LOCALAPPDATA": r"C:\Users\Example\AppData\Local"}, platform="nt"
         )
         self.assertEqual(
-            result,
-            Path(r"C:\Users\Example\AppData\Local\MASTER-ARSENAL\workspace\data\snapshots\snapshot.json"),
+            str(result).replace("/", "\\"),
+            r"C:\Users\Example\AppData\Local\MASTER-ARSENAL\workspace\data\snapshots\snapshot.json",
         )
 
     def test_windows_snapshot_has_home_fallback(self):
