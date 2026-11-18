@@ -8,9 +8,9 @@
 
 ## Purpose
 
-Turn the existing Python-first MASTER ARSENAL / MASTER ARSENAL Local Engine (MALE) into a dependable Windows-first user-facing application distributed as one self-contained Windows EXE/installer/application package. The package must bundle the required Java and Python runtimes so an end user does not need to install Java, Python, pip, create a virtual environment, or configure PATH manually.
+Turn the existing Python-first MASTER ARSENAL / MASTER ARSENAL Local Engine (MALE) into a dependable Windows-first user-facing application distributed as one self-contained Windows EXE/installer/application package. The package must bundle the Python runtime and all required application dependencies so an end user does not need to install Java, Python, pip, create a virtual environment, or configure PATH manually.
 
-The existing executable JAR may remain an internal component, but it is not the user-facing launch artifact.
+The current repository contains no Java source tree or JAR dependency; the package therefore does not bundle an unused Java runtime or JAR. The existing Python-first engines are packaged as Windows executables.
 
 Phase 4 targets Windows 10 22H2 x64 and Windows 11 x64, subject to clean-machine compatibility validation. Live market research and provider-dependent workflows require internet connectivity. The application must diagnose network/provider failures and must never fabricate or silently substitute missing live data.
 
@@ -22,7 +22,7 @@ Phase 4 is a release-readiness milestone, not the end of MASTER ARSENAL developm
 
 - Specify supported Windows operating systems and CPU architectures, targeting Windows 10 22H2 x64 and Windows 11 x64.
 - Implement the accepted self-contained Windows package architecture recorded in ADR-0001.
-- Select exact Java/Python runtime builds and dependency pins after compatibility, security, and licensing review.
+- Select and pin the Python runtime, application dependencies, and packaging toolchain after compatibility, security, and licensing review. Revisit Java only if a Java component is introduced.
 - Define runtime and dependency pinning, artifact provenance, checksum/signature verification, and failure behavior.
 - Define network requirements for live data, provider timeouts, retry/backoff, and user-facing offline diagnostics.
 - Define managed application directories, persistent user-data directories, logs, reports, evidence, settings, and upgrade/rollback boundaries.
@@ -30,8 +30,8 @@ Phase 4 is a release-readiness milestone, not the end of MASTER ARSENAL developm
 ### P4.2 — Self-contained Windows launcher/package
 
 - Deliver one user-downloadable Windows EXE/installer or self-contained application package.
-- Bundle a supported Java 21 x64 runtime and a private, pinned Windows x64 CPython runtime with its complete prebuilt dependency bundle.
-- Launch MALE without requiring end users to install Java, Python, pip, or configure PATH.
+- Bundle the private Windows x64 CPython runtime and complete prebuilt dependency bundle inside the packaged executables.
+- Launch MALE without requiring end users to install Python, pip, or configure PATH; Java is not a dependency of the current Python-only codebase.
 - Detect OS, architecture, disk capacity, and runtime/package integrity before launch.
 - Verify all runtime and dependency artifacts before extraction or execution; fail closed on checksum/signature mismatch.
 - Launch MALE only after runtime, dependency, and application integrity checks pass.
@@ -39,7 +39,7 @@ Phase 4 is a release-readiness milestone, not the end of MASTER ARSENAL developm
 
 ### P4.3 — Managed data and safe upgrades
 
-- Keep application binaries and bundled runtimes separate from persistent user data.
+- Keep application binaries and the bundled Python runtime separate from persistent user data.
 - Preserve reports, evidence manifests, settings, and logs across upgrades.
 - Make upgrades repeatable and prevent silent dependency downgrades.
 - Define backup/restore and rollback behavior before enabling destructive migrations.
@@ -83,8 +83,8 @@ Each gate must have explicit tests and evidence. A passing offline unit suite al
 
 ## Acceptance criteria
 
-- A single self-contained Windows EXE/installer/application package is the user's download and launch entry point; the existing JAR may be included internally.
-- On clean Windows 10 22H2 x64 and Windows 11 x64 environments, MALE launches without a manually installed Java or Python runtime, pip, or manual PATH setup.
+- A single self-contained Windows EXE installer is the user's download entry point; it installs the packaged Local Engine and Binance Engine executables with their private Python runtimes.
+- On clean Windows 10 22H2 x64 and Windows 11 x64 environments, MALE launches without a manually installed Python runtime, pip, or manual PATH setup; no Java runtime is required by the current codebase.
 - Every bundled or provisioned runtime/dependency artifact is pinned and integrity-verified before execution.
 - Live market-data workflows require internet connectivity; network/provider failures are explicit and cannot result in fabricated or falsely complete data.
 - Reports, evidence, settings, and logs survive application upgrades.
@@ -95,4 +95,4 @@ Each gate must have explicit tests and evidence. A passing offline unit suite al
 
 ## Initial implementation status
 
-Phase 4 architecture approval is recorded in ADR-0001. The accepted user-facing artifact is a self-contained Windows EXE/installer/application package bundling Java and Python, targeting Windows 10 22H2 x64 and Windows 11 x64. Live research requires internet connectivity. This plan records the revised delivery contract; it does not claim that packaging, runtime bundling, signing, or deployment has already been implemented. Those are the implementation and validation work remaining in Phase 4.
+Phase 4 architecture approval is recorded in ADR-0001. The accepted user-facing artifact is a self-contained Windows EXE/installer/application package bundling the Python runtime and dependencies, targeting Windows 10 22H2 x64 and Windows 11 x64. Live research requires internet connectivity. This plan records the revised delivery contract; it records the packaging prototype now under implementation; code signing, clean Windows 10 VM validation, upgrade/rollback certification, and production release remain outstanding. Those are the implementation and validation work remaining in Phase 4.
