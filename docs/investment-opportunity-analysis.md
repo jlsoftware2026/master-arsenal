@@ -1,0 +1,142 @@
+# MASTER ARSENAL — Investment Opportunity Analysis
+
+## Purpose
+
+MASTER ARSENAL is intended to support research and decisions before capital is committed, not merely to report on an existing portfolio. A zero-transaction or pre-investment account is a valid operating state. Market research, candidate screening, scenario calculations, and risk analysis must work without transaction-history exports or private account access.
+
+The system is decision support, not an autonomous trader or a guarantee of returns. The user combines sector knowledge with source-backed research and explicit uncertainty to decide whether an opportunity merits further consideration.
+
+## Separate the two analytical domains
+
+### 1. Opportunity research (works before the first transaction)
+
+- Build and maintain a research watchlist based on the user's sectors of interest and candidate assets.
+- Identify the exact instrument, asset class, issuer/protocol, ticker or contract, quote currency, and venue.
+- Evaluate fundamentals and sector dynamics independently from short-term market timing.
+- Analyze price, volume, liquidity, volatility, momentum, and market structure using timestamped data.
+- Construct bullish, base, and bearish scenarios with assumptions, catalysts, risks, and thesis-invalidation conditions.
+- Calculate scenario returns and hypothetical position/risk sizing only from explicit, traceable inputs.
+- End with a qualified assessment: potential candidate for further diligence, wait for confirmation, insufficient evidence, or avoid for now.
+
+### 2. Portfolio accounting (only after account activity exists)
+
+- Import user-provided exports only when available and authorized.
+- Reconcile balances, positions, fees, funding, realized/unrealized PnL, and external cash flows only when the required records exist.
+- Never infer account equity, holdings, cost basis, or returns from public market candles or transaction activity alone.
+- Missing exports mean personal account data is unavailable. They do not prove the account has a zero balance.
+- If the user explicitly declares a pre-investment state, mark personal performance as not applicable and account balances/positions as not supplied. Do not require a CSV to generate opportunity research.
+
+## Instrument identity and venue checks
+
+Every candidate must be classified as one of:
+
+- **Listed equity:** ordinary shares or another explicitly identified exchange-listed security.
+- **Tokenized equity:** a tokenized product whose legal/economic rights may differ from owning the underlying share. Verify issuer, structure, redemption/transfer rights, jurisdiction, and current venue availability.
+- **Cryptocurrency/token:** identify the asset, network, contract where relevant, quote pair, and market venue.
+
+Never assume that a listed stock is tradable on Binance, or that a tokenized stock is equivalent to the underlying share. Verify current availability and product status at the time of analysis. If the requested asset is not available on Binance, say so and keep any broader research clearly separate from venue availability.
+
+## Research dimensions
+
+### Equities
+
+- Business model, products, customers, competitive position, management, and industry structure.
+- Revenue growth, margins, profitability, cash flow, debt, liquidity, dilution, and capital allocation.
+- Valuation using suitable methods and peer comparisons; disclose limitations and avoid false precision.
+- Sector-specific evidence. For medicine/biotechnology: clinical stage, trial endpoints, regulatory milestones, patent/IP position, safety signals, commercialization, and financing/runway. For medical devices: approvals, reimbursement, adoption, manufacturing, and competition. For technology: product differentiation, customer concentration, recurring revenue, infrastructure costs, competition, and regulatory exposure.
+- Catalysts, risks, and thesis-invalidation conditions.
+
+### Cryptocurrencies
+
+- Protocol purpose, utility, adoption, developer/community activity, security history, governance, and competitive position.
+- Token supply, emissions, unlock schedule, concentration, incentives, and value-capture mechanism.
+- Network/protocol usage and revenue metrics where reliable and relevant.
+- Exchange liquidity, market depth, custody/bridge risks, smart-contract risk, regulatory exposure, and token-specific risks.
+- Catalysts and thesis-invalidation conditions.
+
+### Market and technical context
+
+- Trend, relative strength, volume, volatility, momentum, support/resistance, and market structure.
+- For crypto, distinguish spot and derivatives evidence; funding, open interest, basis, and positioning are contextual signals, not proof of direction.
+- For equities, distinguish regular-session prices, premarket/after-hours quotes, delayed data, and official exchange closes.
+- Keep observation time, source, currency, venue, and time zone attached to every material value.
+
+## Scenario and calculation policy
+
+- Bullish, base, and bearish cases must state the assumptions that produce each outcome.
+- Use explicit scenario prices/financial assumptions only when sourced or clearly identified as analyst/user assumptions.
+- Calculate percentage upside/downside and reward-to-risk only when entry, target, and invalidation assumptions are supplied and internally consistent.
+- Do not invent target prices, scenario probabilities, expected returns, or confidence scores.
+- If probabilities cannot be supported, present qualitative scenarios rather than a fabricated expected value.
+- Separate long-term investment thesis from short-term entry timing.
+- Hypothetical position sizing must disclose the assumed capital, risk budget, and loss-at-invalidation; it must not imply that the user has placed an order.
+
+## Standard conclusion taxonomy
+
+1. **Potential candidate for further diligence:** evidence is sufficiently positive to justify deeper research; not an instruction to buy.
+2. **Wait for confirmation:** thesis may be attractive, but valuation, catalyst, market structure, or data coverage is not yet adequate.
+3. **Insufficient evidence:** critical inputs are missing, stale, contradictory, or unverifiable.
+4. **Avoid for now:** risk, valuation, fundamentals, tokenomics, or instrument structure is not adequately compensated by the plausible upside.
+
+Every conclusion must explain the strongest supporting evidence, the strongest counterargument, key uncertainties, and what would change the assessment.
+
+## Data quality and source hierarchy
+
+Prefer regulatory filings, issuer disclosures, audited financial statements, official clinical-trial/regulatory sources, protocol documentation, exchange market data, and reputable timestamped market-data providers. Secondary research and news may add context but must not replace primary evidence for material claims. Record source URLs, publication/observation timestamps, retrieval timestamps, and any delays or coverage gaps. If a data provider is unavailable, do not silently substitute an unrelated instrument or stale quote.
+
+## Zero-transaction acceptance criteria
+
+- The three operational market reports and the skills audit can run without a transaction-history CSV.
+- A declared pre-investment state is represented distinctly from an active account with missing exports.
+- Personal account balances, positions, PnL, and returns are labeled not supplied/not applicable as appropriate; no zero balance is fabricated.
+- Asset research, watchlist screening, fundamental/sector analysis, and hypothetical scenario calculations do not depend on personal transaction history.
+- Every candidate has an exact instrument/venue identity and source-backed evidence.
+- A candidate conclusion includes bull/base/bear cases, risks, invalidation conditions, data freshness, and uncertainty.
+- No orders, account actions, credential collection, or autonomous execution are introduced.
+
+## Delivery sequence and implementation status
+
+1. Preserve the existing PDF/report pipeline and its read-only constraints. **In place.**
+2. Add the pre-investment account state and opportunity-research data contract. **In place.**
+3. Implement instrument identity/venue verification and a source-attributed candidate data model. **In place; live venue discovery remains a separate adapter.**
+4. Add source-backed fundamentals and sector-specific adapters. **Partially in place:** SEC EDGAR Company Facts, ClinicalTrials.gov API v2, DeFiLlama protocol metrics, source-attributed financial ratios and equity valuation multiples, analyst-selected peer comparables, stage-aware biotech cash runway/commercial price-to-sales and clinical-catalyst context, plus crypto tokenomics arithmetic for supply, known unlocks, and observed holder concentration. These calculators consume explicit caller-supplied or adapter-retrieved observations; they are not universal live discovery engines.
+5. Add reproducible scenario and hypothetical position-sizing calculations. **In place:** long-only bull/base/bear calculations and cash-only risk-budget sizing, both based on explicit caller-supplied assumptions.
+6. Integrate evidence, scenario, sizing, financial ratios, valuation multiples, and independent audit controls into the four adapted skills and standalone opportunity PDF workflow. **In place for supported inputs:** the PDF renders source-attributed financial ratios, valuation multiples, analyst-selected peer comparables, stage-aware biotech runway/commercial price-to-sales and clinical-catalyst context, and crypto tokenomics. The SHA-256-bound manifest retains calculation inputs and the independent audit recalculates these outputs. Automated peer discovery, probability-adjusted pipeline valuation, medical-device/diagnostics methods, and broader sector-specific valuation remain outstanding.
+7. Validate the full cross-platform CI matrix before considering Phase 3 complete. **Repeated matrix passes have been recorded; every new code change remains subject to current-head CI.**
+
+## Current scope boundary
+
+Phase 3 now includes the PDF/report foundation, Binance public market acquisition, limited U.S. market snapshots, pre-investment opportunity data contracts, exact instrument identity, source-attributed research facts, SEC/ClinicalTrials.gov/DeFiLlama adapters, and explicit scenario and cash-only sizing calculators. The four adapted skill instructions and independent-review checklist include the new safeguards.
+
+It is still **not** a complete fundamental research engine or portfolio-accounting system. Outstanding work includes live provider validation, exact issuer/security/CIK/NCT/protocol mapping from primary evidence, narrative SEC filing analysis, financial-statement normalization and valuation, token supply/unlocks/holder concentration/security/governance/regulatory research, source-content verification and conflict reconciliation, automated peer discovery/validation, probability-adjusted pipeline valuation, medical-device/diagnostics valuation, broader sector-specific methods, and further integration of sector-specific modules into the Local Engine workflow. Missing provider coverage must remain visible. No live trading, private account access, or autonomous execution is introduced.
+
+
+## Equity valuation multiples (implementation increment)
+
+`report_engine/fundamentals.py` now exposes `calculate_valuation_multiples`. It calculates P/E, P/S, and P/B from an explicitly supplied market-cap observation and source-attributed financial facts for the same instrument and currency. Market capitalization requires a positive finite value, currency, observation timestamp, stable source ID, and HTTPS source URL. Financial facts require unique latest-period selection, stable fact IDs, HTTPS source URLs, supported evidence quality, and matching currency. P/E and P/S require the caller to explicitly declare annual earnings/revenue; quarterly values are rejected rather than annualized. Zero/negative earnings or book equity do not produce conventional multiples. Each result retains the market-cap observation time, financial period end, and both source references. These multiples are descriptive inputs, not a valuation conclusion; growth, capital structure, sector comparability, and filing review remain analyst work.
+
+
+## Crypto tokenomics calculation increment
+
+`report_engine/tokenomics.py` exposes `calculate_tokenomics` and produces `ma.tokenomics/v1` from caller-supplied source observations. It keeps circulating, total, and maximum supply distinct; derives circulating-supply ratios; calculates market capitalization and fully diluted valuation only when price and supply observations share the same UTC calendar date; buckets known future unlock events over 30/90/365 days; and calculates observed top-1/top-5 holder concentration only when a coverage percentage is explicitly supplied. Inputs retain source name, HTTPS URL, source reference, fact/event identifier, and observation timestamp. Supply and price observations after the analysis cutoff or with misaligned dates are rejected. Unlock schedules require a source observation timestamp no later than the cutoff. Missing unlock data is `not_supplied`; missing holder data is `not_assessed`; neither is converted to zero.
+
+The opportunity PDF now renders token supply/FDV, known unlocks, and observed holder concentration for crypto instruments only. Its SHA-256-bound manifest requires the explicit calculation inputs, and the independent opportunity audit recalculates the tokenomics output. Holder concentration is limited to the supplied wallets and declared coverage; wallet addresses are not assumed to be beneficial owners. The module does not discover or authenticate token contracts, circulating supply, vesting schedules, beneficial ownership, protocol security, governance, or regulatory status. Offline fixture coverage is in `report_engine/tests/test_tokenomics.py` and the opportunity PDF/audit regression suite.
+
+
+## Comparable-company valuation increment
+
+`report_engine/peer_comparables.py` exposes `calculate_peer_comparables` for listed and tokenized equity candidates. Peer membership is explicit and analyst supplied; each peer must include sector, business model, geography, market-cap band, revenue model, accounting basis, and a written selection rationale. The engine calculates each candidate/peer multiple from that entity's own source-attributed facts and market-cap observation, then reports median/minimum/maximum and candidate premium/discount only when the minimum valid peer count is met. Peers with negative earnings or book equity do not contribute invalid conventional multiples, but may still contribute other valid metrics.
+
+The opportunity PDF displays peer criteria, group coverage, medians, and premium/discount comparisons. The opportunity manifest retains peer facts and market-cap inputs so the independent audit can recalculate the peer set and detect changed results. Peer membership is not automatically discovered or certified; analyst selection, accounting comparability, growth, leverage, business mix, and sector context remain judgment-intensive. The comparisons are descriptive and are not target prices or buy/sell signals. Offline tests cover duplicate peers, missing selection criteria, mixed asset classes, minimum peer coverage, negative earnings, PDF rendering, and audit tampering.
+
+
+
+## Biotechnology valuation and clinical-catalyst increment
+
+The stage-aware module `report_engine/biotech_valuation.py` distinguishes preclinical, clinical, and commercial issuers. It calculates cash runway only when both cash and positive quarterly net cash burn are supplied with currency, observation time, source ID, HTTPS source URL, and evidence-quality labels. The formula is cash balance divided by quarterly net cash burn, multiplied by three months. The burn input must already represent net cash consumption; gross operating expense is not an acceptable substitute. Cash and burn must share the same period-end timestamp and instrument identity. The result is a mechanical constant-burn estimate, not a forecast.
+
+A price-to-sales screening multiple is calculated only for a declared commercial-stage issuer and only from positive, same-currency, cutoff-bounded market capitalization and annual revenue observations. It is not applied to preclinical or clinical-stage pre-revenue issuers, and no pipeline asset value, risk-adjusted NPV, or probability of technical/regulatory success is invented.
+
+Clinical catalyst rows may carry an exact NCT identifier, registered phase/status, primary completion date, ClinicalTrials.gov source URL, and caller-supplied attribution basis. They remain registry milestones: phase, recruitment status, endpoint registration, and results-section presence do not establish efficacy, safety, approval, issuer ownership, or probability of success.
+
+The standalone opportunity PDF renders stage, runway, supported commercial price-to-sales, missing metrics, and registry catalyst context. The evidence manifest retains the calculation inputs, and the independent audit recalculates the module to detect altered outputs. Medical devices, diagnostics, pharma commercial portfolios, probability-adjusted pipeline valuation, patent exclusivity analysis, and full clinical endpoint/result interpretation are not covered by this module.

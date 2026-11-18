@@ -1,7 +1,7 @@
 import unittest
 from datetime import datetime,timezone,timedelta
 from decimal import Decimal
-from binance_data_engine.engine import build_snapshot
+from binance_data_engine.engine import acquire_derivatives_context, build_snapshot
 from binance_data_engine.models import Candle
 
 class FakeClient:
@@ -20,6 +20,24 @@ class FakeClient:
 class EngineTests(unittest.TestCase):
     def test_btc_eth_required(self):
         with self.assertRaises(ValueError): build_snapshot(FakeClient(),["BTCUSDT"])
+
+    def test_derivatives_context_captures_optional_futures_evidence(self):
+        class FuturesClient:
+            last_response_metadata = {"http_status": 200}
+            def get_premium_index(self, symbol): return {"symbol": symbol}
+            def get_open_interest(self, symbol): return {"symbol": symbol}
+            def get_open_interest_history(self, symbol, period, limit): return [{"sumOpenInterest": "10"}]
+            def get_funding_rate_history(self, symbol, limit): raise OSError("temporarily unavailable")
+            def get_global_long_short_ratio(self, symbol, period, limit): return [{"longShortRatio": "1.2"}]
+            def get_basis(self, pair, contract_type, period, limit): return [{"basis": "2"}]
+            def get_mark_price_klines(self, symbol, interval, limit): return []
+            def get_index_price_klines(self, pair, interval, limit): return []
+        result = acquire_derivatives_context(FuturesClient(), "BTCUSDT", "1h")
+        self.assertEqual(result["premium_index"]["status"], "ok")
+        self.assertEqual(result["open_interest_current"]["status"], "ok")
+        self.assertEqual(result["funding_rate_history"]["status"], "unavailable")
+        self.assertIn("temporarily unavailable", result["funding_rate_history"]["error"])
+
     def test_snapshot_metadata_indicators(self):
         x=build_snapshot(FakeClient(),["BTCUSDT","ETHUSDT"],limit=250)
         self.assertEqual(set(x["symbols"]),{"BTCUSDT","ETHUSDT"})

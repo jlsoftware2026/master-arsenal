@@ -1,0 +1,454 @@
+"""Internal, source-linked evidence manifests and independent market-data checks."""
+from __future__ import annotations
+
+import hashlib
+import json
+import math
+import os
+import tempfile
+from datetime import datetime, timedelta, timezone
+from decimal import Decimal
+from pathlib import Path
+from typing import Any
+from zoneinfo import ZoneInfo
+
+from binance_data_engine.engine import analyze_candles
+from binance_data_engine.models import Candle
+from binance_data_engine.validation import interval_milliseconds
+from binance_data_engine.validation import validate_candles
+
+EVIDENCE_SCHEMA = "ma.report-evidence/v2"
+CORE_SYMBOLS = ("BTCUSDT", "ETHUSDT")
+
+
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _raw_candle_digest(report: dict[str, Any]) -> str:
+    symbols = report.get("symbols") if isinstance(report.get("symbols"), dict) else {}
+    evidence = {
+        symbol: {
+            "candles": item.get("candles", []),
+            "indicator_history": (item.get("indicator_history") or {}).get("candles", []),
+        }
+        for symbol, item in sorted(symbols.items())
+        if isinstance(item, dict)
+    }
+    canonical = json.dumps(
+        evidence, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False
+    ).encode("utf-8")
+    return hashlib.sha256(canonical).hexdigest()
+
+
+def _window_manifest(report: dict[str, Any], report_type: str) -> dict[str, Any]:
+    start_key, cutoff_key = (
+        ("window_start_utc", "cutoff_utc") if report_type == "intraday"
+        else ("session_start_utc", "session_end_utc")
+    )
+    return {
+        "report_timezone": report.get("report_timezone"),
+        "report_date_local": report.get("report_date_local"),
+        "window_start_local": report.get("window_start_local"),
+        "cutoff_local": report.get("cutoff_local"),
+        "window_start_utc": report.get(start_key),
+        "cutoff_utc": report.get(cutoff_key),
+        "window_semantics": report.get("window_semantics"),
+        "is_partial": report.get("is_partial"),
+        "interval": report.get("interval"),
+        "cutoff_resolution": report.get("cutoff_resolution"),
+        "requested_report_date_local": report.get("requested_report_date_local"),
+    }
+
+
+def write_evidence_manifest(
+    report: dict[str, Any],
+    report_type: str,
+    pdf_path: str | Path,
+    manifest_directory: str | Path,
+) -> Path:
+    """Atomically persist internal raw evidence outside the user-facing PDF folders."""
+    if report_type not in {"opening", "closing", "intraday"}:
+        raise ValueError("report_type must be opening, closing, or intraday")
+    pdf = Path(pdf_path).resolve(strict=True)
+    if not pdf.is_file() or pdf.suffix.lower() != ".pdf":
+        raise ValueError("pdf_path must reference an existing PDF artifact")
+    payload = {
+        "schema": EVIDENCE_SCHEMA,
+        "report_type": report_type,
+        "pdf_filename": pdf.name,
+        "pdf_sha256": _sha256(pdf),
+        "manifest_generated_at_utc": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "report_window": _window_manifest(report, report_type),
+        "raw_candle_evidence_sha256": _raw_candle_digest(report),
+        "report": report,
+    }
+    destination_directory = Path(manifest_directory)
+    destination_directory.mkdir(parents=True, exist_ok=True)
+    destination = destination_directory / f"{pdf.stem}.evidence.json"
+    fd, temporary = tempfile.mkstemp(prefix=f".{destination.stem}.", suffix=".tmp",
+                                     dir=destination_directory)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as stream:
+            json.dump(payload, stream, ensure_ascii=False, indent=2, allow_nan=False)
+            stream.write("\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, destination)
+    except Exception:
+        try:
+            os.unlink(temporary)
+        except OSError:
+            pass
+        raise
+    return destination
+
+
+def _strict_utc(value: Any) -> datetime:
+    if not isinstance(value, str):
+        raise ValueError("Timestamp must be an ISO-8601 UTC string")
+    parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    if parsed.tzinfo is None or parsed.utcoffset() != timedelta(0):
+        raise ValueError("Timestamp must explicitly use UTC")
+    return parsed.astimezone(timezone.utc)
+
+
+def _make_candles(rows: Any, symbol: str, interval: str) -> list[Candle]:
+    if not isinstance(rows, list):
+        raise ValueError(f"{symbol}: candle evidence must be a list")
+    candles = []
+    for index, row in enumerate(rows):
+        if not isinstance(row, dict):
+            raise ValueError(f"{symbol}: candle {index} must be an object")
+        if row.get("symbol") != symbol or row.get("interval") != interval:
+            raise ValueError(f"{symbol}: candle {index} symbol or interval does not match manifest.")
+        candles.append(Candle(
+            symbol=symbol, interval=interval,
+            open_time=_strict_utc(row["open_time"]),
+            close_time=_strict_utc(row["close_time"]),
+            open=Decimal(str(row["open"])), high=Decimal(str(row["high"])),
+            low=Decimal(str(row["low"])), close=Decimal(str(row["close"])),
+            volume=Decimal(str(row["volume"])),
+        ))
+    return candles
+
+
+def _same_value(expected: Any, actual: Any) -> bool:
+    if expected is None or actual is None:
+        return expected is actual
+    if isinstance(expected, dict) and isinstance(actual, dict):
+        return expected.keys() == actual.keys() and all(
+            _same_value(expected[key], actual[key]) for key in expected
+        )
+    if isinstance(expected, (int, float, Decimal)) and not isinstance(expected, bool):
+        if not isinstance(actual, (int, float, Decimal)) or isinstance(actual, bool):
+            return False
+        return math.isclose(float(expected), float(actual), rel_tol=1e-9, abs_tol=1e-10)
+    return expected == actual
+
+
+def audit_evidence_manifest(path: str | Path, workspace_root: str | Path) -> dict[str, Any]:
+    """Revalidate UTC windows, candle completeness, and indicator calculations."""
+    manifest_path = Path(path).resolve(strict=True)
+    root = Path(workspace_root).resolve()
+    if not manifest_path.is_relative_to(root):
+        raise ValueError("Evidence manifest escapes the workspace")
+    if manifest_path.stat().st_size > 50_000_000:
+        raise ValueError("Evidence manifest exceeds the 50 MB safety limit")
+    payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    findings: list[str] = []
+    if payload.get("schema") != EVIDENCE_SCHEMA:
+        findings.append("Unsupported evidence manifest schema.")
+    report_type = payload.get("report_type")
+    if report_type not in {"opening", "closing", "intraday"}:
+        findings.append("Unknown report type.")
+    report = payload.get("report")
+    if not isinstance(report, dict):
+        return {"manifest": manifest_path.name, "status": "failed",
+                "findings": findings + ["Missing report evidence object."]}
+    if payload.get("report_window") != _window_manifest(report, report_type):
+        findings.append("Top-level report-window manifest does not match the report evidence.")
+    try:
+        if payload.get("raw_candle_evidence_sha256") != _raw_candle_digest(report):
+            findings.append("Raw candle evidence SHA-256 does not match the manifest.")
+    except (TypeError, ValueError) as exc:
+        findings.append(f"Raw candle evidence cannot be hashed: {type(exc).__name__}: {exc}")
+    report_directory = (root / "reports" / {
+        "opening": "opening", "closing": "closing", "intraday": "intraday"
+    }.get(report_type, "invalid")).resolve()
+    pdf_filename = str(payload.get("pdf_filename", ""))
+    try:
+        if report_type == "opening":
+            expected_filename = f"apertura-mercado_{report.get('requested_report_date_local')}.pdf"
+        elif report_type == "closing":
+            expected_filename = f"cierre-mercado_{report.get('report_date_local')}.pdf"
+        else:
+            cutoff_local_for_name = datetime.fromisoformat(report.get("cutoff_local"))
+            expected_filename = (
+                f"snapshot-mercado_{report.get('report_date_local')}_"
+                f"{cutoff_local_for_name.strftime('%H-%M')}.pdf"
+            )
+        if pdf_filename != expected_filename:
+            findings.append("PDF filename does not match the report's Dominican local date and cutoff.")
+    except (TypeError, ValueError):
+        findings.append("PDF filename cannot be reconciled with the report's Dominican local date and cutoff.")
+    pdf_path = (report_directory / pdf_filename).resolve()
+    if (Path(pdf_filename).name != pdf_filename or not pdf_path.is_relative_to(report_directory)
+            or not pdf_path.is_file()):
+        findings.append("Linked PDF artifact is missing or escapes its fixed report directory.")
+    elif _sha256(pdf_path) != payload.get("pdf_sha256"):
+        findings.append("Linked PDF SHA-256 does not match the evidence manifest.")
+
+    start_key, end_key = (
+        ("window_start_utc", "cutoff_utc") if report_type == "intraday"
+        else ("session_start_utc", "session_end_utc")
+    )
+    try:
+        start = _strict_utc(report[start_key])
+        end = _strict_utc(report[end_key])
+        if start.tzinfo is None or end <= start:
+            raise ValueError("Invalid report time window.")
+        if start.utcoffset() != timedelta(0) or end.utcoffset() != timedelta(0):
+            raise ValueError("Report window is not UTC.")
+        if report.get("report_timezone") != "America/Santo_Domingo":
+            findings.append("Report timezone is missing or is not America/Santo_Domingo.")
+        if report.get("window_semantics") != "[start, cutoff)":
+            findings.append("Report window semantics are not the required half-open [start, cutoff) interval.")
+        try:
+            local_start = datetime.fromisoformat(report["window_start_local"])
+            local_cutoff = datetime.fromisoformat(report["cutoff_local"])
+            report_date = datetime.fromisoformat(report["report_date_local"]).date()
+            if local_start.tzinfo is None or local_cutoff.tzinfo is None:
+                raise ValueError("Local window timestamps must include UTC offsets.")
+            if local_start.astimezone(timezone.utc) != start or local_cutoff.astimezone(timezone.utc) != end:
+                findings.append("Local and UTC report window boundaries do not match.")
+            expected_local_start = start.astimezone(ZoneInfo("America/Santo_Domingo"))
+            expected_local_cutoff = end.astimezone(ZoneInfo("America/Santo_Domingo"))
+            if (local_start.replace(tzinfo=None) != expected_local_start.replace(tzinfo=None)
+                    or local_start.utcoffset() != expected_local_start.utcoffset()
+                    or local_cutoff.replace(tzinfo=None) != expected_local_cutoff.replace(tzinfo=None)
+                    or local_cutoff.utcoffset() != expected_local_cutoff.utcoffset()):
+                findings.append("Local timestamps do not match the IANA America/Santo_Domingo rules.")
+            if local_start.date() != report_date or local_start.time().isoformat() != "00:00:00":
+                findings.append("Local report start is not midnight on report_date_local.")
+            partial = report.get("is_partial") is True
+            if partial:
+                if local_cutoff.date() != report_date:
+                    findings.append("Partial local-day report cutoff is outside report_date_local.")
+            else:
+                if local_cutoff.date() != report_date + timedelta(days=1) or local_cutoff.time().isoformat() != "00:00:00":
+                    findings.append("Completed local-day report does not end at the next local midnight.")
+            if report_type == "opening" and partial:
+                findings.append("Opening reference day must be a completed local calendar day.")
+            if report_type == "intraday" and not partial:
+                findings.append("Intraday snapshot must be a partial local-day window.")
+            resolution = report.get("cutoff_resolution")
+            requested_date_text = report.get("requested_report_date_local")
+            if report_type == "opening":
+                if resolution != "previous_local_calendar_day":
+                    findings.append("Opening report does not declare previous-local-day reference semantics.")
+                try:
+                    requested_date = datetime.fromisoformat(requested_date_text).date()
+                    if report_date != requested_date - timedelta(days=1):
+                        findings.append("Opening Binance reference date is not the previous requested local date.")
+                except (TypeError, ValueError):
+                    findings.append("Opening report is missing a valid requested local report date.")
+            elif report_type == "closing":
+                if resolution not in {"explicit_local_cutoff", "execution_time_local_default", "completed_historical_local_day"}:
+                    findings.append("Closing report has an unknown cutoff-resolution method.")
+                if requested_date_text != report_date.isoformat():
+                    findings.append("Closing report date does not match its requested local date.")
+            elif report_type == "intraday":
+                if resolution not in {"explicit_utc_cutoff", "explicit_local_cutoff", "execution_time_local_default"}:
+                    findings.append("Intraday report has an unknown cutoff-resolution method.")
+                if requested_date_text != report_date.isoformat():
+                    findings.append("Intraday report date does not match its requested local date.")
+        except Exception as local_exc:
+            findings.append(f"Invalid Dominican local-window metadata: {type(local_exc).__name__}: {local_exc}")
+        generated_at = _strict_utc(report.get("generated_at_utc"))
+        if generated_at < end:
+            findings.append("Report generation timestamp precedes the exclusive window end.")
+        manifest_generated = _strict_utc(payload.get("manifest_generated_at_utc"))
+        if manifest_generated < generated_at:
+            findings.append("Evidence manifest timestamp precedes report generation.")
+        context_retrieved = report.get("context_retrieved_at_utc")
+        if context_retrieved and _strict_utc(context_retrieved) > generated_at:
+            findings.append("Report generation timestamp precedes macro/news context retrieval.")
+        for provenance_item in report.get("provenance") or []:
+            if isinstance(provenance_item, dict) and provenance_item.get("retrieved_at_utc") not in (None, "Not supplied"):
+                if _strict_utc(provenance_item["retrieved_at_utc"]) < end:
+                    findings.append("Binance market-data retrieval predates the report-window end.")
+        if report.get("source") != "Binance public REST API":
+            findings.append("Report source is not identified as Binance public REST API.")
+        if report.get("read_only") is not True:
+            findings.append("Report is not explicitly marked read-only.")
+    except Exception as exc:
+        return {"manifest": manifest_path.name, "status": "failed",
+                "findings": findings + [f"Invalid report window: {type(exc).__name__}: {exc}"]}
+
+    methodology = report.get("indicator_methodology") or {}
+    if methodology.get("report_window_excludes_lookback") is not True:
+        findings.append("Indicator warm-up history is not explicitly excluded from report-window statistics.")
+    lookback_count = methodology.get("lookback_candles")
+    if not isinstance(lookback_count, int) or isinstance(lookback_count, bool) or lookback_count < 200:
+        findings.append("Indicator warm-up methodology does not declare at least 200 prior candles.")
+    symbols = report.get("symbols")
+    if not isinstance(symbols, dict):
+        symbols = {}
+    checked = []
+    for symbol in CORE_SYMBOLS:
+        item = symbols.get(symbol)
+        if not isinstance(item, dict):
+            findings.append(f"{symbol}: mandatory symbol evidence missing.")
+            continue
+        try:
+            report_candles = _make_candles(item.get("candles"), symbol, report.get("interval", "1h"))
+            history_data = item.get("indicator_history") or {}
+            history_candles = _make_candles(history_data.get("candles"), symbol, report.get("interval", "1h"))
+            if len(report_candles) != item.get("candle_count"):
+                findings.append(f"{symbol}: report candle count does not match raw evidence.")
+            interval_ms = interval_milliseconds(report.get("interval", "1h"))
+            if interval_ms is None:
+                findings.append(f"{symbol}: unsupported interval in evidence.")
+            else:
+                elapsed_ms = int((end - start).total_seconds() * 1000)
+                expected_window = elapsed_ms // interval_ms
+                has_partial_final_interval = elapsed_ms % interval_ms != 0
+                if (has_partial_final_interval
+                        and methodology.get("partial_final_interval_excluded") is not True):
+                    findings.append(f"{symbol}: unfinished final interval was not explicitly excluded.")
+                if len(report_candles) != expected_window:
+                    findings.append(f"{symbol}: report window is missing expected fully closed candles.")
+                expected_data_cutoff = start + timedelta(milliseconds=expected_window * interval_ms)
+                try:
+                    data_cutoff = _strict_utc(report.get("data_cutoff_utc"))
+                    if data_cutoff != expected_data_cutoff or data_cutoff > end:
+                        findings.append(f"{symbol}: data_cutoff_utc does not match the last fully closed interval boundary.")
+                except Exception:
+                    findings.append(f"{symbol}: data_cutoff_utc is missing or invalid.")
+                if report_candles and report_candles[0].open_time != start:
+                    findings.append(f"{symbol}: first report candle does not start at the declared window start.")
+                if report_candles and report_candles[-1].close_time != expected_data_cutoff - timedelta(milliseconds=1):
+                    findings.append(f"{symbol}: final report candle does not close at the last fully closed interval boundary.")
+            expected_history = history_data.get("expected_candle_count",
+                                                (report.get("indicator_methodology") or {}).get("lookback_candles"))
+            pagination = item.get("pagination") or {}
+            if pagination.get("complete") is not True or pagination.get("returned") != len(report_candles):
+                findings.append(f"{symbol}: report pagination evidence is incomplete or inconsistent.")
+            history_pagination = history_data.get("pagination") or {}
+            if history_pagination.get("complete") is not True or history_pagination.get("returned") != len(history_candles):
+                findings.append(f"{symbol}: indicator-history pagination evidence is incomplete or inconsistent.")
+            if expected_history is not None and len(history_candles) != expected_history:
+                findings.append(f"{symbol}: indicator warm-up candle count is incomplete.")
+            if not report_candles:
+                findings.append(f"{symbol}: report window contains no candles.")
+            for candle in report_candles:
+                if candle.open_time < start or candle.open_time >= end or candle.close_time >= end:
+                    findings.append(f"{symbol}: report candle falls outside the declared UTC window.")
+                    break
+            if history_candles and report_candles:
+                interval_ms = interval_milliseconds(report.get("interval", "1h"))
+                if interval_ms is not None and history_candles[-1].close_time + timedelta(milliseconds=1) != report_candles[0].open_time:
+                    findings.append(f"{symbol}: indicator warm-up does not join the report window continuously.")
+            combined = history_candles + report_candles
+            validation = validate_candles(combined, report.get("interval", "1h"))
+            errors = [issue for issue in validation if issue.severity == "error"]
+            if errors:
+                findings.append(f"{symbol}: raw candle validation failed: " +
+                                "; ".join(issue.code for issue in errors))
+            recalculated = analyze_candles(combined)
+            if not _same_value(recalculated, item.get("indicators")):
+                findings.append(f"{symbol}: stored indicators do not match independent recalculation.")
+            checked.append(symbol)
+        except Exception as exc:
+            findings.append(f"{symbol}: evidence could not be independently checked: {type(exc).__name__}: {exc}")
+
+    for list_key in ("macro_sources", "news_sources"):
+        for source_item in report.get(list_key) or []:
+            try:
+                published = _strict_utc(source_item.get("published_at_utc"))
+                if not (start <= published < end):
+                    findings.append(f"{list_key}: publication timestamp falls outside the report window.")
+                if not str(source_item.get("url", "")).startswith("https://"):
+                    findings.append(f"{list_key}: source item has no HTTPS URL.")
+            except Exception:
+                findings.append(f"{list_key}: source item has an invalid publication timestamp.")
+    context_sources = report.get("context_sources") or []
+    for source in context_sources:
+        if not isinstance(source, dict):
+            findings.append("Malformed macro/news feed provenance record.")
+            continue
+        url = source.get("feed_url", "")
+        if not isinstance(url, str) or not url.startswith("https://"):
+            findings.append("Macro/news feed record has no HTTPS source URL.")
+        if source.get("status") != "ok":
+            findings.append(f"Macro/news feed unavailable: {source.get('publisher', 'unknown')}.")
+        retrieved = source.get("retrieved_at_utc")
+        if retrieved:
+            try:
+                if _strict_utc(retrieved) > generated_at:
+                    findings.append("Macro/news feed retrieval timestamp follows report generation.")
+            except Exception:
+                findings.append("Macro/news feed retrieval timestamp is invalid.")
+    return {
+        "manifest": manifest_path.name,
+        "report_type": report_type,
+        "pdf_filename": payload.get("pdf_filename"),
+        "symbols_checked": checked,
+        "indicator_recalculation": (
+            "failed" if any(
+                any(term in item.casefold() for term in ("indicator", "candle", "warm-up", "raw candle"))
+                for item in findings
+            ) else "passed"
+        ),
+        "status": "passed" if not findings else "failed",
+        "findings": findings,
+    }
+
+
+def audit_cross_report_consistency(
+    manifest_paths: list[str | Path], workspace_root: str | Path
+) -> dict[str, Any]:
+    """Compare exact OHLCV evidence for matching symbol/interval/open-time keys."""
+    root = Path(workspace_root).resolve()
+    observed: dict[tuple[str, str, str], tuple[dict[str, Any], str]] = {}
+    overlaps = 0
+    mismatches = []
+    for candidate in manifest_paths:
+        manifest_path = Path(candidate).resolve(strict=True)
+        if not manifest_path.is_relative_to(root):
+            mismatches.append(f"{manifest_path.name}: manifest escaped workspace.")
+            continue
+        try:
+            payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+            report = payload["report"]
+            interval = report["interval"]
+            symbols = report["symbols"]
+            for symbol in CORE_SYMBOLS:
+                for candle in symbols[symbol]["candles"]:
+                    key = (symbol, interval, candle["open_time"])
+                    values = {field: candle.get(field) for field in
+                              ("open", "high", "low", "close", "volume", "close_time")}
+                    if key in observed:
+                        overlaps += 1
+                        previous, previous_file = observed[key]
+                        if previous != values:
+                            mismatches.append(
+                                f"{symbol} {interval} {key[2]} differs between "
+                                f"{previous_file} and {manifest_path.name}."
+                            )
+                    else:
+                        observed[key] = (values, manifest_path.name)
+        except Exception as exc:
+            mismatches.append(f"{manifest_path.name}: could not compare evidence: {type(exc).__name__}: {exc}")
+    status = "failed" if mismatches else ("passed" if overlaps else "not_verified")
+    return {
+        "status": status,
+        "overlapping_candles_checked": overlaps,
+        "mismatches": mismatches,
+        "manifests_compared": len(manifest_paths),
+    }

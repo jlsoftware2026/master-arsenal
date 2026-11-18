@@ -33,6 +33,21 @@ def analyze_candles(candles) -> dict[str, Any]:
             "volume_sma_20":_last(sma(volumes,20)),
             "warmup_note":"Null means insufficient candles for the indicator warm-up."}
 
+def acquire_derivatives_context(client, symbol: str, interval: str = "1h") -> dict[str, Any]:
+    """Capture optional USD-M Futures context without failing the whole market report."""
+    symbol = symbol.upper()
+    pair = symbol.removesuffix("USDT") + "USDT"
+    return {
+        "premium_index": _capture(client, lambda: client.get_premium_index(symbol)),
+        "open_interest_current": _capture(client, lambda: client.get_open_interest(symbol)),
+        "open_interest_history_1h": _capture(client, lambda: client.get_open_interest_history(symbol, "1h", 30)),
+        "funding_rate_history": _capture(client, lambda: client.get_funding_rate_history(symbol, 100)),
+        "global_long_short_account_ratio_1h": _capture(client, lambda: client.get_global_long_short_ratio(symbol, "1h", 30)),
+        "basis_1h": _capture(client, lambda: client.get_basis(pair, "PERPETUAL", "1h", 30)),
+        "mark_price_klines": _capture(client, lambda: client.get_mark_price_klines(symbol, interval, 250)),
+        "index_price_klines": _capture(client, lambda: client.get_index_price_klines(pair, interval, 250)),
+    }
+
 def build_snapshot(client: BinancePublicClient, symbols=CORE_SYMBOLS, interval: str="1h",
                    limit: int=250, market: str="spot", include_derivatives: bool=True):
     requested=[s.upper() for s in symbols]

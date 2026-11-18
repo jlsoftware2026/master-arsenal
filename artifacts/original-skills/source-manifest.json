@@ -1,0 +1,40 @@
+{
+  "artifact_type": "original_claude_skill_source_archive",
+  "project": "MASTER ARSENAL",
+  "received_date": "2026-11-17",
+  "verification": "Uploaded .skill packages are ZIP archives; package SHA-256 and internal SKILL.md SHA-256 match the values recorded in the 2026-11-17 audit.",
+  "files": [
+    {
+      "filename": "binance-apertura-mercado.skill",
+      "bytes": 3085,
+      "sha256": "ff712d4ccb1d2f325e9ec0d383c9335bb269e59e58262ee0d8a4ddf9b6897509",
+      "member": "binance-apertura-mercado/SKILL.md",
+      "member_bytes": 6518,
+      "member_sha256": "69b274603b0de37f506f8c4d117768afd63c281ee00922fd69d33312eaa349a5"
+    },
+    {
+      "filename": "binance-cierre-mercado.skill",
+      "bytes": 2907,
+      "sha256": "354bc2a4e4db713739858e2d9dd3b4d5ce744a5dc58e19bf16588ebca6dc29ec",
+      "member": "binance-cierre-mercado/SKILL.md",
+      "member_bytes": 6087,
+      "member_sha256": "3f359345c1b2c47af1bcebaf9a0c40bd5ff4ffdd52d8fe7a4d9b0ba925f40f15"
+    },
+    {
+      "filename": "binance-momento-mercado.skill",
+      "bytes": 2900,
+      "sha256": "e6068f5ced4bd86afaf2c8f59dfe397ff9a2a62910a1b652549135ff82b4e7e0",
+      "member": "binance-momento-mercado/SKILL.md",
+      "member_bytes": 6138,
+      "member_sha256": "ee91f6821ac8adc3ddf2b30cd63ef160bd7577003fd1e6e4a7b2889652079669"
+    },
+    {
+      "filename": "binance-revision-skills.skill",
+      "bytes": 5260,
+      "sha256": "b383178d94a10d153c8c51c4318b1730857f3b0bca7597396b3666248b71d6f6",
+      "member": "binance-revision-skills/SKILL.md",
+      "member_bytes": 12730,
+      "member_sha256": "1d6f1eb598a88ca5e577e830041a27715e43baad968b4f9ee56b2c44fc71bed7"
+    }
+  ]
+}
