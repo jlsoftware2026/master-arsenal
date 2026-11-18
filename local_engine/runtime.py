@@ -991,6 +991,16 @@ class JobRunner:
             ci_repository = resolve_github_repository(repository_root)
             ci_commit_sha = resolve_git_head_sha(repository_root)
             ci_evidence = GitHubActionsEvidence().verify(ci_repository, ci_commit_sha)
+        ci_test_evidence = [{
+            "suite": "GitHub Actions — Python tests (commit exacto)",
+            "status": ci_evidence.get("status", "not_verified"),
+            "run_id": ci_evidence.get("run_id") or "No disponible",
+            "details": (
+                f"Repositorio: {ci_evidence.get('repository')}; SHA: {ci_evidence.get('commit_sha')}; "
+                f"run: {ci_evidence.get('run_id')}; URL: {ci_evidence.get('run_url')}; "
+                f"resultado: {ci_evidence.get('reason')}; trabajos: {ci_evidence.get('jobs')}."
+            ),
+        }]
         if ci_evidence["status"] != "passed":
             findings.append({
                 "severity": "Alto", "title": "No se verificó CI multiplataforma para el commit local",
@@ -1210,8 +1220,13 @@ class JobRunner:
             "Apertura utiliza el día local anterior; cierre admite días locales parciales; intradía admite una hora de corte explícita o la hora de ejecución.",
             "Las velas sin completar se excluyen y se conserva por separado el límite de la última vela cerrada.",
             "El esquema de evidencia v2 registra ventanas locales/UTC y hashes SHA-256; el QA de PDF y las pruebas de escritorio son independientes.",
-            "Los metadatos de las Skills adaptadas están versionados; los hashes de los archivos originales están registrados, pero el contenido ZIP no se verifica dentro del repositorio.",
-            "El calendario XNYS, las cotizaciones best-effort de Yahoo Finance y el scorecard de apertura/cierre se verifican desde sus marcas de tiempo y manifiestos. La importación local de movimientos Binance CSV está integrada; siguen pendientes amplitud/acciones líderes y valoración completa de cartera. CI se consulta de forma independiente contra GitHub Actions y se vincula al SHA local exacto.",
+            ("Los cuatro paquetes .skill originales están versionados y su integridad se verifica recalculando SHA-256, tamaños y estructura ZIP, incluidos los SKILL.md internos."
+             if source_skill_integrity["status"] == "passed" else
+             "La verificación de los paquetes .skill originales no se completó: " + "; ".join(source_skill_integrity["findings"])),
+            (f"GitHub Actions: {ci_evidence.get('status')}; repositorio {ci_evidence.get('repository')}; SHA exacto {ci_evidence.get('commit_sha')}; run {ci_evidence.get('run_id')}; cuatro trabajos requeridos: {ci_evidence.get('jobs')}."
+             if ci_evidence.get("status") == "passed" else
+             "CI del commit exacto no verificado: " + str(ci_evidence.get("reason"))),
+            "El calendario XNYS, las cotizaciones best-effort de Yahoo Finance y el scorecard de apertura/cierre se verifican desde sus marcas de tiempo y manifiestos. La importación local de movimientos Binance CSV está integrada; amplitud/acciones líderes y valoración completa de cartera siguen fuera de cobertura.",
         ]
         changes_applied = [
             "Implementación de adquisición por día local dominicano y validación PDF para apertura, cierre e intradía.",
@@ -1221,6 +1236,7 @@ class JobRunner:
             "Añadida importación local de CSV de historial de transacciones Binance con hashes SHA-256, deduplicación, agregación por evento/activo y verificación independiente; no calcula equity ni rentabilidad de cartera.",
             "Añadido scorecard de escenarios de apertura/cierre para la misma fecha, vinculado a un manifiesto de apertura con integridad verificada; la ausencia de apertura se marca como no aplicable.",
             "Añadidas pruebas de escritorio, severidades/veredictos en español, fecha local de auditoría e historial de versiones/cambios.",
+            "La auditoría verifica los cuatro ZIP originales y sus SKILL.md internos mediante hash, tamaño y estructura; la evidencia CI exacta de GitHub Actions se incorpora a la sección de pruebas.",
             "Localizados los tres PDF operativos y la auditoría; añadidos resúmenes ejecutivos de siete puntos y referencias horarias ET/local con reglas DST.",
             "Ajustada la nomenclatura del PDF de apertura para usar la fecha local de solicitud y reforzada la auditoría de nombres de archivo/manifiestos.",
             "Añadidos versionado en frontmatter y requisitos originales de activación/secciones a las cuatro instrucciones adaptadas.",
@@ -1246,11 +1262,11 @@ class JobRunner:
         change_history = [
             {
                 "date": audit_date_local, "version": __version__,
-                "change": "Motor PDF de Fase 3 con días calendario dominicanos, calendario bursátil XNYS, snapshot bursátil Yahoo best-effort, importación de actividad Binance CSV, scorecard de escenarios de apertura/cierre, resúmenes de siete puntos y esquema de evidencia v2; los hashes de los ZIP originales están registrados, pero sus bytes no están incluidos en el runtime.",
+                "change": "Motor PDF de Fase 3 con días calendario dominicanos, calendario bursátil XNYS, snapshot bursátil Yahoo best-effort, importación de actividad Binance CSV, scorecard de escenarios de apertura/cierre, resúmenes de siete puntos y esquema de evidencia v2; los cuatro ZIP originales y sus SKILL.md internos se verifican directamente desde el repositorio.",
             },
             {
                 "date": audit_date_local, "version": "original-skill-parity",
-                "change": "La cobertura de amplitud/acciones líderes del mercado estadounidense y la valoración completa de cartera siguen incompletas; el calendario XNYS, las cotizaciones best-effort y la importación CSV de actividad están integrados. El scorecard de apertura/cierre está implementado; la paridad total de la matriz de auditoría sigue pendiente.",
+                "change": "La cobertura de amplitud/acciones líderes del mercado estadounidense y la valoración completa de cartera siguen incompletas; el calendario XNYS, las cotizaciones best-effort y la importación CSV de actividad están integrados. El scorecard de apertura/cierre está implementado. La verificación de paquetes originales y la evidencia de CI exacta están integradas en la auditoría.",
             },
         ]
         report = {
@@ -1280,7 +1296,11 @@ class JobRunner:
             "evidence_manifests": evidence_manifests,
             "cross_report_consistency": cross_report,
             "findings": findings,
-            "test_evidence": [],
+            "test_evidence": ci_test_evidence,
+            "test_evidence_scope_note": (
+                "Esta tabla acredita únicamente el workflow remoto de GitHub Actions para el SHA exacto indicado; "
+                "no representa una ejecución local separada de unittest ni certifica disponibilidad en vivo de Binance o RSS."
+            ),
         }
         output_directory = self.manager.workspace.directory("reports/audit")
         artifact = build_skills_audit_pdf(report, output_directory)
