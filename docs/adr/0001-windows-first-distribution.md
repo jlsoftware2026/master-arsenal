@@ -1,75 +1,88 @@
 # ADR-0001: Windows-first MALE distribution architecture
 
-- **Status:** Revised proposal — requires Sensei's review and approval
+- **Status:** Accepted — user approved the self-contained Windows EXE/installer distribution contract on 2026-11-18
 - **Date:** 2026-11-18
 - **Scope:** Phase 4 distribution foundation
 - **Target branch:** `feature/phase-4-distribution-foundation`
-- **Platform baseline:** Windows 10/11, x64 (provisional; Windows 10 support requires explicit validation)
+- **Platform baseline:** Windows 11 x64; Windows 10 x64 remains a compatibility candidate pending validation and explicit support decision
 
 ## Context
 
-MASTER ARSENAL is currently a Python application with the Binance Data Engine, Local Engine, and PDF Report Engine. The user-facing goal for Phase 4 is a single-download Windows application that starts MALE on a clean PC without requiring preinstalled Java, Python, pip, or manual PATH configuration. A JAR alone cannot meet this requirement because it needs a JVM to start.
+MASTER ARSENAL is currently a Python application with the Binance Data Engine, Local Engine, and PDF Report Engine. The Phase 4 user-facing goal is a single-download Windows application that starts MALE on a clean PC without requiring preinstalled Java, Python, pip, or manual PATH configuration.
 
-The existing Phase 4 plan requires a design/ADR gate before changes to runtime, dependencies, packaging, signing, or deployment. This ADR is a proposal only; it does not authorize those implementation changes.
+A JAR alone cannot meet this requirement: a JVM must already be running before Java code inside the JAR can execute. The user has approved replacing the literal single-JAR download requirement with one self-contained Windows EXE/installer/application package that bundles the required runtimes. The existing JAR may remain an internal component, but it is not the user-facing launcher.
+
+The developer's current machine has Java and Python installed. Those installations are useful for development and testing, but must not be treated as end-user prerequisites.
+
+## Decision
+
+Adopt a **self-contained Windows x64 application package** as the user-facing Phase 4 deliverable.
+
+The package must:
+- Be distributed as one user-downloadable Windows installer/EXE or self-contained application package.
+- Bundle a supported Java 21 x64 runtime and a private, pinned Windows x64 CPython runtime plus its complete prebuilt dependency bundle.
+- Launch MALE without requiring users to install Java, Python, pip, or configure PATH.
+- Keep the existing JAR, if retained, internal to the package.
+- Keep the Python runtime and third-party dependencies isolated from system installations.
+- Verify runtime and dependency artifacts before extraction or execution.
+- Preserve reports, evidence, settings, and logs across application upgrades.
+- Retain the existing read-only, pre-investment, no-trading, and no-credential-storage boundaries.
+
+This approval resolves the user-facing artifact decision. It does not approve an untested implementation, select exact runtime patch builds, or waive the technical, security, licensing, CI, and clean-machine validation gates below.
 
 ## Decision drivers
 
 1. Provide a zero-prerequisite Windows user experience: no preinstalled Java, Python, pip, or manual PATH configuration.
-2. Preserve the existing Java/Python development workflow on the developer's machine without making those installations runtime dependencies.
-3. Resolve the conflict between a literal standalone JAR and a clean-PC launch requirement before selecting the final user-facing artifact.
-4. Keep Java, Python, and all application dependencies private to the application package or managed runtime.
-5. Support Windows x64 first; do not make macOS a Phase 4 acceptance requirement.
-6. Pin every runtime and dependency artifact and verify SHA-256 (and publisher signatures where available) before use.
-7. Keep persistent reports, evidence, settings, and logs outside replaceable application/runtime directories.
-8. Preserve the existing read-only, no-trading, no-credential-storage, pre-investment boundaries.
-9. Do not require a user-managed Java/Python installation, pip, or manual PATH changes.
+2. Preserve the existing Java/Python development workflow without making developer-machine installations runtime dependencies.
+3. Keep Java, Python, and application dependencies private to the application package or managed runtime.
+4. Support Windows x64 first; macOS is not a Phase 4 acceptance requirement.
+5. Pin every runtime and dependency artifact and verify SHA-256 (and publisher signatures where available) before use.
+6. Keep persistent reports, evidence, settings, and logs outside replaceable application/runtime directories.
+7. Preserve the existing read-only, no-trading, no-credential-storage, pre-investment boundaries.
+8. Avoid administrator privileges unless a separately approved requirement makes them unavoidable.
 
 ## Options considered
 
-### A. Native Windows bootstrapper/package + bundled Java and Python runtimes
+### A. Self-contained Windows EXE/installer with bundled Java and Python — selected
 
-A small native Windows launcher or self-contained Windows application package is the user-facing entry point. It includes or securely provisions a pinned Java runtime and a private Windows x64 Python runtime/dependency bundle, verifies all artifacts, and then starts the existing MALE entry point. The Java/Python runtimes and application dependencies are isolated from system installations. User data remains in a separate stable data directory. The existing executable JAR can remain an internal application/bootstrap component, but cannot itself be the zero-prerequisite launcher.
+A native Windows launcher/installer or self-contained Windows application package is the user-facing entry point. It includes a supported Java runtime and a private Windows x64 Python runtime/dependency bundle, verifies their integrity, and starts the MALE application. The existing JAR may be bundled internally where useful.
 
 **Advantages**
-- Preserves the requested JAR entry point.
+- Meets the clean-PC requirement without user-managed Java or Python installations.
+- Provides one straightforward Windows download and launch experience.
 - Keeps Python isolated from system Python installations and PATH.
 - Allows runtime and application upgrades to be staged and verified before activation.
-- Fits the existing Python-first architecture and minimizes changes to tested business logic.
+- Fits the existing Python-first architecture while retaining the option to use the JAR internally.
 
 **Costs / risks**
-- A JAR requires a compatible Java runtime to start. A JAR cannot provision Java before the JVM has launched.
-- The project must decide whether Java 21 x64 is a documented prerequisite or whether the deliverable requirement should change to a native Windows launcher/package.
-- The Python embeddable distribution does not include pip. Its third-party packages should be treated as application-vendored content; a prebuilt, versioned dependency bundle is preferable to runtime pip installation.
-- Initial setup requires network access unless a complete offline bundle is separately distributed.
+- Requires a Windows-specific packaging and release pipeline.
+- Increases package size because supported runtimes and dependencies are bundled.
+- Requires careful runtime licensing, provenance, integrity verification, and update design.
+- Must be tested on clean Windows machines, not only the developer's configured PC.
+- Initial setup may require network access unless a complete offline package is produced.
 
-### B. Standalone executable JAR with Java prerequisite
+### B. Executable JAR with Java prerequisite — rejected for Phase 4 delivery
 
-Distribute the executable JAR and privately provision Python, but require the target PC to already have a supported Java runtime.
+This option distributes a JAR and requires a compatible Java runtime to be installed on the target PC.
 
-**Advantages**
-- Can avoid requiring Java to be installed by the user.
-- Better native Windows launch and installation experience.
+**Reason for rejection**
+- It cannot launch on a clean PC without Java and therefore violates the approved zero-prerequisite requirement.
+- A JAR cannot install or start the JVM needed to execute itself.
+- It would shift runtime installation and troubleshooting to the end user.
 
-**Costs / risks**
-- Does not satisfy the current single executable JAR deliverable literally.
-- Produces a Windows-specific artifact and changes the user-facing distribution contract.
-- Must be built and validated on Windows; macOS would require a separate package pipeline later.
+### C. Ask the user to install Java and/or Python and dependencies — rejected
 
-### C. Ask the user to install Java and/or Python and dependencies
+This contradicts the Phase 4 goal of removing manual runtime, virtual-environment, pip, and PATH setup.
 
-Rejected. It contradicts the Phase 4 goal of removing manual Python, virtual-environment, pip, and PATH setup.
-
-## Revised proposed direction
-
-Proceed with **Option A: a self-contained Windows launcher/package**. The developer's existing Java and Python installations are useful for development and testing, but are not assumed to exist on an end user's PC. A literal JAR-only download cannot meet this clean-PC requirement because the JVM must already be running before Java code inside the JAR can execute. The user-facing deliverable should therefore be one Windows EXE/installer or self-contained application package; the JAR may remain bundled internally. This changes the original literal single-JAR delivery contract and requires user approval.
+## Implementation direction
 
 - The user downloads and launches one Windows package; neither Java nor Python needs to be installed manually.
-- Bundle a supported Java 21 x64 runtime and a private, pinned Windows x64 Python runtime plus prebuilt dependency bundle.
+- Bundle a supported Java 21 x64 runtime and a private, pinned Windows x64 CPython runtime plus a complete prebuilt dependency bundle.
 - Do not invoke pip on the user's machine.
-- Build the Python runtime/dependency bundle in controlled Windows CI. Include a machine-readable lock/manifest with exact versions, artifact URLs, SHA-256 digests, and build provenance.
-- Verify all downloaded artifacts before extraction or execution. Fail closed on digest mismatch, unexpected archive members, path traversal, or unsupported platform.
+- Build the Python runtime/dependency bundle in controlled Windows CI. Include a machine-readable lock/manifest with exact versions, artifact origins, SHA-256 digests, and build provenance.
+- Verify all downloaded or bundled artifacts before extraction or execution. Fail closed on digest mismatch, unexpected archive members, path traversal, or unsupported platform.
 - Install into versioned application directories and activate only after health checks pass.
-- Store persistent user data separately (initial proposal: `%LOCALAPPDATA%\\MASTER-ARSENAL\\`), with reports, evidence, settings, logs, and optional local account-export files preserved across upgrades.
+- Store persistent user data separately (initial proposal: `%LOCALAPPDATA%\\MASTER-ARSENAL\\`), with reports, evidence, settings, and logs preserved across upgrades.
 - Never write secrets or user account exports into the Git repository or application package.
 - Keep rollback to the previous known-good runtime/application version until the new version passes startup and smoke checks.
 
@@ -77,12 +90,12 @@ Proceed with **Option A: a self-contained Windows launcher/package**. The develo
 
 The official Python Windows documentation describes the embeddable distribution as isolated and intended to be embedded in another application. It does not include pip, and its documentation recommends treating third-party packages as part of the application. Therefore, the proposed design uses a prebuilt, versioned dependency bundle rather than depending on pip at first launch.
 
-The exact CPython patch version, Java vendor/build, dependency lock, and bundle layout are intentionally not fixed in this ADR until the Windows CI prototype demonstrates compatibility with the repository's complete dependency graph.
+The exact CPython patch version, Java vendor/build, dependency lock, and bundle layout are not fixed in this ADR until the Windows CI prototype demonstrates compatibility with the repository's complete dependency graph. Runtime selection must also pass licensing and redistribution review.
 
 ## Security and data-safety requirements
 
 - HTTPS-only artifact retrieval from explicitly allowlisted release origins.
-- SHA-256 verification against a manifest pinned in the signed/reviewed JAR release.
+- SHA-256 verification against a reviewed release manifest; authenticate the manifest through the trusted release/package-signing process.
 - Verify publisher signatures when the selected runtime vendor provides them.
 - Reject archive traversal, symlink escapes, unexpected executable payloads, and writes outside managed directories.
 - No shell command construction from job input; invoke only fixed executable paths with argument arrays.
@@ -90,30 +103,35 @@ The exact CPython patch version, Java vendor/build, dependency lock, and bundle 
 - Atomic staging and activation; preserve the previous working version until the new version passes health checks.
 - No automatic trading, order placement, exchange-account access, API-key collection, or credential storage.
 
-## Proposed platform contract
+## Platform contract
 
 - **Initial supported platform:** Windows 11 x64.
-- **Compatibility candidate:** Windows 10 x64, only if the CI and clean-machine test matrix proves it and the user accepts its operating-system support status.
+- **Compatibility candidate:** Windows 10 x64, only if the CI and clean-machine test matrix proves compatibility and the user explicitly accepts its support status.
 - **Not in Phase 4 acceptance:** macOS, Linux, ARM64, and 32-bit Windows.
 - **Java runtime:** bundled Java 21 x64 runtime; exact vendor/build to be selected after compatibility and licensing review.
-- **Python runtime:** private CPython Windows x64 embeddable/runtime bundle; exact patch release pinned at release time.
+- **Python runtime:** private CPython Windows x64 runtime/embeddable bundle; exact patch release pinned at release time.
 
-## Required prototype and validation before implementation approval
+## Required prototype and validation
 
-1. Prove the JAR starts on a clean Windows x64 machine with Java 21 installed and no Python installation.
-2. Prove the JAR reports a clear error on a machine without the required Java runtime.
-3. Build and verify the complete private Python runtime/dependency bundle on Windows CI.
-4. Prove the bundled MALE can initialize its workspace and execute a harmless read-only health-check job.
+1. Build the proposed Windows package on controlled Windows CI.
+2. Prove the package starts on a clean Windows 11 x64 machine with neither Java nor Python installed.
+3. Prove the package launches MALE using only its bundled Java/Python runtimes and dependency bundle.
+4. Prove a harmless read-only health-check job completes and produces expected diagnostics/artifacts.
 5. Prove a failed download, checksum mismatch, interrupted extraction, or failed startup leaves the previous installation and persistent user data intact.
 6. Prove an upgrade preserves reports, evidence manifests, settings, and logs.
-7. Record exact artifact hashes and provenance in a release manifest.
+7. Prove unsupported OS/architecture and insufficient disk-space cases fail clearly and safely.
+8. Record exact artifact hashes, runtime versions, licensing notices, and provenance in a release manifest.
+9. Test install, launch, upgrade, uninstall, and data-retention behavior on clean Windows environments.
 
-## Open decisions requiring user approval
+## Remaining decisions
 
-1. **User-facing artifact:** Do you approve changing the literal single-JAR download to one self-contained Windows EXE/installer/package bundling Java and Python, while optionally retaining the JAR internally? This is the proposed way to meet the clean-PC requirement.
-2. **Windows 10:** Should Windows 10 x64 be a supported target, or should Phase 4 formally support Windows 11 x64 only?
-3. **Initial setup:** Is an internet connection acceptable for first-time runtime provisioning, with offline installation considered as a later enhancement?
+1. **Windows 10 support:** Should Windows 10 x64 be a supported target, or should Phase 4 formally support Windows 11 x64 only?
+2. **Initial setup:** Is an internet connection acceptable for first-time runtime provisioning, with a complete offline installer considered as a later enhancement?
+
+These two decisions do not block correcting the approved artifact contract or beginning a scoped Windows packaging prototype, but they must be resolved before declaring the final supported-platform and installation contract.
 
 ## Consequences
 
-No runtime, dependency, packaging, signing, or deployment implementation should begin until this revised ADR and the user-facing artifact decision are reviewed and approved. Phase 4 remains an evolving release milestone; this decision does not limit later MALE enhancements or future macOS support.
+The user-facing distribution contract is now approved: Phase 4 targets one self-contained Windows EXE/installer/package bundling Java and Python. Implementation may proceed on the Phase 4 branch, subject to the technical and security gates in this ADR.
+
+This is a release milestone, not the final phase of MASTER ARSENAL. Future enhancements, additional releases, and possible macOS support remain possible. The current pre-investment, read-only scope remains unchanged; full portfolio accounting, transaction-history ingestion, OpenJarvis integration, and planned Pro upgrades remain future roadmap items.
