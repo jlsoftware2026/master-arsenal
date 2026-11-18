@@ -71,7 +71,7 @@ jobs:
           if (-not (Test-Path (Join-Path $InstallDir "runtime-lock.txt"))) { throw "Installed runtime inventory is missing." }
           $InstalledManifest = Get-Content $InstalledManifestPath -Raw | ConvertFrom-Json
           foreach ($Record in $InstalledManifest.files) {
-            $PayloadPath = Join-Path $InstallDir ($Record.path.Replace("/", "\\"))
+            $PayloadPath = Join-Path $InstallDir ($Record.path.Replace("/", [string][char]92))
             if (-not (Test-Path $PayloadPath)) { throw "Installed payload file is missing: $($Record.path)" }
             $ActualHash = (Get-FileHash $PayloadPath -Algorithm SHA256).Hash.ToLowerInvariant()
             if ($ActualHash -ne $Record.sha256) { throw "Installed payload integrity mismatch: $($Record.path)" }
