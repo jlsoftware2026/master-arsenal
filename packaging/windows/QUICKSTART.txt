@@ -12,9 +12,9 @@ LOCAL ENGINE
 2. Initialize the workspace:
    ma-local.exe init
 3. Create a health-check job:
-   ma-local.exe new-job engine.health_check --output "%LOCALAPPDATA%\\MASTER-ARSENAL\\workspace\\health-check-job.json"
+   ma-local.exe new-job engine.health_check --output "%LOCALAPPDATA%\MASTER-ARSENAL\workspace\health-check-job.json"
 4. Submit it:
-   ma-local.exe submit "%LOCALAPPDATA%\\MASTER-ARSENAL\\workspace\\health-check-job.json"
+   ma-local.exe submit "%LOCALAPPDATA%\MASTER-ARSENAL\workspace\health-check-job.json"
 5. Copy the canonical job UUID printed by submit and validate it:
    ma-local.exe validate YOUR-JOB-UUID
 6. If the job requests approval, approve it explicitly:
@@ -36,4 +36,4 @@ IMPORTANT
 - MALE is read-only. It does not place orders or store exchange API keys.
 - The current product is pre-investment research and decision support, not portfolio accounting.
 - Missing transaction-history CSV files are not an error and do not imply a zero account balance.
-- Reports, evidence, settings, job templates, and snapshots are stored separately from the application installation. Default snapshots are saved under %LOCALAPPDATA%\\MASTER-ARSENAL\\workspace\\data\\snapshots.
+- Reports, evidence, settings, job templates, and snapshots are stored separately from the application installation. Default snapshots are saved under %LOCALAPPDATA%\MASTER-ARSENAL\workspace\data\snapshots.
