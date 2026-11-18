@@ -868,19 +868,9 @@ class JobRunner:
                 or account_end.astimezone(timezone.utc) != report_end.astimezone(timezone.utc)
             ):
                 findings.append("account export window does not match report window")
-            if (
-                snapshot.get("file_count", 0) <= 0
-                or snapshot.get("supported_file_count") != snapshot.get("file_count")
-                or snapshot.get("parse_errors")
-                or snapshot.get("unsupported_files")
-                or snapshot.get("unknown_operation_count", 0) != 0
-            ):
-                findings.append("CSV files are unsupported, partial, ambiguous, or contain parse errors")
             allowed_assumptions = {
                 "Naive UTC_Time values were interpreted as UTC; verify the export timezone setting."
             }
-            if not set(snapshot.get("assumptions") or []).issubset(allowed_assumptions):
-                findings.append("CSV contains an unsupported timestamp or parsing assumption")
             files = snapshot.get("files")
             if not isinstance(files, list) or len(files) != snapshot.get("file_count"):
                 return findings + ["CSV manifest file count is inconsistent"]
@@ -906,6 +896,16 @@ class JobRunner:
                 and not csv_paths
             ):
                 return findings
+            if (
+                snapshot.get("file_count", 0) <= 0
+                or snapshot.get("supported_file_count") != snapshot.get("file_count")
+                or snapshot.get("parse_errors")
+                or snapshot.get("unsupported_files")
+                or snapshot.get("unknown_operation_count", 0) != 0
+            ):
+                findings.append("CSV files are unsupported, partial, ambiguous, or contain parse errors")
+            if not set(snapshot.get("assumptions") or []).issubset(allowed_assumptions):
+                findings.append("CSV contains an unsupported timestamp or parsing assumption")
             if snapshot.get("status") not in {"complete", "partial"}:
                 findings.append("CSV import status is " + str(snapshot.get("status")))
             if len(csv_paths) != snapshot.get("file_count"):
@@ -966,7 +966,11 @@ class JobRunner:
                 account_export_findings.append(
                     str(item.get("report_type", "report")) + ": " + "; ".join(findings)
                 )
-        account_export_ok = bool(all_reports) and not account_export_findings
+        account_export_ok = bool(all_reports) and all(
+            isinstance(item.get("binance_account_data"), dict)
+            and item["binance_account_data"].get("status") in {"complete", "partial"}
+            for item in all_reports
+        ) and not account_export_findings
         local_windows_ok = bool(all_reports) and len(evidence_manifests) == len(manifest_paths) and all(
             item.get("status") == "passed" for item in evidence_manifests
         ) and all(
