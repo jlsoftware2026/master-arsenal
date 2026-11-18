@@ -59,13 +59,13 @@ Distribute the executable JAR and privately provision Python, but require the ta
 
 Rejected. It contradicts the Phase 4 goal of removing manual Python, virtual-environment, pip, and PATH setup.
 
-## Proposed direction
+## Revised proposed direction
 
-Proceed with **Option A**, subject to explicit approval of its Java prerequisite:
+Proceed with **Option A: a self-contained Windows launcher/package**. The developer's existing Java and Python installations are useful for development and testing, but are not assumed to exist on an end user's PC. A literal JAR-only download cannot meet this clean-PC requirement because the JVM must already be running before Java code inside the JAR can execute. The user-facing deliverable should therefore be one Windows EXE/installer or self-contained application package; the JAR may remain bundled internally. This changes the original literal single-JAR delivery contract and requires user approval.
 
-- The sole initial download remains the executable JAR.
-- The JAR requires a supported Java 21 x64 runtime already installed on Windows. If it is absent or incompatible, the JAR must stop with a clear, actionable diagnostic; it must not attempt to execute an unverified installer.
-- The JAR provisions a private, pinned Windows x64 Python runtime and a prebuilt dependency bundle. It does not invoke pip on the user's machine.
+- The user downloads and launches one Windows package; neither Java nor Python needs to be installed manually.
+- Bundle a supported Java 21 x64 runtime and a private, pinned Windows x64 Python runtime plus prebuilt dependency bundle.
+- Do not invoke pip on the user's machine.
 - Build the Python runtime/dependency bundle in controlled Windows CI. Include a machine-readable lock/manifest with exact versions, artifact URLs, SHA-256 digests, and build provenance.
 - Verify all downloaded artifacts before extraction or execution. Fail closed on digest mismatch, unexpected archive members, path traversal, or unsupported platform.
 - Install into versioned application directories and activate only after health checks pass.
@@ -110,7 +110,7 @@ The exact CPython patch version, Java vendor/build, dependency lock, and bundle 
 
 ## Open decisions requiring user approval
 
-1. **User-facing artifact:** Do you approve changing the literal single-JAR download to one self-contained Windows EXE/installer/package that bundles Java and Python, while optionally retaining the JAR internally? This is the only proposed path here that meets the clean-PC requirement.
+1. **User-facing artifact:** Do you approve changing the literal single-JAR download to one self-contained Windows EXE/installer/package bundling Java and Python, while optionally retaining the JAR internally? This is the proposed way to meet the clean-PC requirement.
 2. **Windows 10:** Should Windows 10 x64 be a supported target, or should Phase 4 formally support Windows 11 x64 only?
 3. **Initial setup:** Is an internet connection acceptable for first-time runtime provisioning, with offline installation considered as a later enhancement?
 
