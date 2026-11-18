@@ -92,8 +92,22 @@ def build_skills_audit_pdf(report: dict[str, Any], output_directory: Path | str)
     if (not isinstance(artifacts, list) or not isinstance(opportunity_artifacts, list)
             or not isinstance(findings, list)):
         raise ValueError("artifacts, opportunity_artifacts, and findings must be lists")
-    if any(not isinstance(item, dict) for item in findings):
-        raise ValueError("Every audit finding must be a structured object")
+    normalized_findings = []
+    for index, item in enumerate(findings, start=1):
+        if isinstance(item, dict):
+            normalized_findings.append(item)
+        elif isinstance(item, str):
+            # Preserve legacy string findings (e.g. integrity/tamper checks) as
+            # visible, structured PDF entries instead of aborting the audit.
+            normalized_findings.append({
+                "severity": "Alto",
+                "title": f"Hallazgo {index}",
+                "evidence": item,
+                "recommendation": "Revisar la evidencia y regenerar los artefactos afectados si corresponde.",
+            })
+        else:
+            raise ValueError("Every audit finding must be a structured object or a legacy string")
+    findings = normalized_findings
     rendered_findings_count = len(findings)
     styles = report_styles()
     verified = sum(1 for item in artifacts if isinstance(item, dict) and item.get("qa_status") == "passed")
