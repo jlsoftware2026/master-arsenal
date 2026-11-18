@@ -61,10 +61,21 @@ jobs:
           if (-not $Installer) { throw "Installer artifact was not created." }
           $InstallDir = Join-Path $env:TEMP "MASTER-ARSENAL-package-smoke"
           if (Test-Path $InstallDir) { Remove-Item $InstallDir -Recurse -Force }
-          Start-Process -FilePath $Installer.FullName -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/DIR=$InstallDir" -Wait
+          $InstallProcess = Start-Process -FilePath $Installer.FullName -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/DIR=$InstallDir" -Wait -PassThru
+          if ($InstallProcess.ExitCode -ne 0) { throw "Silent installation failed with exit code $($InstallProcess.ExitCode)." }
           $LocalExe = Join-Path $InstallDir "ma-local\ma-local.exe"
           $BinanceExe = Join-Path $InstallDir "ma-binance\ma-binance.exe"
           if (-not (Test-Path $LocalExe) -or -not (Test-Path $BinanceExe)) { throw "Installed executables are missing." }
+          $InstalledManifestPath = Join-Path $InstallDir "release-manifest.json"
+          if (-not (Test-Path $InstalledManifestPath)) { throw "Installed release manifest is missing." }
+          if (-not (Test-Path (Join-Path $InstallDir "runtime-lock.txt"))) { throw "Installed runtime inventory is missing." }
+          $InstalledManifest = Get-Content $InstalledManifestPath -Raw | ConvertFrom-Json
+          foreach ($Record in $InstalledManifest.files) {
+            $PayloadPath = Join-Path $InstallDir ($Record.path.Replace("/", "\\"))
+            if (-not (Test-Path $PayloadPath)) { throw "Installed payload file is missing: $($Record.path)" }
+            $ActualHash = (Get-FileHash $PayloadPath -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($ActualHash -ne $Record.sha256) { throw "Installed payload integrity mismatch: $($Record.path)" }
+          }
           $OriginalPath = $env:PATH
           $OriginalPythonHome = $env:PYTHONHOME
           $OriginalPythonPath = $env:PYTHONPATH
