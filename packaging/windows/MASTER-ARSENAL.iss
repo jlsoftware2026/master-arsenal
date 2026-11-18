@@ -33,6 +33,8 @@ Name: "desktopicon"; Description: "Create a desktop shortcut to the Local Engine
 Source: "..\..\dist\payload\ma-local\*"; DestDir: "{app}\ma-local"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\..\dist\payload\ma-binance\*"; DestDir: "{app}\ma-binance"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "QUICKSTART.txt"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\\..\\dist\\payload\\runtime-lock.txt"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\\..\\dist\\payload\\release-manifest.json"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\MASTER ARSENAL - Local Engine Console"; Filename: "{cmd}"; Parameters: "/k ""{app}\ma-local\{#AppExeLocal}"" --help"; WorkingDir: "{app}\ma-local"
