@@ -434,7 +434,7 @@ class LocalEngineTests(unittest.TestCase):
         job = self._approved_job("market.opening_report", {
             "session_date_local": "2026-11-12", "interval": "1h", "market": "spot"
         })
-        with patch("local_engine.runtime.BinancePublicClient", return_value=FakeBinanceClient()), \\
+        with patch("local_engine.runtime.BinancePublicClient", return_value=FakeBinanceClient()), \
              patch("report_engine.session_acquisition.collect_market_context", return_value={
                  "macro_context": "No macro items.", "news": "No news items.",
                  "macro_sources": [], "news_sources": [], "context_status": "complete",
