@@ -2,7 +2,7 @@ name: Windows packaging prototype
 
 on:
   push:
-    branches: [develop, feature/phase-4-distribution-foundation]
+    branches: [develop]
     paths:
       - "binance_data_engine/**"
       - "local_engine/**"
