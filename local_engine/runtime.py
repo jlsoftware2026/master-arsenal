@@ -123,7 +123,7 @@ def verify_original_skill_packages(repository_root: Path | str) -> dict[str, Any
             for line in frontmatter.splitlines():
                 if ":" in line:
                     key, value = line.split(":", 1)
-                    fields[key.strip()] = value.strip().strip("'\\"")
+                    fields[key.strip()] = value.strip().strip("'\\\"")
             body = adapted_text.split("\n---\n", 1)[1].lstrip("\n")
             if fields.get("name") != name or not body.startswith(f"# {name}\n"):
                 raise ValueError(f"{name}: ChatGPT adaptation metadata/heading does not match source package")
