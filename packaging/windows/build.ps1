@@ -54,7 +54,7 @@ $PythonVersion = (& $Python --version).Trim()
 $PayloadFiles = Get-ChildItem $DistRoot -File -Recurse | Where-Object { $_.Name -ne "release-manifest.json" }
 $FileRecords = @()
 foreach ($File in $PayloadFiles) {
-    $RelativePath = $File.FullName.Substring($DistRoot.Length + 1).Replace("\\", "/")
+    $RelativePath = $File.FullName.Substring($DistRoot.Length + 1).Replace([string][char]92, "/")
     $FileRecords += [ordered]@{
         path = $RelativePath
         size_bytes = $File.Length
