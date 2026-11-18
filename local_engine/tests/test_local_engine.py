@@ -741,6 +741,20 @@ class OriginalSkillIntegrityTests(unittest.TestCase):
         self.assertTrue(all(item["status"] == "passed" for item in result["packages"]))
         self.assertEqual(result["findings"], [])
 
+    def test_modified_original_archive_is_rejected(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            shutil.copytree(self.REPOSITORY_ROOT / "docs" / "original-skills-source",
+                            root / "docs" / "original-skills-source")
+            shutil.copytree(self.REPOSITORY_ROOT / "skills", root / "skills")
+            shutil.copytree(self.REPOSITORY_ROOT / "artifacts" / "original-skills",
+                            root / "artifacts" / "original-skills")
+            package = root / "artifacts" / "original-skills" / "binance-apertura-mercado.skill"
+            package.write_bytes(package.read_bytes() + b"tampered")
+            result = verify_original_skill_packages(root)
+            self.assertEqual(result["status"], "failed")
+            self.assertTrue(any("archive byte count does not match" in item for item in result["findings"]))
+
     def test_adaptation_identity_mismatch_is_rejected(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
