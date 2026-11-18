@@ -34,6 +34,43 @@ class AuditReportTests(unittest.TestCase):
             self.assertNotIn("Expected:", extracted)
 
 
+    def test_findings_count_and_exact_head_ci_evidence_are_rendered_consistently(self):
+        report = {
+            "audit_date_utc": "2026-11-16",
+            "audit_date_local": "2026-11-16",
+            "report_timezone": "America/Santo_Domingo",
+            "generated_at_utc": "2026-11-16T12:00:00Z",
+            "artifacts": [{"filename": "snapshot.pdf", "report_type": "intraday",
+                           "qa_status": "passed", "page_count": 1, "size_bytes": 100,
+                           "sha256": "a" * 64}],
+            "findings": [
+                {"severity": "Medio", "title": f"Finding {i}", "impact": "Scope",
+                 "evidence": "Evidence", "recommendation": "Document"}
+                for i in range(1, 5)
+            ],
+            "test_evidence": [{
+                "suite": "GitHub Actions — Python tests (commit exacto)",
+                "status": "passed", "run_id": "123456",
+                "details": "SHA: " + "b" * 40 + "; four matrix jobs succeeded.",
+            }],
+            "test_evidence_scope_note": (
+                "La tabla acredita el workflow remoto del SHA exacto; no es una ejecución local separada."
+            ),
+        }
+        with TemporaryDirectory() as temp:
+            path = build_skills_audit_pdf(report, temp)
+            import pymupdf as fitz
+            with fitz.open(path) as document:
+                extracted = " ".join(page.get_text("text") for page in document)
+            self.assertIn("Hallazgos (4)", extracted)
+            self.assertIn("Hallazgos registrados en este informe", extracted)
+            for i in range(1, 5):
+                self.assertIn(f"Finding {i}", extracted)
+            self.assertIn("GitHub Actions", extracted)
+            self.assertIn("123456", extracted)
+            self.assertIn("workflow remoto del SHA exacto", extracted)
+            self.assertNotIn("No se suministró un manifiesto de ejecución de CI", extracted)
+
     def test_market_report_audit_checks_required_content_and_filename(self):
         report = {
             "session_start_utc": "2026-11-15T04:00:00Z",
