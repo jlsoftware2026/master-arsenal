@@ -78,10 +78,14 @@ jobs:
           if ($null -ne $OriginalPythonPath) { $env:PYTHONPATH = $OriginalPythonPath }
           $PersistentWorkspace = Join-Path $env:LOCALAPPDATA "MASTER-ARSENAL\workspace"
           if (-not (Test-Path (Join-Path $PersistentWorkspace "jobs\inbox"))) { throw "Persistent workspace was not initialized." }
-          & (Join-Path $InstallDir "unins000.exe") /VERYSILENT
-          if ($LASTEXITCODE -ne 0) { throw "Silent uninstall failed." }
-          if (Test-Path $LocalExe) { throw "Uninstall left the Local Engine executable behind." }
-          if (Test-Path $BinanceExe) { throw "Uninstall left the Binance executable behind." }
+          $Uninstaller = Join-Path $InstallDir "unins000.exe"
+          if (-not (Test-Path $Uninstaller)) { throw "Inno Setup uninstaller is missing." }
+          $UninstallLog = Join-Path $env:TEMP "MASTER-ARSENAL-uninstall.log"
+          $UninstallProcess = Start-Process -FilePath $Uninstaller -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/LOG=$UninstallLog" -Wait -PassThru
+          if ($UninstallProcess.ExitCode -ne 0) { Get-Content $UninstallLog; throw "Silent uninstall failed with exit code $($UninstallProcess.ExitCode)." }
+          Start-Sleep -Seconds 2
+          if (Test-Path $LocalExe) { Get-Content $UninstallLog; throw "Uninstall left the Local Engine executable behind." }
+          if (Test-Path $BinanceExe) { Get-Content $UninstallLog; throw "Uninstall left the Binance executable behind." }
           if (-not (Test-Path (Join-Path $PersistentWorkspace "jobs\inbox"))) { throw "Uninstall removed persistent user data." }
 
       - name: Generate installer SHA-256 manifest
