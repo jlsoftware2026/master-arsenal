@@ -44,4 +44,35 @@ if (-not (Test-Path (Join-Path $SmokeWorkspace "jobs\inbox"))) {
     throw "Packaged Local Engine did not create its expected workspace structure."
 }
 
+$LockPath = Join-Path $DistRoot "runtime-lock.txt"
+$LockLines = & $Python -m pip freeze --all
+if ($LASTEXITCODE -ne 0) { throw "Could not capture the packaged runtime dependency inventory." }
+$LockLines | Set-Content -Path $LockPath -Encoding utf8
+
+$PyInstallerVersion = (& $Python -m PyInstaller --version).Trim()
+$PythonVersion = (& $Python --version).Trim()
+$PayloadFiles = Get-ChildItem $DistRoot -File -Recurse | Where-Object { $_.Name -ne "release-manifest.json" }
+$FileRecords = @()
+foreach ($File in $PayloadFiles) {
+    $RelativePath = $File.FullName.Substring($DistRoot.Length + 1).Replace("\\", "/")
+    $FileRecords += [ordered]@{
+        path = $RelativePath
+        size_bytes = $File.Length
+        sha256 = (Get-FileHash $File.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+    }
+}
+$Manifest = [ordered]@{
+    schema_version = 1
+    application = "MASTER ARSENAL"
+    application_version = "0.3.0"
+    source_commit = $env:GITHUB_SHA
+    target = "Windows x64; Windows 10 22H2 / Windows 11 compatibility target"
+    python = $PythonVersion
+    pyinstaller = $PyInstallerVersion
+    java_runtime = "not bundled: current repository has no Java source or JAR component"
+    dependency_lock = "runtime-lock.txt"
+    files = $FileRecords
+}
+$Manifest | ConvertTo-Json -Depth 8 | Set-Content -Path (Join-Path $DistRoot "release-manifest.json") -Encoding utf8
+
 Write-Host "Windows packaging smoke tests passed."
