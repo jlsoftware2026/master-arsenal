@@ -5,14 +5,14 @@
 
 ## Mandatory user-facing delivery
 
-The Phase 4 desktop distribution must be delivered as **one self-contained Windows EXE/installer/application package**. The package must bundle the supported Java and Python runtimes and all required application dependencies. A user must not need to install Java, Python, run pip, create a virtual environment, configure PATH, or execute manual setup commands.
+The Phase 4 desktop distribution must be delivered as **one self-contained Windows EXE installer**. The package must bundle the private Python runtime and all required application dependencies. The current repository contains no Java source or JAR component, so Java is not part of this package. A user must not need to install Python, run pip, create a virtual environment, configure PATH, or execute manual setup commands. Java is not required by the current Python-only codebase.
 
-The existing executable JAR may be retained as an internal component, but it is not the user-facing download or launcher. A JAR alone cannot launch on a clean PC without an already-running JVM.
+The current repository contains no executable JAR or Java application component. The user-facing download is a Windows installer that installs the packaged Local Engine and Binance Engine executables.
 
 The Windows package must:
 - Detect and validate the operating system, architecture, available disk space, and package integrity before installation or launch.
 - Support Windows 10 22H2 x64 and Windows 11 x64, subject to the clean-machine validation matrix and documented edition/build limits.
-- Bundle a supported Java 21 x64 runtime and a private, pinned Windows x64 CPython runtime with a complete prebuilt dependency bundle.
+- Bundle a private, pinned Windows x64 CPython runtime with the complete prebuilt dependency bundle. Do not bundle an unused Java runtime; revisit only if a Java component is introduced.
 - Avoid invoking pip on the user's PC.
 - Verify runtime/dependency artifacts using reviewed SHA-256 manifests and publisher signatures where available before extraction or execution.
 - Use managed, versioned application directories and keep reports, evidence, settings, and logs in persistent user-data storage outside replaceable application files.
@@ -27,7 +27,7 @@ The Windows package must:
 - The application must detect and clearly report unavailable network access, DNS/TLS failures, rate limits, timeouts, and provider outages.
 - A network/provider failure must never be represented as a successful live-data result or silently replaced with fabricated, stale, or incomplete data.
 - Local functions that do not require a provider may remain available offline where practical; the UI/CLI must distinguish local engine health from live-provider connectivity.
-- The installer/package should bundle Java, Python, and pinned dependencies. Users should not need internet access merely to compensate for missing runtimes or to run pip on first launch. Internet is required when MALE performs live research and when it retrieves updates or remote data.
+- The installer/package should bundle the Python runtime and pinned dependencies. Users should not need internet access merely to compensate for missing runtimes or to run pip on first launch. Internet is required when MALE performs live research and when it retrieves updates or remote data.
 
 ## Data and privacy boundary
 
@@ -41,10 +41,10 @@ The Windows package must:
 
 ## Architecture and platform boundary
 
-- The implementation is Python-first today; Java is used only where justified by the approved Windows launcher/package architecture.
+- The implementation is Python-first and contains no Java source or JAR dependency. The current installer therefore bundles Python only; Java may be added in a future release if justified by an actual component.
 - Supported target platforms for Phase 4: Windows 10 22H2 x64 and Windows 11 x64, subject to clean-machine validation.
 - macOS, Linux, ARM64, and 32-bit Windows are outside Phase 4 acceptance. macOS may be considered in a future milestone.
-- Exact Java/Python builds, dependency versions, packaging technology, signing process, update channel, and provider/network behavior must be documented and tested before release.
+- Exact Python build, dependency versions, packaging technology, signing process, update channel, and provider/network behavior must be documented and tested before release.
 - Windows 10 support does not imply that MALE extends Microsoft's operating-system security servicing; users remain responsible for their Windows servicing and security status.
 - OpenJarvis integration and planned Pro upgrades remain future roadmap items.
 
