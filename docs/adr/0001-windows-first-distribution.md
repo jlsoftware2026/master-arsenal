@@ -8,7 +8,7 @@
 
 ## Context
 
-MASTER ARSENAL is currently a Python application with the Binance Data Engine, Local Engine, and PDF Report Engine. The user-facing goal for Phase 4 is one downloadable executable JAR that starts MALE without requiring the user to install Python, create a virtual environment, run pip, or edit PATH.
+MASTER ARSENAL is currently a Python application with the Binance Data Engine, Local Engine, and PDF Report Engine. The user-facing goal for Phase 4 is a single-download Windows application that starts MALE on a clean PC without requiring preinstalled Java, Python, pip, or manual PATH configuration. A JAR alone cannot meet this requirement because it needs a JVM to start.
 
 The existing Phase 4 plan requires a design/ADR gate before changes to runtime, dependencies, packaging, signing, or deployment. This ADR is a proposal only; it does not authorize those implementation changes.
 
@@ -42,7 +42,7 @@ A small native Windows launcher or self-contained Windows application package is
 - The Python embeddable distribution does not include pip. Its third-party packages should be treated as application-vendored content; a prebuilt, versioned dependency bundle is preferable to runtime pip installation.
 - Initial setup requires network access unless a complete offline bundle is separately distributed.
 
-### B. Java executable JAR + external Java prerequisite
+### B. Standalone executable JAR with Java prerequisite
 
 Distribute the executable JAR and privately provision Python, but require the target PC to already have a supported Java runtime.
 
@@ -95,7 +95,7 @@ The exact CPython patch version, Java vendor/build, dependency lock, and bundle 
 - **Initial supported platform:** Windows 11 x64.
 - **Compatibility candidate:** Windows 10 x64, only if the CI and clean-machine test matrix proves it and the user accepts its operating-system support status.
 - **Not in Phase 4 acceptance:** macOS, Linux, ARM64, and 32-bit Windows.
-- **Java prerequisite:** Java 21 x64 runtime; exact vendor/build to be selected after compatibility and licensing review.
+- **Java runtime:** bundled Java 21 x64 runtime; exact vendor/build to be selected after compatibility and licensing review.
 - **Python runtime:** private CPython Windows x64 embeddable/runtime bundle; exact patch release pinned at release time.
 
 ## Required prototype and validation before implementation approval
