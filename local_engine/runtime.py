@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import hashlib
+import io
 import json
 import math
 import os
@@ -15,6 +16,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Iterator
 from uuid import UUID
+from zipfile import ZipFile
 
 from . import __version__
 from .protocol import JobValidationError, load_job, utc_now, validate_job
@@ -42,11 +44,7 @@ from report_engine import (
 )
 
 def verify_original_skill_packages(repository_root: Path | str) -> dict[str, Any]:
-    """Verify recorded source hashes and the identity of all four ChatGPT adaptations.
-
-    Original .skill ZIP payloads are not embedded in the repository. Their
-    intake-time hashes are therefore recorded but cannot be recomputed here.
-    """
+    """Verify original .skill archives, embedded source files, and ChatGPT adaptations."""
     root = Path(repository_root).resolve()
     manifest_path = root / "docs" / "original-skills-source" / "manifest.json"
     expected_names = {
@@ -55,6 +53,7 @@ def verify_original_skill_packages(repository_root: Path | str) -> dict[str, Any
     }
     findings: list[str] = []
     packages: list[dict[str, Any]] = []
+    manifest_bytes: bytes | None = None
     try:
         manifest_text = manifest_path.read_text(encoding="utf-8").replace("\r\n", "\n").replace("\r", "\n")
         manifest_bytes = manifest_text.encode("utf-8")
@@ -65,28 +64,54 @@ def verify_original_skill_packages(repository_root: Path | str) -> dict[str, Any
         declared_names = {item.get("name") for item in declared if isinstance(item, dict)}
         if declared_names != expected_names or len(declared) != len(expected_names):
             raise ValueError("Original skill source manifest must contain exactly the four named packages")
+
         for item in declared:
             name = item["name"]
             archive_sha = item.get("archive_sha256")
             source_sha = item.get("source_skill_sha256")
-            if not isinstance(archive_sha, str) or len(archive_sha) != 64:
-                raise ValueError(f"{name}: recorded original archive SHA-256 is invalid")
-            if not isinstance(source_sha, str) or len(source_sha) != 64:
-                raise ValueError(f"{name}: recorded original SKILL.md SHA-256 is invalid")
-            try:
-                int(archive_sha, 16)
-                int(source_sha, 16)
-            except ValueError as exc:
-                raise ValueError(f"{name}: recorded source hashes must be hexadecimal SHA-256 values") from exc
-            if not isinstance(item.get("archive_bytes"), int) or item["archive_bytes"] <= 0:
+            for label, value in (("archive", archive_sha), ("SKILL.md", source_sha)):
+                if not isinstance(value, str) or len(value) != 64:
+                    raise ValueError(f"{name}: recorded original {label} SHA-256 is invalid")
+                try:
+                    int(value, 16)
+                except ValueError as exc:
+                    raise ValueError(f"{name}: recorded {label} SHA-256 must be hexadecimal") from exc
+
+            archive_size = item.get("archive_bytes")
+            source_size = item.get("source_skill_bytes")
+            if not isinstance(archive_size, int) or archive_size <= 0:
                 raise ValueError(f"{name}: original archive byte count is invalid")
-            if not isinstance(item.get("source_skill_bytes"), int) or item["source_skill_bytes"] <= 0:
+            if not isinstance(source_size, int) or source_size <= 0:
                 raise ValueError(f"{name}: original SKILL.md byte count is invalid")
+
             expected_member = [f"{name}/SKILL.md"]
             if item.get("zip_members") != expected_member:
                 raise ValueError(f"{name}: recorded original package structure is invalid")
-            if item.get("repository_payload") != "not_embedded":
-                raise ValueError(f"{name}: source payload storage status is inconsistent")
+
+            payload_relative = f"artifacts/original-skills/{name}.skill"
+            if item.get("repository_payload") != payload_relative:
+                raise ValueError(f"{name}: repository payload path does not match the controlled package location")
+            payload_path = (root / payload_relative).resolve()
+            if not payload_path.is_relative_to(root) or not payload_path.is_file():
+                raise ValueError(f"{name}: original .skill package is missing or outside the repository")
+            archive_bytes = payload_path.read_bytes()
+            if len(archive_bytes) != archive_size:
+                raise ValueError(f"{name}: original archive byte count does not match the manifest")
+            actual_archive_sha = hashlib.sha256(archive_bytes).hexdigest()
+            if actual_archive_sha != archive_sha:
+                raise ValueError(f"{name}: original archive SHA-256 does not match the manifest")
+
+            with ZipFile(io.BytesIO(archive_bytes), "r") as archive:
+                actual_members = [member for member in archive.namelist() if not member.endswith("/")]
+                if actual_members != expected_member:
+                    raise ValueError(f"{name}: original ZIP members do not match the expected single SKILL.md")
+                source_bytes = archive.read(expected_member[0])
+            if len(source_bytes) != source_size:
+                raise ValueError(f"{name}: embedded SKILL.md byte count does not match the manifest")
+            actual_source_sha = hashlib.sha256(source_bytes).hexdigest()
+            if actual_source_sha != source_sha:
+                raise ValueError(f"{name}: embedded SKILL.md SHA-256 does not match the manifest")
+
             adapted_path = root / "skills" / name / "SKILL.md"
             adapted_bytes = adapted_path.read_bytes()
             adapted_text = adapted_bytes.decode("utf-8").replace("\r\n", "\n").replace("\r", "\n")
@@ -98,7 +123,7 @@ def verify_original_skill_packages(repository_root: Path | str) -> dict[str, Any
             for line in frontmatter.splitlines():
                 if ":" in line:
                     key, value = line.split(":", 1)
-                    fields[key.strip()] = value.strip().strip("'\"")
+                    fields[key.strip()] = value.strip().strip("'\\"")
             body = adapted_text.split("\n---\n", 1)[1].lstrip("\n")
             if fields.get("name") != name or not body.startswith(f"# {name}\n"):
                 raise ValueError(f"{name}: ChatGPT adaptation metadata/heading does not match source package")
@@ -106,37 +131,33 @@ def verify_original_skill_packages(repository_root: Path | str) -> dict[str, Any
                 raise ValueError(f"{name}: adapted skill version and review date are required")
             if "## Local Engine workflow" not in body or "PDF" not in body:
                 raise ValueError(f"{name}: ChatGPT adaptation is missing the Local Engine/PDF contract")
+
             packages.append({
                 "name": name,
-                "status": "not_verified",
-                "archive_sha256": archive_sha,
-                "source_skill_sha256": source_sha,
+                "status": "passed",
+                "archive_sha256": actual_archive_sha,
+                "source_skill_sha256": actual_source_sha,
                 "adapted_skill_sha256": hashlib.sha256(canonical_adapted_bytes).hexdigest(),
                 "adapted_version": fields.get("version"),
                 "last_reviewed": fields.get("last_reviewed"),
-                "archive_members": expected_member,
-                "archive_bytes": item.get("archive_bytes"),
-                "source_skill_bytes": item.get("source_skill_bytes"),
-                "source_payload": "not_embedded",
+                "archive_members": actual_members,
+                "archive_bytes": len(archive_bytes),
+                "source_skill_bytes": len(source_bytes),
+                "source_payload": payload_relative,
             })
-        findings.append(
-            "Los hashes del archivo original y del SKILL.md extraído se registraron durante la recepción, pero los ZIP "
-            "no están incluidos en este repositorio y la auditoría de ejecución no puede recalcularlos."
-        )
     except Exception as exc:
         findings.append(f"{type(exc).__name__}: {exc}")
+
+    all_verified = len(packages) == len(expected_names) and not findings
     return {
-        "status": "not_verified" if len(packages) == len(expected_names) and len(findings) == 1
-                  and findings[0].startswith("Los hashes del archivo original y del SKILL.md extraído") else "failed",
-        "adaptation_status": "passed" if len(packages) == len(expected_names) and all(
-            item.get("status") == "not_verified" for item in packages
+        "status": "passed" if all_verified else "failed",
+        "adaptation_status": "passed" if all_verified and all(
+            item.get("status") == "passed" for item in packages
         ) else "failed",
-        "manifest_sha256": hashlib.sha256(manifest_bytes).hexdigest()
-            if manifest_path.is_file() else None,
+        "manifest_sha256": hashlib.sha256(manifest_bytes).hexdigest() if manifest_bytes is not None else None,
         "packages": packages,
         "findings": findings,
     }
-
 
 DIRECTORIES = (
     "config", "jobs/inbox", "jobs/validated", "jobs/awaiting_approval", "jobs/running",
