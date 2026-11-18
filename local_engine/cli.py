@@ -21,7 +21,7 @@ def build_parser() -> argparse.ArgumentParser:
         "engine.health_check", "market.opening_report", "market.closing_report",
         "market.intraday_snapshot", "investment.opportunity_report",
         "skills.audit", "engine.validate_data"))
-    create.add_argument("--output", type=Path, default=Path("health-check-job.json"))
+    create.add_argument("--output", type=Path, default=default_workspace() / "health-check-job.json")
     submit = sub.add_parser("submit", help="submit a JSON job to the inbox")
     submit.add_argument("job_file", type=Path)
     for command, help_text in (("validate", "validate and route a job"), ("approve", "explicitly approve a job"),
