@@ -71,7 +71,8 @@ jobs:
           if (-not (Test-Path (Join-Path $PersistentWorkspace "jobs\inbox"))) { throw "Persistent workspace was not initialized." }
           & (Join-Path $InstallDir "unins000.exe") /VERYSILENT
           if ($LASTEXITCODE -ne 0) { throw "Silent uninstall failed." }
-          if (Test-Path $InstallDir) { throw "Uninstall left the application installation directory behind." }
+          if (Test-Path $LocalExe) { throw "Uninstall left the Local Engine executable behind." }
+          if (Test-Path $BinanceExe) { throw "Uninstall left the Binance executable behind." }
           if (-not (Test-Path (Join-Path $PersistentWorkspace "jobs\inbox"))) { throw "Uninstall removed persistent user data." }
 
       - name: Generate installer SHA-256 manifest
