@@ -854,8 +854,6 @@ class JobRunner:
             snapshot = report.get("binance_account_data")
             if not isinstance(snapshot, dict):
                 return ["account export evidence is missing"]
-            if snapshot.get("status") not in {"complete", "partial"}:
-                findings.append("CSV import status is " + str(snapshot.get("status")))
             try:
                 account_start = datetime.fromisoformat(snapshot["window_start_utc"].replace("Z", "+00:00"))
                 account_end = datetime.fromisoformat(snapshot["window_end_utc"].replace("Z", "+00:00"))
@@ -894,6 +892,22 @@ class JobRunner:
                 )
             except OSError:
                 return findings + ["fixed account export directory is missing or inaccessible"]
+            # Absence of an account export is an expected, non-blocking state for
+            # pre-investment research. Treat it as not applicable only when both
+            # the report snapshot and the live fixed directory confirm no CSV was
+            # supplied. Any contradictory metadata or newly added CSV remains an
+            # integrity finding and follows the normal verification path.
+            if (
+                snapshot.get("status") in {"unavailable", "not_available", "not_supplied", "not_applicable"}
+                and snapshot.get("file_count") == 0
+                and snapshot.get("files") == []
+                and not snapshot.get("parse_errors")
+                and not snapshot.get("unsupported_files")
+                and not csv_paths
+            ):
+                return findings
+            if snapshot.get("status") not in {"complete", "partial"}:
+                findings.append("CSV import status is " + str(snapshot.get("status")))
             if len(csv_paths) != snapshot.get("file_count"):
                 findings.append("CSV file set changed after report generation")
                 return findings
