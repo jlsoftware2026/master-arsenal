@@ -1,5 +1,6 @@
 """Command-line contract tests for Local Engine job creation."""
 import unittest
+from pathlib import Path
 
 from local_engine.cli import build_parser
 from local_engine.paths import default_workspace
@@ -13,7 +14,13 @@ class LocalEngineCliTests(unittest.TestCase):
 
     def test_new_job_defaults_to_persistent_user_data(self):
         args = build_parser().parse_args(["new-job", "engine.health_check"])
-        self.assertEqual(args.output, default_workspace() / "health-check-job.json")
+        self.assertIsNone(args.output)
+        self.assertEqual(args.workspace, default_workspace())
+
+    def test_new_job_allows_custom_workspace_output_resolution(self):
+        args = build_parser().parse_args(["--workspace", "custom-data", "new-job", "engine.health_check"])
+        output = args.output or (args.workspace / "health-check-job.json")
+        self.assertEqual(output, Path("custom-data") / "health-check-job.json")
 
 
 if __name__ == "__main__":
