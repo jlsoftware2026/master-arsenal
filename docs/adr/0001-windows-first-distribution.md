@@ -1,6 +1,6 @@
 # ADR-0001: Windows-first MALE distribution architecture
 
-- **Status:** Proposed — requires Sensei's review and approval
+- **Status:** Revised proposal — requires Sensei's review and approval
 - **Date:** 2026-11-18
 - **Scope:** Phase 4 distribution foundation
 - **Target branch:** `feature/phase-4-distribution-foundation`
@@ -14,19 +14,21 @@ The existing Phase 4 plan requires a design/ADR gate before changes to runtime, 
 
 ## Decision drivers
 
-1. Preserve the requested single-JAR download and launch entry point.
-2. Keep Python and all Python dependencies private to the application.
-3. Support Windows x64 first; do not make macOS a Phase 4 acceptance requirement.
-4. Pin every runtime and dependency artifact and verify SHA-256 (and publisher signatures where available) before use.
-5. Keep persistent reports, evidence, settings, and logs outside replaceable application/runtime directories.
-6. Preserve the existing read-only, no-trading, no-credential-storage, pre-investment boundaries.
-7. Do not require pip, a user-managed Python installation, or manual PATH changes.
+1. Provide a zero-prerequisite Windows user experience: no preinstalled Java, Python, pip, or manual PATH configuration.
+2. Preserve the existing Java/Python development workflow on the developer's machine without making those installations runtime dependencies.
+3. Resolve the conflict between a literal standalone JAR and a clean-PC launch requirement before selecting the final user-facing artifact.
+4. Keep Java, Python, and all application dependencies private to the application package or managed runtime.
+5. Support Windows x64 first; do not make macOS a Phase 4 acceptance requirement.
+6. Pin every runtime and dependency artifact and verify SHA-256 (and publisher signatures where available) before use.
+7. Keep persistent reports, evidence, settings, and logs outside replaceable application/runtime directories.
+8. Preserve the existing read-only, no-trading, no-credential-storage, pre-investment boundaries.
+9. Do not require a user-managed Java/Python installation, pip, or manual PATH changes.
 
 ## Options considered
 
-### A. Java executable JAR bootstrapper + managed private Python runtime
+### A. Native Windows bootstrapper/package + bundled Java and Python runtimes
 
-The JAR acts as the user-facing bootstrapper. It validates the host, creates an application-managed installation, downloads or reuses a pinned Windows x64 Python runtime bundle, verifies its digest, and starts the existing MALE entry point. The Python runtime and dependency bundle are installed under an application-owned versioned directory. User data remains in a separate stable data directory.
+A small native Windows launcher or self-contained Windows application package is the user-facing entry point. It includes or securely provisions a pinned Java runtime and a private Windows x64 Python runtime/dependency bundle, verifies all artifacts, and then starts the existing MALE entry point. The Java/Python runtimes and application dependencies are isolated from system installations. User data remains in a separate stable data directory. The existing executable JAR can remain an internal application/bootstrap component, but cannot itself be the zero-prerequisite launcher.
 
 **Advantages**
 - Preserves the requested JAR entry point.
@@ -40,9 +42,9 @@ The JAR acts as the user-facing bootstrapper. It validates the host, creates an 
 - The Python embeddable distribution does not include pip. Its third-party packages should be treated as application-vendored content; a prebuilt, versioned dependency bundle is preferable to runtime pip installation.
 - Initial setup requires network access unless a complete offline bundle is separately distributed.
 
-### B. Native Windows package with bundled Java/Python runtimes
+### B. Java executable JAR + external Java prerequisite
 
-Use a Windows-native launcher/package (for example, a self-contained application image or installer) and include the required Java runtime and managed Python runtime.
+Distribute the executable JAR and privately provision Python, but require the target PC to already have a supported Java runtime.
 
 **Advantages**
 - Can avoid requiring Java to be installed by the user.
@@ -53,7 +55,7 @@ Use a Windows-native launcher/package (for example, a self-contained application
 - Produces a Windows-specific artifact and changes the user-facing distribution contract.
 - Must be built and validated on Windows; macOS would require a separate package pipeline later.
 
-### C. Ask the user to install Python and dependencies
+### C. Ask the user to install Java and/or Python and dependencies
 
 Rejected. It contradicts the Phase 4 goal of removing manual Python, virtual-environment, pip, and PATH setup.
 
@@ -108,10 +110,10 @@ The exact CPython patch version, Java vendor/build, dependency lock, and bundle 
 
 ## Open decisions requiring user approval
 
-1. **Java prerequisite:** Is requiring Java 21 x64 to be installed acceptable while keeping the single-JAR requirement, or should the user-facing artifact eventually become a self-contained Windows EXE/installer?
+1. **User-facing artifact:** Do you approve changing the literal single-JAR download to one self-contained Windows EXE/installer/package that bundles Java and Python, while optionally retaining the JAR internally? This is the only proposed path here that meets the clean-PC requirement.
 2. **Windows 10:** Should Windows 10 x64 be a supported target, or should Phase 4 formally support Windows 11 x64 only?
 3. **Initial setup:** Is an internet connection acceptable for first-time runtime provisioning, with offline installation considered as a later enhancement?
 
 ## Consequences
 
-No runtime, dependency, packaging, signing, or deployment implementation should begin until this ADR is reviewed and approved. Phase 4 remains an evolving release milestone; this decision does not limit later MALE enhancements or future macOS support.
+No runtime, dependency, packaging, signing, or deployment implementation should begin until this revised ADR and the user-facing artifact decision are reviewed and approved. Phase 4 remains an evolving release milestone; this decision does not limit later MALE enhancements or future macOS support.
