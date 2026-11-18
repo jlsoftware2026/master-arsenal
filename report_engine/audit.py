@@ -92,6 +92,9 @@ def build_skills_audit_pdf(report: dict[str, Any], output_directory: Path | str)
     if (not isinstance(artifacts, list) or not isinstance(opportunity_artifacts, list)
             or not isinstance(findings, list)):
         raise ValueError("artifacts, opportunity_artifacts, and findings must be lists")
+    if any(not isinstance(item, dict) for item in findings):
+        raise ValueError("Every audit finding must be a structured object")
+    rendered_findings_count = len(findings)
     styles = report_styles()
     verified = sum(1 for item in artifacts if isinstance(item, dict) and item.get("qa_status") == "passed")
     unverified = len(artifacts) - verified
@@ -110,6 +113,7 @@ def build_skills_audit_pdf(report: dict[str, Any], output_directory: Path | str)
             ["Informes de mercado encontrados", str(len(artifacts))],
             ["Informes que superan QA estructural", str(verified)],
             ["Informes no verificados o fallidos", str(unverified)],
+            ["Hallazgos registrados en este informe", str(rendered_findings_count)],
             ["Informes de oportunidad encontrados", str(len(opportunity_artifacts))],
             ["Auditoría de oportunidades", _status_es(report.get("opportunity_audit_status", "not_exercised"))],
             ["Estado estructural", status],
@@ -205,7 +209,7 @@ def build_skills_audit_pdf(report: dict[str, Any], output_directory: Path | str)
             styles["body"],
         ))
     if findings:
-        story.append(section_heading("Hallazgos", styles))
+        story.append(section_heading(f"Hallazgos ({rendered_findings_count})", styles))
         rows = []
         for item in findings:
             if not isinstance(item, dict):
@@ -362,10 +366,13 @@ def build_skills_audit_pdf(report: dict[str, Any], output_directory: Path | str)
             story.append(paragraph("Test evidence was supplied but contained no usable records.", styles["body"]))
     else:
         story.append(paragraph(
-            "No se suministró un manifiesto de ejecución de CI a esta auditoría local. El estado de las pruebas unitarias offline, "
+            "No se suministró evidencia verificable de CI para el commit exacto. El estado de las pruebas unitarias offline, "
             "el estado de Binance en vivo y el estado en vivo de los proveedores RSS NO ESTÁN VERIFICADOS aquí.",
             styles["body"],
         ))
+    scope_note = report.get("test_evidence_scope_note")
+    if isinstance(scope_note, str) and scope_note.strip():
+        story.append(paragraph(scope_note, styles["body"]))
     story.extend([
         section_heading("Límites de verificación", styles),
         paragraph(
