@@ -10,7 +10,8 @@ class DefaultWorkspacePathTests(unittest.TestCase):
             {"LOCALAPPDATA": r"C:\Users\Example\AppData\Local"}, platform="nt"
         )
         self.assertEqual(
-            result, Path(r"C:\Users\Example\AppData\Local\MASTER-ARSENAL\workspace")
+            str(result).replace("/", "\\"),
+            r"C:\Users\Example\AppData\Local\MASTER-ARSENAL\workspace",
         )
 
     def test_windows_workspace_has_home_fallback(self):
