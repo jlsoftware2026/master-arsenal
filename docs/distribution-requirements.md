@@ -11,14 +11,23 @@ The existing executable JAR may be retained as an internal component, but it is 
 
 The Windows package must:
 - Detect and validate the operating system, architecture, available disk space, and package integrity before installation or launch.
+- Support Windows 10 22H2 x64 and Windows 11 x64, subject to the clean-machine validation matrix and documented edition/build limits.
 - Bundle a supported Java 21 x64 runtime and a private, pinned Windows x64 CPython runtime with a complete prebuilt dependency bundle.
 - Avoid invoking pip on the user's PC.
 - Verify runtime/dependency artifacts using reviewed SHA-256 manifests and publisher signatures where available before extraction or execution.
 - Use managed, versioned application directories and keep reports, evidence, settings, and logs in persistent user-data storage outside replaceable application files.
 - Support safe, repeatable upgrades and rollback without deleting user data or silently downgrading dependencies.
-- Produce clear, actionable diagnostics when installation, integrity checks, runtime initialization, or startup fails.
+- Produce clear, actionable diagnostics when installation, integrity checks, runtime initialization, startup, or network access fails.
 - Start MALE only after runtime, dependency, and application integrity checks succeed.
 - Pass clean-machine validation on supported Windows x64 environments with neither Java nor Python preinstalled.
+
+## Connectivity requirements
+
+- Internet connectivity is required for live market-data acquisition, current market snapshots, and workflows that depend on external data providers.
+- The application must detect and clearly report unavailable network access, DNS/TLS failures, rate limits, timeouts, and provider outages.
+- A network/provider failure must never be represented as a successful live-data result or silently replaced with fabricated, stale, or incomplete data.
+- Local functions that do not require a provider may remain available offline where practical; the UI/CLI must distinguish local engine health from live-provider connectivity.
+- The installer/package should bundle Java, Python, and pinned dependencies. Users should not need internet access merely to compensate for missing runtimes or to run pip on first launch. Internet is required when MALE performs live research and when it retrieves updates or remote data.
 
 ## Data and privacy boundary
 
@@ -33,10 +42,10 @@ The Windows package must:
 ## Architecture and platform boundary
 
 - The implementation is Python-first today; Java is used only where justified by the approved Windows launcher/package architecture.
-- Windows 11 x64 is the initial supported platform.
-- Windows 10 x64 remains a compatibility candidate pending explicit support decision and clean-machine validation.
+- Supported target platforms for Phase 4: Windows 10 22H2 x64 and Windows 11 x64, subject to clean-machine validation.
 - macOS, Linux, ARM64, and 32-bit Windows are outside Phase 4 acceptance. macOS may be considered in a future milestone.
-- Exact Java/Python builds, dependency versions, packaging technology, signing process, update channel, and online/offline installation behavior must be documented and tested before release.
+- Exact Java/Python builds, dependency versions, packaging technology, signing process, update channel, and provider/network behavior must be documented and tested before release.
+- Windows 10 support does not imply that MALE extends Microsoft's operating-system security servicing; users remain responsible for their Windows servicing and security status.
 - OpenJarvis integration and planned Pro upgrades remain future roadmap items.
 
 ## Scope separation
