@@ -12,17 +12,19 @@ Turn the existing Python-first MASTER ARSENAL / MASTER ARSENAL Local Engine (MAL
 
 The existing executable JAR may remain an internal component, but it is not the user-facing launch artifact.
 
+Phase 4 targets Windows 10 22H2 x64 and Windows 11 x64, subject to clean-machine compatibility validation. Live market research and provider-dependent workflows require internet connectivity. The application must diagnose network/provider failures and must never fabricate or silently substitute missing live data.
+
 Phase 4 is a release-readiness milestone, not the end of MASTER ARSENAL development. MALE must remain modular and upgradeable after this phase.
 
 ## Scope
 
 ### P4.1 — Technical design and platform contract
 
-- Specify supported Windows operating systems and CPU architectures.
+- Specify supported Windows operating systems and CPU architectures, targeting Windows 10 22H2 x64 and Windows 11 x64.
 - Implement the accepted self-contained Windows package architecture recorded in ADR-0001.
 - Select exact Java/Python runtime builds and dependency pins after compatibility, security, and licensing review.
 - Define runtime and dependency pinning, artifact provenance, checksum/signature verification, and failure behavior.
-- Define online/offline installation behavior and network failure handling.
+- Define network requirements for live data, provider timeouts, retry/backoff, and user-facing offline diagnostics.
 - Define managed application directories, persistent user-data directories, logs, reports, evidence, settings, and upgrade/rollback boundaries.
 
 ### P4.2 — Self-contained Windows launcher/package
@@ -45,16 +47,18 @@ Phase 4 is a release-readiness milestone, not the end of MASTER ARSENAL developm
 
 ### P4.4 — Diagnostics and operational reliability
 
-- Provide actionable diagnostics for unsupported platforms, insufficient disk space, network failures, integrity failures, and startup errors.
+- Provide actionable diagnostics for unsupported platforms, insufficient disk space, network failures, provider outages, integrity failures, and startup errors.
 - Record version and runtime/dependency provenance in diagnostics without exposing secrets or private account data.
 - Make startup and upgrade operations idempotent where practical.
 - Ensure failures do not corrupt existing user data or leave the application in a falsely healthy state.
+- Distinguish local engine health from live-provider connectivity: an offline health check may pass while live market acquisition is unavailable.
 
 ### P4.5 — Integration, security, and release validation
 
 - Add deterministic tests for bootstrap decisions, platform detection, artifact verification, dependency pinning, data-directory isolation, upgrades, rollback, and failure paths.
-- Add Windows CI for the declared supported OS/architecture matrix.
-- Add an end-to-end smoke test that starts the packaged application on a clean Windows machine with neither Java nor Python installed and runs a harmless read-only MALE workflow.
+- Add Windows CI for Windows 10 22H2 x64 and Windows 11 x64 compatibility where runners permit; supplement hosted CI with clean-machine VM evidence when runner images do not match the exact supported baseline.
+- Add an end-to-end smoke test that starts the packaged application on clean Windows machines with neither Java nor Python installed and runs a harmless read-only MALE workflow.
+- Test live market-data acquisition with internet access and safe, explicit failure behavior without connectivity.
 - Publish a release manifest with artifact hashes, runtime/dependency versions, provenance, supported platforms, and known limitations.
 
 ## Explicit exclusions and preserved boundaries
@@ -69,24 +73,26 @@ Phase 4 is a release-readiness milestone, not the end of MASTER ARSENAL developm
 
 ## Delivery sequence and gates
 
-1. **Design gate:** ADR-0001 records the approved self-contained Windows distribution contract. Exact runtime versions, licensing, and installation behavior must be settled before release packaging is finalized.
-2. **Packaging prototype gate:** build the smallest Windows package with bundled runtimes; prove artifact verification and clean-machine startup.
+1. **Design gate:** ADR-0001 records the approved self-contained Windows distribution contract, Windows 10/11 targets, and internet requirements for live research. Exact runtime versions and licensing must be settled before release packaging is finalized.
+2. **Packaging prototype gate:** build the Windows package with bundled runtimes; prove artifact verification and clean-machine startup on both target OS families.
 3. **Data-safety gate:** prove persistent-data isolation, repeatable upgrades, and rollback/failure safety.
-4. **Release gate:** pass the supported-Windows CI matrix and clean-environment end-to-end smoke tests; publish a verifiable release manifest.
+4. **Connectivity gate:** prove live market acquisition when connected and clear, safe behavior when offline or providers fail.
+5. **Release gate:** pass the supported-Windows CI/VM matrix and clean-environment end-to-end smoke tests; publish a verifiable release manifest.
 
 Each gate must have explicit tests and evidence. A passing offline unit suite alone does not establish clean-machine launchability or live-provider availability.
 
 ## Acceptance criteria
 
 - A single self-contained Windows EXE/installer/application package is the user's download and launch entry point; the existing JAR may be included internally.
-- On each declared supported Windows x64 environment, a clean machine can launch MALE without a manually installed Java or Python runtime, pip, or manual PATH setup.
+- On clean Windows 10 22H2 x64 and Windows 11 x64 environments, MALE launches without a manually installed Java or Python runtime, pip, or manual PATH setup.
 - Every bundled or provisioned runtime/dependency artifact is pinned and integrity-verified before execution.
+- Live market-data workflows require internet connectivity; network/provider failures are explicit and cannot result in fabricated or falsely complete data.
 - Reports, evidence, settings, and logs survive application upgrades.
 - Upgrade, rollback, and startup failures are diagnosable and do not silently damage persistent user data.
-- The packaged application passes the Windows automated tests and a clean-machine end-to-end smoke test.
+- The packaged application passes automated Windows tests and clean-machine end-to-end smoke tests for both target OS families.
 - The release manifest identifies exact artifact hashes, runtime/dependency versions, provenance, supported platforms, and limitations.
 - All existing pre-investment, read-only, evidence-provenance, and no-fabrication safeguards remain intact.
 
 ## Initial implementation status
 
-Phase 4 architecture approval is recorded in ADR-0001. The accepted user-facing artifact is a self-contained Windows EXE/installer/application package bundling Java and Python. This plan records the revised delivery contract; it does not claim that packaging, runtime bundling, signing, or deployment has already been implemented. Those are the implementation and validation work remaining in Phase 4.
+Phase 4 architecture approval is recorded in ADR-0001. The accepted user-facing artifact is a self-contained Windows EXE/installer/application package bundling Java and Python, targeting Windows 10 22H2 x64 and Windows 11 x64. Live research requires internet connectivity. This plan records the revised delivery contract; it does not claim that packaging, runtime bundling, signing, or deployment has already been implemented. Those are the implementation and validation work remaining in Phase 4.
