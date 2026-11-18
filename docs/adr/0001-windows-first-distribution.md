@@ -12,7 +12,7 @@ MASTER ARSENAL is currently a Python application with the Binance Data Engine, L
 
 A JAR alone cannot meet this requirement: a JVM must already be running before Java code inside the JAR can execute. The user approved replacing the literal single-JAR download requirement with one self-contained Windows EXE/installer/application package that bundles the Python runtime and all application dependencies. The current repository contains no Java source tree or JAR dependency. The user-facing package therefore does not bundle Java in this prototype; a Java runtime will be added only if a concrete Java component is introduced and its inclusion is justified.
 
-The developer's current machine has Java and Python installed. Those installations are useful for development and testing, but must not be treated as end-user prerequisites.
+The developer's machine may have Java and Python installed for unrelated projects. Those installations are not dependencies of the current MALE codebase and must not be treated as end-user prerequisites.
 
 The application is an internet-connected research tool. Live market research, public-provider acquisition, current market snapshots, and update checks require network connectivity. The user explicitly confirmed that the product is not intended to perform live research without internet access. This does not mean the installer should download or install runtimes dynamically: the selected package should bundle its pinned runtimes and dependencies so the application does not rely on a separate Java/Python installation or pip-based first-run provisioning.
 
@@ -36,7 +36,7 @@ This approval resolves the user-facing artifact and target-OS decisions. It does
 
 ## Decision drivers
 
-1. Provide a zero-prerequisite Windows user experience: no preinstalled Java, Python, pip, or manual PATH configuration.
+1. Provide a zero-prerequisite Windows user experience: no preinstalled Python, pip, or manual PATH configuration; Java is not required by the current application.
 2. Support both Windows 10 22H2 x64 and Windows 11 x64, verified on clean environments.
 3. Preserve the Python-first application workflow without making developer-machine installations runtime dependencies.
 4. Keep the bundled Python runtime and application dependencies private to the application package or managed runtime.
@@ -57,7 +57,7 @@ A native Windows launcher/installer or self-contained Windows application packag
 - Provides one straightforward Windows download and launch experience.
 - Keeps Python isolated from system Python installations and PATH.
 - Allows runtime and application upgrades to be staged and verified before activation.
-- Fits the existing Python-first architecture while retaining the option to use the JAR internally.
+- Fits the existing Python-first architecture and leaves room for a future Java component without shipping an unused runtime today.
 
 **Costs / risks**
 - Requires a Windows-specific packaging and release pipeline.
@@ -81,7 +81,7 @@ This contradicts the Phase 4 goal of removing manual runtime, virtual-environmen
 
 ## Implementation direction
 
-- The user downloads and launches one Windows package; neither Java nor Python needs to be installed manually.
+- The user downloads and launches one Windows package; no Java or Python installation is required.
 - Bundle a private, pinned Windows x64 CPython runtime plus a complete prebuilt dependency bundle; do not bundle Java unless a Java component is added.
 - Do not invoke pip on the user's machine.
 - Build the Python runtime/dependency bundle in controlled Windows CI. Include a machine-readable lock/manifest with exact versions, artifact origins, SHA-256 digests, and build provenance.
