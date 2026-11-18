@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 from .client import BinanceAPIError, BinancePublicClient
 from .engine import CORE_SYMBOLS, build_snapshot
+from .paths import default_snapshot_output
 
 def build_parser():
     parser=argparse.ArgumentParser(prog="ma-binance",description="MASTER ARSENAL read-only Binance engine")
@@ -16,7 +17,7 @@ def build_parser():
     snap.add_argument("--limit",type=int,default=250)
     snap.add_argument("--market",choices=("spot","usdm"),default="spot")
     snap.add_argument("--no-derivatives",action="store_true")
-    snap.add_argument("--output",type=Path,default=Path("snapshot.json"))
+    snap.add_argument("--output", type=Path, default=default_snapshot_output())
     return parser
 
 def main(argv=None):
