@@ -1,6 +1,6 @@
 {
   "source": "User-supplied Claude .skill archives uploaded in the MASTER ARSENAL conversation on 2026-11-16",
-  "note": "Archive and extracted SKILL.md SHA-256 values were computed directly from the uploaded original files. The original ZIP payloads are not embedded in this repository, so a later runtime audit can report the recorded hashes and verify adapted-skill identity, but cannot independently recompute the original archive hashes.",
+  "note": "The exact original .skill ZIP packages are preserved in artifacts/original-skills/. Runtime audit recalculates each archive SHA-256 and byte count, validates the exact ZIP member list, and recalculates the embedded SKILL.md SHA-256 and byte count.",
   "packages": [
     {
       "name": "binance-apertura-mercado",
@@ -12,7 +12,7 @@
       ],
       "source_skill_sha256": "69b274603b0de37f506f8c4d117768afd63c281ee00922fd69d33312eaa349a5",
       "source_skill_bytes": 6518,
-      "repository_payload": "not_embedded"
+      "repository_payload": "artifacts/original-skills/binance-apertura-mercado.skill"
     },
     {
       "name": "binance-cierre-mercado",
@@ -24,7 +24,7 @@
       ],
       "source_skill_sha256": "3f359345c1b2c47af1bcebaf9a0c40bd5ff4ffdd52d8fe7a4d9b0ba925f40f15",
       "source_skill_bytes": 6087,
-      "repository_payload": "not_embedded"
+      "repository_payload": "artifacts/original-skills/binance-cierre-mercado.skill"
     },
     {
       "name": "binance-momento-mercado",
@@ -36,7 +36,7 @@
       ],
       "source_skill_sha256": "ee91f6821ac8adc3ddf2b30cd63ef160bd7577003fd1e6e4a7b2889652079669",
       "source_skill_bytes": 6138,
-      "repository_payload": "not_embedded"
+      "repository_payload": "artifacts/original-skills/binance-momento-mercado.skill"
     },
     {
       "name": "binance-revision-skills",
@@ -48,7 +48,7 @@
       ],
       "source_skill_sha256": "1d6f1eb598a88ca5e577e830041a27715e43baad968b4f9ee56b2c44fc71bed7",
       "source_skill_bytes": 12730,
-      "repository_payload": "not_embedded"
+      "repository_payload": "artifacts/original-skills/binance-revision-skills.skill"
     }
   ]
 }
