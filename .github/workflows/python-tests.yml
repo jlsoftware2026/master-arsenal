@@ -29,6 +29,6 @@ jobs:
       - name: Run Binance data engine unit tests
         run: python -m unittest discover -s binance_data_engine/tests -v
       - name: Run Local Engine unit tests
-        run: python -m unittest discover -s local_engine/tests -p 'test_local_engine.py' -v
+        run: python -m unittest discover -s local_engine/tests -v
       - name: Run PDF report engine unit tests
         run: python -m unittest discover -s report_engine/tests -v
