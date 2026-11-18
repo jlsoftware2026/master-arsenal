@@ -430,6 +430,25 @@ class LocalEngineTests(unittest.TestCase):
         self.assertEqual(record["result"]["format"], "pdf")
 
 
+    def test_audit_treats_absent_account_csv_as_not_applicable(self):
+        job = self._approved_job("market.opening_report", {
+            "session_date_local": "2026-11-12", "interval": "1h", "market": "spot"
+        })
+        with patch("local_engine.runtime.BinancePublicClient", return_value=FakeBinanceClient()), \\
+             patch("report_engine.session_acquisition.collect_market_context", return_value={
+                 "macro_context": "No macro items.", "news": "No news items.",
+                 "macro_sources": [], "news_sources": [], "context_status": "complete",
+                 "context_limitations": "Fixture context only.",
+             }), patch("report_engine.session_acquisition.collect_us_market_snapshot", side_effect=fake_us_market_snapshot):
+            report_result = JobRunner(self.manager).run(job["job_id"])
+        self.assertEqual(report_result["status"], "completed", report_result)
+
+        audit_job = self._approved_job("skills.audit")
+        audit_result = JobRunner(self.manager).run(audit_job["job_id"])
+        self.assertEqual(audit_result["status"], "completed", audit_result)
+        self.assertEqual(audit_result["result"]["account_export_status"], "not_applicable")
+        self.assertEqual(audit_result["result"]["account_export_findings"], [])
+
     def test_opening_and_closing_jobs_generate_pdf_after_approval(self):
         account_export_directory = self.manager.workspace.directory("data/account_exports")
         (account_export_directory / "transaction-history.csv").write_text(
