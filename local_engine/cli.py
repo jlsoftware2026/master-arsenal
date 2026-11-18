@@ -6,13 +6,14 @@ import json
 import sys
 from pathlib import Path
 
+from .paths import default_workspace
 from .protocol import JobValidationError, new_job
 from .runtime import JobManager, JobRunner, Workspace
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="ma-local", description="MASTER ARSENAL Local Engine")
-    parser.add_argument("--workspace", type=Path, default=Path("MASTER-ARSENAL-LOCAL"))
+    parser.add_argument("--workspace", type=Path, default=default_workspace())
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("init", help="initialize the workspace")
     create = sub.add_parser("new-job", help="write a sample job JSON")
@@ -41,7 +42,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "new-job":
             job = new_job(args.job_type)
             args.output.parent.mkdir(parents=True, exist_ok=True)
-            args.output.write_text(json.dumps(job, indent=2) + "\n", encoding="utf-8")
+            args.output.write_text(json.dumps(job, indent=2) + "\\n", encoding="utf-8")
             print(f"Job template created: {args.output} (approval required)")
             return 0
         manager = JobManager(Workspace(args.workspace))
