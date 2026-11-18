@@ -1,0 +1,98 @@
+name: Windows packaging prototype
+
+on:
+  push:
+    branches: [develop, feature/phase-4-distribution-foundation]
+    paths:
+      - "binance_data_engine/**"
+      - "local_engine/**"
+      - "report_engine/**"
+      - "packaging/windows/**"
+      - "pyproject.toml"
+      - ".github/workflows/windows-package.yml"
+  pull_request:
+    branches: [develop]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    name: Package and smoke test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2022, windows-2025]
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Build self-contained application folders
+        shell: pwsh
+        run: .\packaging\windows\build.ps1
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup --yes --no-progress
+
+      - name: Compile single-download installer
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist\installer | Out-Null
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "packaging\windows\MASTER-ARSENAL.iss"
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup compilation failed." }
+
+      - name: Install and verify packaged application
+        shell: pwsh
+        run: |
+          $Installer = Get-ChildItem dist\installer\*.exe | Select-Object -First 1
+          if (-not $Installer) { throw "Installer artifact was not created." }
+          $InstallDir = Join-Path $env:TEMP "MASTER-ARSENAL-package-smoke"
+          if (Test-Path $InstallDir) { Remove-Item $InstallDir -Recurse -Force }
+          Start-Process -FilePath $Installer.FullName -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/DIR=$InstallDir" -Wait
+          $LocalExe = Join-Path $InstallDir "ma-local\ma-local.exe"
+          $BinanceExe = Join-Path $InstallDir "ma-binance\ma-binance.exe"
+          if (-not (Test-Path $LocalExe) -or -not (Test-Path $BinanceExe)) { throw "Installed executables are missing." }
+          & $LocalExe --help
+          if ($LASTEXITCODE -ne 0) { throw "Installed Local Engine help failed." }
+          & $BinanceExe --help
+          if ($LASTEXITCODE -ne 0) { throw "Installed Binance help failed." }
+          & $LocalExe init
+          if ($LASTEXITCODE -ne 0) { throw "Installed default workspace initialization failed." }
+          $PersistentWorkspace = Join-Path $env:LOCALAPPDATA "MASTER-ARSENAL\workspace"
+          if (-not (Test-Path (Join-Path $PersistentWorkspace "jobs\inbox"))) { throw "Persistent workspace was not initialized." }
+          & (Join-Path $InstallDir "unins000.exe") /VERYSILENT
+          if ($LASTEXITCODE -ne 0) { throw "Silent uninstall failed." }
+          if (Test-Path $InstallDir) { throw "Uninstall left the application installation directory behind." }
+          if (-not (Test-Path (Join-Path $PersistentWorkspace "jobs\inbox"))) { throw "Uninstall removed persistent user data." }
+
+      - name: Generate installer SHA-256 manifest
+        shell: pwsh
+        run: |
+          $Installer = Get-ChildItem dist\installer\*.exe | Select-Object -First 1
+          $Hash = (Get-FileHash $Installer.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+          @(
+            "{"
+            '  "artifact": "' + $Installer.Name + '",'
+            '  "sha256": "' + $Hash + '",'
+            '  "runner": "' + '${{ matrix.os }}' + '",'
+            '  "python": "3.11",'
+            '  "packaging": "PyInstaller 6.11.1 + Inno Setup 6"'
+            "}"
+          ) | Set-Content dist\installer\SHA256-manifest.json -Encoding utf8
+
+      - name: Upload Windows installer prototype
+        uses: actions/upload-artifact@v4
+        with:
+          name: MASTER-ARSENAL-Windows-${{ matrix.os }}
+          path: dist/installer/*
+          if-no-files-found: error
+          retention-days: 14
