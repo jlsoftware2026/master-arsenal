@@ -1047,9 +1047,10 @@ class JobRunner:
                   if language_parity_ok else "No hay evidencia de QA para los tres tipos de informe con marcadores de contenido en español.",
                   "Generar y auditar de forma independiente los PDF de apertura, cierre e intradía; mantener títulos, secciones, tablas y avisos en español."),
             check("SKILL-01", "Metadatos y estructura ZIP de los paquetes originales",
-                  "not_verified" if source_skill_integrity["status"] == "not_verified" else "failed", "Alto",
-                  "Los hashes del archivo original y del SKILL.md están registrados, pero el contenido ZIP original no está almacenado en el repositorio.",
-                  "Conservar los archivos originales exactos en un repositorio controlado de artefactos y volver a validar sus miembros y hashes."),
+                  source_skill_integrity["status"], "Alto",
+                  "Los cuatro paquetes ZIP originales están versionados; se recalcularon sus SHA-256 y los hashes/tamaños de sus SKILL.md internos."
+                  if source_skill_integrity["status"] == "passed" else "; ".join(source_skill_integrity["findings"]),
+                  "Mantener versionados los paquetes .skill originales y recalcular sus hashes, tamaños y miembros ZIP en cada auditoría."),
             check("SKILL-02", "Identidad de adaptaciones y compatibilidad Local Engine/PDF",
                   source_skill_integrity.get("adaptation_status", "failed"), "Alto",
                   "Los cuatro archivos adaptados conservan la identidad esperada y el contrato Local Engine/PDF."
@@ -1141,10 +1142,10 @@ class JobRunner:
                   "Conservar el manifiesto de apertura de la misma fecha y regenerar el cierre para conciliar los rangos observados."),
             check("PKG-01", "Integridad de paquetes originales e historial de versiones",
                   source_skill_integrity["status"],
-                  "Medio" if source_skill_integrity["status"] == "not_verified" else "Alto",
-                  "Las cuatro Skills adaptadas tienen la identidad esperada; los hashes de los archivos originales están registrados, pero los ZIP no están incluidos."
-                  if source_skill_integrity["status"] == "not_verified" else "; ".join(source_skill_integrity["findings"]),
-                  "Incorporar los archivos .skill originales exactos o aportar un artefacto de origen verificable para recalcular sus hashes."),
+                  "Medio" if source_skill_integrity["status"] == "passed" else "Alto",
+                  "Los cuatro paquetes .skill originales y sus SKILL.md internos superaron la verificación de hash, tamaño y estructura."
+                  if source_skill_integrity["status"] == "passed" else "; ".join(source_skill_integrity["findings"]),
+                  "Conservar los paquetes originales sin modificarlos y mantener actualizado el manifiesto de hashes y versiones."),
             check("CI-01", "Evidencia CI multiplataforma del commit auditado",
                   ci_evidence["status"], "Alto",
                   (f"Repositorio: {ci_evidence.get('repository')}; commit: {ci_evidence.get('commit_sha')}; "
