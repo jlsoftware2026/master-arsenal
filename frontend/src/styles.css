@@ -548,3 +548,43 @@ h2 { margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -.025em; }
   .report-sections { grid-template-columns: minmax(0,1fr); }
   .opening-session-title { align-items: flex-start; }
 }
+
+
+/* Opening Analysis typography refinement: improve readability without changing layout hierarchy. */
+.opening-session-title { font-size: 12px; }
+.opening-session-title strong { font-size: 14px; }
+.opening-filters label > span { font-size: 9px; }
+.opening-filters select { font-size: 12px; }
+.opening-tab { font-size: 12px; }
+.opening-stat-card > span { font-size: 9px; }
+.opening-stat-card strong { font-size: 19px; }
+.opening-stat-card strong.pending-value { font-size: 15px; }
+.opening-stat-card small { font-size: 11px; }
+.data-pending { font-size: 9px; }
+.session-chart-y { font-size: 9px; }
+.session-chart-empty b { font-size: 12px; }
+.session-chart-empty small { font-size: 9px; }
+.session-chart-x { font-size: 8px; }
+.session-legend { font-size: 9px; }
+.brief-empty-state b { font-size: 13px; }
+.brief-empty-state p { font-size: 11px; }
+.brief-checklist > div, .signal-list > div { font-size: 11px; }
+.indicator-matrix > div { font-size: 11px; }
+.opening-detail-copy { font-size: 12px; }
+.technical-card > span { font-size: 11px; }
+.technical-card strong { font-size: 21px; }
+.technical-card small { font-size: 9px; }
+.opening-empty-block b { font-size: 12px; }
+.opening-empty-block small { font-size: 11px; }
+.scenario-cards article b { font-size: 12px; }
+.scenario-cards article small { font-size: 11px; }
+.report-preview b { font-size: 12px; }
+.report-preview small { font-size: 11px; }
+.report-sections > div { font-size: 11px; }
+.report-sections > div > span:first-child { font-size: 9px; }
+
+@media (max-width: 480px) {
+  .opening-session-title { font-size: 11px; }
+  .opening-stat-card strong { font-size: 18px; }
+  .opening-stat-card strong.pending-value { font-size: 14px; }
+}
