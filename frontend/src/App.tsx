@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import {
   Activity,
@@ -13,11 +14,13 @@ import {
   FileText,
   LayoutDashboard,
   LineChart,
+  Menu,
   Search,
   Settings2,
   ShieldCheck,
   Sparkles,
   Waves,
+  X,
   Zap,
 } from "lucide-react";
 import { formatCompactNumber } from "./lib/formatters.js";
@@ -68,17 +71,64 @@ function MetricCard({ metric }: { metric: Metric }) {
   );
 }
 
-const formattedToday = new Intl.DateTimeFormat("en-US", {
-  weekday: "long",
-  month: "long",
-  day: "numeric",
-  year: "numeric",
-}).format(new Date()).toUpperCase();
+function LocalDateTime() {
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => setNow(new Date()), 1000);
+    return () => window.clearInterval(intervalId);
+  }, []);
+
+  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const date = new Intl.DateTimeFormat(undefined, {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+    timeZone,
+  }).format(now);
+  const time = new Intl.DateTimeFormat(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    timeZone,
+  }).format(now);
+  const zoneLabel = new Intl.DateTimeFormat(undefined, {
+    timeZone,
+    timeZoneName: "short",
+  }).formatToParts(now).find((part) => part.type === "timeZoneName")?.value;
+
+  return (
+    <div className="local-datetime" aria-label={`Local time: ${date}, ${time}, ${timeZone}`}>
+      <span className="local-date">{date.toUpperCase()}</span>
+      <span className="datetime-separator" aria-hidden="true">|</span>
+      <time className="local-time">{time}</time>
+      <span className="timezone-label">{timeZone.replaceAll("_", " ")} · {zoneLabel}</span>
+    </div>
+  );
+}
 
 export default function App() {
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const toggleNavigation = () => {
+    if (window.matchMedia("(max-width: 760px)").matches) {
+      setMobileMenuOpen((open) => !open);
+    } else {
+      setSidebarCollapsed((collapsed) => !collapsed);
+    }
+  };
+
   return (
-    <div className="app-shell">
-      <aside className="sidebar">
+    <div className={`app-shell ${sidebarCollapsed ? "sidebar-collapsed" : ""} ${mobileMenuOpen ? "mobile-menu-open" : ""}`}>
+      <button
+        className="sidebar-backdrop"
+        aria-label="Close navigation menu"
+        tabIndex={mobileMenuOpen ? 0 : -1}
+        onClick={() => setMobileMenuOpen(false)}
+      />
+      <aside className={`sidebar ${mobileMenuOpen ? "mobile-open" : ""}`}>
         <a className="brand" href="#" aria-label="MASTER ARSENAL home">
           <span className="brand-mark">M</span>
           <span className="brand-name">MASTER <b>ARSENAL</b><small>TRADING INTELLIGENCE</small></span>
@@ -118,6 +168,9 @@ export default function App() {
 
       <main className="main-area">
         <header className="topbar">
+          <button className="menu-toggle icon-button" onClick={toggleNavigation} aria-label={mobileMenuOpen ? "Close navigation" : "Toggle navigation"} aria-expanded={mobileMenuOpen}>
+            {mobileMenuOpen ? <X size={19} /> : <Menu size={19} />}
+          </button>
           <div className="breadcrumbs"><span>Workspace</span><span className="crumb-separator">/</span><strong>Dashboard</strong></div>
           <div className="topbar-actions">
             <span className="environment-tag"><span /> DEMO ENVIRONMENT</span>
@@ -130,7 +183,7 @@ export default function App() {
         <div className="page-content">
           <section className="page-heading">
             <div>
-              <p className="eyebrow">{formattedToday}</p>
+              <LocalDateTime />
               <h1>Good morning<span>.</span></h1>
               <p className="page-subtitle">Your Trading Intelligence command center.</p>
             </div>
