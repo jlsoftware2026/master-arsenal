@@ -13,6 +13,7 @@ import {
   ClipboardCheck,
   Code2,
   FileCheck2,
+  GitBranch,
   Layers3,
   LockKeyhole,
   RefreshCw,
