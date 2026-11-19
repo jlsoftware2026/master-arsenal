@@ -8,6 +8,12 @@ import {
   BookOpen,
   BriefcaseBusiness,
   CheckCircle2,
+  CalendarDays,
+  CandlestickChart,
+  Gauge,
+  Newspaper,
+  Target,
+  TrendingUp,
   ChevronDown,
   CircleHelp,
   Clock3,
@@ -127,6 +133,108 @@ function LocalDateTime() {
   );
 }
 
+
+type OpeningTab = "overview" | "technical" | "derivatives" | "macro" | "scenarios" | "report";
+
+const openingTabs: { id: OpeningTab; label: string; icon: typeof Activity }[] = [
+  { id: "overview", label: "Overview", icon: LayoutDashboard },
+  { id: "technical", label: "Technical", icon: CandlestickChart },
+  { id: "derivatives", label: "Derivatives", icon: Gauge },
+  { id: "macro", label: "Macro & News", icon: Newspaper },
+  { id: "scenarios", label: "Scenarios", icon: Target },
+  { id: "report", label: "Report", icon: FileText },
+];
+
+function DataPending({ label = "Awaiting market data" }: { label?: string }) {
+  return <span className="data-pending"><span />{label}</span>;
+}
+
+function OpeningAnalysis() {
+  const [activeTab, setActiveTab] = useState<OpeningTab>("overview");
+  const [selectedMarket, setSelectedMarket] = useState("Binance Spot");
+  const [selectedAsset, setSelectedAsset] = useState("BTCUSDT");
+
+  return (
+    <div className="opening-workspace">
+      <section className="opening-commandbar">
+        <div className="opening-context">
+          <span className="section-kicker">PREVIOUS COMPLETED SESSION</span>
+          <div className="opening-session-title"><CalendarDays size={17} /><strong>Opening preparation</strong><span className="session-separator">/</span><span>Session reference pending</span></div>
+        </div>
+        <div className="opening-filters">
+          <label><span>MARKET</span><select value={selectedMarket} onChange={(event) => setSelectedMarket(event.target.value)}><option>Binance Spot</option><option>Binance Futures</option></select></label>
+          <label><span>REFERENCE ASSET</span><select value={selectedAsset} onChange={(event) => setSelectedAsset(event.target.value)}><option>BTCUSDT</option><option>ETHUSDT</option><option>BNBUSDT</option><option>SOLUSDT</option></select></label>
+        </div>
+      </section>
+
+      <div className="opening-tabs" role="tablist" aria-label="Opening analysis sections">
+        {openingTabs.map((tab) => {
+          const Icon = tab.icon;
+          return <button key={tab.id} type="button" role="tab" aria-selected={activeTab === tab.id} className={activeTab === tab.id ? "opening-tab active" : "opening-tab"} onClick={() => setActiveTab(tab.id)}><Icon size={15} /><span>{tab.label}</span></button>;
+        })}
+      </div>
+
+      {activeTab === "overview" && <>
+        <section className="opening-status-grid">
+          <article className="opening-stat-card"><span>REFERENCE SESSION</span><strong>—</strong><small>Previous completed session</small></article>
+          <article className="opening-stat-card"><span>MARKET SCOPE</span><strong>{selectedMarket}</strong><small>{selectedAsset} · Reference asset</small></article>
+          <article className="opening-stat-card"><span>DATA AVAILABILITY</span><strong className="pending-value">Not connected</strong><small>Market feed unavailable in preview</small></article>
+          <article className="opening-stat-card"><span>ANALYSIS STATUS</span><strong className="pending-value">Not generated</strong><small>Waiting for MALE integration</small></article>
+        </section>
+
+        <section className="opening-overview-grid">
+          <article className="panel opening-session-panel">
+            <div className="panel-heading"><div><span className="section-kicker">SESSION STRUCTURE</span><h2>Previous session snapshot</h2></div><DataPending label="No session data" /></div>
+            <div className="session-chart-placeholder">
+              <div className="session-chart-y"><span>—</span><span>—</span><span>—</span><span>—</span></div>
+              <div className="session-chart-grid"><i /><i /><i /><i /></div>
+              <div className="session-chart-empty"><CandlestickChart size={25} /><b>Market structure will appear here</b><small>OHLC candles, session range and key levels</small></div>
+              <div className="session-chart-x"><span>SESSION OPEN</span><span>SESSION CLOSE</span></div>
+            </div>
+            <div className="session-legend"><span><i className="legend-candle up" /> Bullish candle</span><span><i className="legend-candle down" /> Bearish candle</span><span><i className="legend-line" /> Key levels</span></div>
+          </article>
+
+          <article className="panel opening-brief-panel">
+            <div className="panel-heading"><div><span className="section-kicker">OPENING BRIEF</span><h2>Market conditions</h2></div><span className="brief-icon"><Activity size={17} /></span></div>
+            <div className="brief-empty-state"><span className="brief-empty-icon"><TrendingUp size={19} /></span><b>Opening assessment pending</b><p>The previous session trend, volatility, volume profile and market bias will be summarized here after data becomes available.</p></div>
+            <div className="brief-checklist">
+              <div><span>Session direction</span><DataPending label="Pending" /></div>
+              <div><span>Volatility regime</span><DataPending label="Pending" /></div>
+              <div><span>Key support & resistance</span><DataPending label="Pending" /></div>
+              <div><span>Opening bias</span><DataPending label="Pending" /></div>
+            </div>
+          </article>
+        </section>
+
+        <section className="opening-lower-grid">
+          <article className="panel">
+            <div className="panel-heading"><div><span className="section-kicker">TECHNICAL LANDSCAPE</span><h2>Indicator matrix</h2></div><button className="text-button" onClick={() => setActiveTab("technical")}>View technicals <ArrowUpRight size={14} /></button></div>
+            <div className="indicator-matrix">
+              {["EMA 20 / 50 / 200", "RSI 14", "MACD 12 / 26 / 9", "ATR 14", "Bollinger Bands", "Volume profile"].map((name) => <div key={name}><span>{name}</span><DataPending label="—" /></div>)}
+            </div>
+          </article>
+          <article className="panel">
+            <div className="panel-heading"><div><span className="section-kicker">DERIVATIVES & SENTIMENT</span><h2>Positioning signals</h2></div><button className="text-button" onClick={() => setActiveTab("derivatives")}>View signals <ArrowUpRight size={14} /></button></div>
+            <div className="signal-list">
+              {["Funding rate", "Open interest", "Liquidations", "Long / short positioning"].map((name) => <div key={name}><span>{name}</span><DataPending label="—" /></div>)}
+            </div>
+          </article>
+        </section>
+      </>}
+
+      {activeTab === "technical" && <section className="panel opening-detail-panel"><div className="panel-heading"><div><span className="section-kicker">TECHNICAL ANALYSIS</span><h2>Trend, momentum & volatility</h2></div><DataPending /></div><p className="opening-detail-copy">Technical readings will be calculated from the selected market and reference session. No indicator values are simulated in this preview.</p><div className="technical-cards">{["EMA 20", "EMA 50", "EMA 200", "RSI 14", "MACD", "ATR 14", "Bollinger Bands", "Volume profile"].map((name) => <div className="technical-card" key={name}><span>{name}</span><strong>—</strong><small>Awaiting data</small></div>)}</div></section>}
+
+      {activeTab === "derivatives" && <section className="panel opening-detail-panel"><div className="panel-heading"><div><span className="section-kicker">DERIVATIVES & SENTIMENT</span><h2>Market positioning</h2></div><DataPending /></div><p className="opening-detail-copy">Derivatives metrics provide context on leverage and positioning. Values and interpretations will remain unavailable until a verified provider is connected.</p><div className="technical-cards">{["Funding rate", "Open interest", "Open interest change", "Liquidation volume", "Long / short ratio", "Basis"].map((name) => <div className="technical-card" key={name}><span>{name}</span><strong>—</strong><small>Awaiting data</small></div>)}</div></section>}
+
+      {activeTab === "macro" && <section className="opening-detail-panel opening-dual-panels"><article className="panel"><div className="panel-heading"><div><span className="section-kicker">MACROECONOMIC CALENDAR</span><h2>Upcoming events</h2></div><DataPending /></div><div className="opening-empty-block"><CalendarDays size={23} /><b>No calendar connected</b><small>Verified macro events and release times will appear here.</small></div></article><article className="panel"><div className="panel-heading"><div><span className="section-kicker">NEWS FLOW</span><h2>Market headlines</h2></div><DataPending /></div><div className="opening-empty-block"><Newspaper size={23} /><b>No news provider connected</b><small>Headlines, timestamps, sources and relevance assessments will appear here.</small></div></article></section>}
+
+      {activeTab === "scenarios" && <section className="panel opening-detail-panel"><div className="panel-heading"><div><span className="section-kicker">SCENARIO FRAMEWORK</span><h2>Opening market scenarios</h2></div><DataPending label="Not assessed" /></div><p className="opening-detail-copy">Scenarios will be derived from verified market evidence, with explicit triggers, invalidation conditions and risk factors. No probabilities are assigned in this visual preview.</p><div className="scenario-cards"><article><span className="scenario-symbol bullish">↗</span><b>Bullish scenario</b><small>Triggers and confirmation criteria pending.</small><DataPending label="Not assessed" /></article><article><span className="scenario-symbol neutral">→</span><b>Neutral scenario</b><small>Range conditions and balance levels pending.</small><DataPending label="Not assessed" /></article><article><span className="scenario-symbol bearish">↘</span><b>Bearish scenario</b><small>Breakdown triggers and invalidation pending.</small><DataPending label="Not assessed" /></article></div></section>}
+
+      {activeTab === "report" && <section className="panel opening-detail-panel"><div className="panel-heading"><div><span className="section-kicker">ANALYSIS OUTPUT</span><h2>Opening analysis report</h2></div><DataPending label="Not generated" /></div><div className="report-preview"><FileText size={27} /><div><b>Report preview unavailable</b><small>The report will be assembled after the opening workflow has completed and its evidence has been validated.</small></div></div><div className="report-sections">{["Executive summary", "Market structure & technicals", "Derivatives & sentiment", "Macro context & news", "Scenarios, risks & invalidation", "Sources & evidence"].map((name, index) => <div key={name}><span>{String(index + 1).padStart(2, "0")}</span>{name}<DataPending label="Pending" /></div>)}</div></section>}
+    </div>
+  );
+}
+
 export default function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -240,7 +348,7 @@ export default function App() {
             {activePage === "dashboard" && <button className="primary-button" onClick={() => setActivePage("intraday-analysis")}><Sparkles size={16} /> New market analysis</button>}
           </section>
 
-          {activePage === "dashboard" ? <>
+          {activePage === "opening-analysis" ? <OpeningAnalysis /> : activePage === "dashboard" ? <>
           <section className="section-block">
             <div className="section-heading">
               <div><span className="section-kicker">AT A GLANCE</span><h2>Workspace overview</h2></div>
