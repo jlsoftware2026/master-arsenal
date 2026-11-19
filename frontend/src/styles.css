@@ -588,3 +588,75 @@ h2 { margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -.025em; }
   .opening-stat-card strong { font-size: 18px; }
   .opening-stat-card strong.pending-value { font-size: 14px; }
 }
+
+
+/* Closing Analysis and Intraday workspaces */
+.market-workspace { display:flex; flex-direction:column; gap:15px; }
+.closing-chart, .intraday-chart { height:232px; }
+.closing-stat-matrix { grid-template-columns:repeat(3,minmax(0,1fr)); }
+.intraday-filters { display:grid; grid-template-columns:repeat(4,minmax(105px,1fr)); }
+.intraday-filters select { min-width:0; width:100%; }
+.intraday-feed-warning {
+  display:flex; align-items:flex-start; gap:11px; padding:12px 15px;
+  border:1px solid rgba(232,185,107,.2); border-radius:9px;
+  background:rgba(232,185,107,.055);
+}
+.feed-warning-dot { width:7px; height:7px; flex:0 0 auto; margin-top:4px; border-radius:50%; background:var(--amber); }
+.intraday-feed-warning > div { display:flex; flex-direction:column; gap:4px; }
+.intraday-feed-warning b { color:var(--amber); font-size:10px; letter-spacing:.08em; }
+.intraday-feed-warning small { color:var(--muted); font-size:11px; line-height:1.55; }
+@media (max-width: 1100px) {
+  .intraday-filters { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@media (max-width: 760px) {
+  .intraday-filters { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .closing-stat-matrix { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@media (max-width: 480px) {
+  .closing-stat-matrix { grid-template-columns:minmax(0,1fr); }
+  .intraday-filters { grid-template-columns:minmax(0,1fr); }
+}
+
+/* Keep the approved Opening Analysis typography scale consistent across market modules. */
+.closing-workspace .opening-session-title,
+.intraday-workspace .opening-session-title { font-size:12px; }
+.closing-workspace .opening-session-title strong,
+.intraday-workspace .opening-session-title strong { font-size:14px; }
+.closing-workspace .opening-filters label > span,
+.intraday-workspace .opening-filters label > span { font-size:9px; }
+.closing-workspace .opening-filters select,
+.intraday-workspace .opening-filters select { font-size:12px; }
+.closing-workspace .opening-tab,
+.intraday-workspace .opening-tab { font-size:12px; }
+.closing-workspace .opening-stat-card > span,
+.intraday-workspace .opening-stat-card > span { font-size:9px; }
+.closing-workspace .opening-stat-card strong,
+.intraday-workspace .opening-stat-card strong { font-size:19px; }
+.closing-workspace .opening-stat-card strong.pending-value,
+.intraday-workspace .opening-stat-card strong.pending-value { font-size:15px; }
+.closing-workspace .opening-stat-card small,
+.intraday-workspace .opening-stat-card small { font-size:11px; }
+.closing-workspace .data-pending,
+.intraday-workspace .data-pending { font-size:9px; }
+.closing-workspace .brief-checklist > div,
+.intraday-workspace .brief-checklist > div,
+.closing-workspace .signal-list > div,
+.intraday-workspace .signal-list > div,
+.closing-workspace .indicator-matrix > div,
+.intraday-workspace .indicator-matrix > div { font-size:11px; }
+.closing-workspace .opening-detail-copy,
+.intraday-workspace .opening-detail-copy { font-size:12px; }
+.closing-workspace .technical-card > span,
+.intraday-workspace .technical-card > span { font-size:11px; }
+.closing-workspace .technical-card small,
+.intraday-workspace .technical-card small { font-size:9px; }
+.closing-workspace .scenario-cards article b,
+.intraday-workspace .scenario-cards article b { font-size:12px; }
+.closing-workspace .scenario-cards article small,
+.intraday-workspace .scenario-cards article small { font-size:11px; }
+.closing-workspace .report-preview b,
+.intraday-workspace .report-preview b { font-size:12px; }
+.closing-workspace .report-preview small,
+.intraday-workspace .report-preview small { font-size:11px; }
+.closing-workspace .report-sections > div,
+.intraday-workspace .report-sections > div { font-size:11px; }
