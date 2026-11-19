@@ -523,20 +523,62 @@ const auditChecks = [
 ];
 
 function SkillsAudit() {
+  const [scope, setScope] = useState("all");
+  const [auditType, setAuditType] = useState("full");
+  const [expanded, setExpanded] = useState("Skill manifest integrity");
+  const selectedSkill = tradingSkills.find((skill) => skill.id === scope);
+  const scopeLabel = selectedSkill ? selectedSkill.name : "All four registered skills";
+  const auditGroups = [
+    { name: "Package & manifest", checks: ["Skill manifest integrity", "Artifact completeness", "Version consistency"] },
+    { name: "Interface & evidence", checks: ["Interface and input validation", "Evidence provenance", "Output contract"] },
+    { name: "Runtime & governance", checks: ["Execution permissions", "Runtime compatibility"] },
+  ];
+  const checkDetails: Record<string, string> = {
+    "Skill manifest integrity": "Read the manifest from the actual workspace, validate its schema, skill identifier, required fields and declared entry points. Compare the manifest against the registered catalog entry.",
+    "Artifact completeness": "Enumerate the skill package and verify all required source files, templates, schemas, references and supporting resources are present. Missing optional resources must be distinguished from required artifacts.",
+    "Version consistency": "Compare manifest version, package metadata, installed runtime version and declared compatibility. A catalog label alone is not proof of the installed version.",
+    "Interface and input validation": "Validate required parameters, accepted types, defaults, enumerations, boundary conditions and rejection behavior for malformed or incomplete inputs.",
+    "Evidence provenance": "Check that reported findings and market claims point to inspectable evidence with source identifiers, timestamps, retrieval context and integrity metadata.",
+    "Execution permissions": "Inspect capability declarations and runtime enforcement for approval gates, read-only market access and prohibited exchange order or account mutation operations.",
+    "Runtime compatibility": "Resolve declared dependencies and runtime requirements against the target Local Engine environment. Confirm import and startup checks without executing market actions.",
+    "Output contract": "Validate report schemas, required sections, machine-readable evidence, error semantics and behavior when providers or inputs are unavailable.",
+  };
   return <div className="skills-workspace">
-    <section className="skills-audit-banner"><div className="skills-audit-symbol"><ShieldAlert size={20}/></div><div><b>Audit has not been executed</b><p>The interface is ready to display an audit, but it is not connected to the audit engine. No checks are represented as passed or failed.</p></div><StatusPill tone="warning">Not run</StatusPill></section>
+    <section className="skills-audit-banner"><div className="skills-audit-symbol"><ShieldAlert size={20}/></div><div><b>Audit engine not connected</b><p>This workspace defines the audit plan and its evidence requirements. It cannot inspect local skill files or execute validation until the Local Engine API is integrated.</p></div><StatusPill tone="warning">Unavailable</StatusPill></section>
+    <section className="panel skills-audit-controls">
+      <div><span className="section-kicker">AUDIT REQUEST</span><h2>Define an audit scope</h2><p>Prepare the validation request that will be submitted to the Local Engine in a later integration step.</p></div>
+      <div className="skills-audit-control-fields">
+        <label className="skills-field"><span>Scope</span><select value={scope} onChange={(event) => setScope(event.target.value)}><option value="all">All four registered skills</option>{tradingSkills.map((skill) => <option key={skill.id} value={skill.id}>{skill.name}</option>)}</select></label>
+        <label className="skills-field"><span>Audit profile</span><select value={auditType} onChange={(event) => setAuditType(event.target.value)}><option value="full">Full integrity & compatibility</option><option value="package">Package & manifest only</option><option value="governance">Runtime & governance only</option></select></label>
+      </div>
+      <div className="skills-audit-request-footer"><span><LockKeyhole size={14}/> Audit execution is read-only and must not launch trading jobs.</span><button className="secondary-button" type="button" disabled title="Available after Local Engine API integration">Run audit <ArrowUpRight size={14}/></button></div>
+    </section>
     <section className="skills-audit-summary">
-      <article className="skills-summary-card"><span>CHECKS DEFINED</span><strong>08</strong><small>Coverage framework</small></article>
-      <article className="skills-summary-card"><span>PASSED</span><strong className="skills-pending">—</strong><small>Awaiting execution</small></article>
-      <article className="skills-summary-card"><span>FINDINGS</span><strong className="skills-pending">—</strong><small>Not assessed</small></article>
-      <article className="skills-summary-card"><span>LAST AUDIT</span><strong className="skills-pending">Never</strong><small>No verified run metadata</small></article>
+      <article className="skills-summary-card"><span>SELECTED SCOPE</span><strong>{selectedSkill ? "01" : "04"}</strong><small>{scopeLabel}</small></article>
+      <article className="skills-summary-card"><span>CHECKS IN PROFILE</span><strong>{auditType === "full" ? "08" : auditType === "package" ? "03" : "05"}</strong><small>Defined validation controls</small></article>
+      <article className="skills-summary-card"><span>EXECUTED</span><strong className="skills-pending">—</strong><small>No audit job submitted</small></article>
+      <article className="skills-summary-card"><span>LAST VERIFIED RUN</span><strong className="skills-pending">None</strong><small>No evidence returned by runtime</small></article>
     </section>
     <section className="panel skills-audit-panel">
-      <div className="panel-heading"><div><span className="section-kicker">VALIDATION FRAMEWORK</span><h2>Audit coverage</h2></div><span className="audit-coverage-label"><ShieldCheck size={15}/> 8 defined checks</span></div>
-      <div className="skills-audit-list">{auditChecks.map((check, index) => { const Icon = check.icon; return <div className="skills-audit-row" key={check.name}><span className="audit-row-index">{String(index + 1).padStart(2, "0")}</span><span className="audit-row-icon"><Icon size={16}/></span><span className="audit-row-copy"><b>{check.name}</b><small>{check.detail}</small></span><StatusPill tone="neutral">Not run</StatusPill></div>; })}</div>
-      <div className="skills-audit-note"><ShieldCheck size={16}/><span><b>Evidence-driven status</b><small>Each check will be marked only from a real audit result and its supporting evidence. Missing evidence will remain pending or be reported as unavailable.</small></span></div>
+      <div className="panel-heading"><div><span className="section-kicker">VALIDATION FRAMEWORK</span><h2>Audit checks & evidence requirements</h2></div><span className="audit-coverage-label"><ShieldCheck size={15}/> 8 defined checks</span></div>
+      <div className="skills-audit-groups">{auditGroups.map((group) => <div className="skills-audit-group" key={group.name}><div className="skills-audit-group-title">{group.name}<span>{group.checks.length} checks</span></div>{group.checks.map((name) => {
+        const index = auditChecks.findIndex((check) => check.name === name);
+        const check = auditChecks[index];
+        const Icon = check.icon;
+        const isOpen = expanded === name;
+        const visibleByProfile = auditType === "full" || (auditType === "package" && index < 3) || (auditType === "governance" && [3,4,5,6,7].includes(index));
+        return <div className={visibleByProfile ? "skills-audit-check" : "skills-audit-check filtered"} key={name}>
+          <button type="button" className="skills-audit-row" aria-expanded={isOpen} onClick={() => setExpanded(isOpen ? "" : name)}><span className="audit-row-index">{String(index + 1).padStart(2, "0")}</span><span className="audit-row-icon"><Icon size={16}/></span><span className="audit-row-copy"><b>{name}</b><small>{check.detail}</small></span><StatusPill tone="neutral">Not run</StatusPill><ChevronDown className={isOpen ? "audit-chevron open" : "audit-chevron"} size={15}/></button>
+          {isOpen && <div className="skills-audit-check-detail"><p>{checkDetails[name]}</p><span>Required evidence: runtime-generated result, timestamp, artifact references and check-level outcome.</span></div>}
+        </div>;
+      })}</div>)}</div>
+      <div className="skills-audit-note"><ShieldCheck size={16}/><span><b>Evidence-driven status</b><small>A check can pass only when the Local Engine returns a verifiable result and supporting evidence. Missing files, provider failures and unavailable runtime checks must remain distinct outcomes.</small></span></div>
     </section>
-    <section className="skills-audit-scope"><div><span className="section-kicker">AUDIT SCOPE</span><h2>Four registered skills</h2></div><div>{tradingSkills.map((skill) => <span key={skill.id}><Code2 size={13}/>{skill.name}</span>)}</div></section>
+    <section className="skills-audit-history panel">
+      <div><span className="section-kicker">AUDIT HISTORY</span><h2>Previous validation runs</h2></div>
+      <div className="skills-audit-empty"><Clock3 size={21}/><b>No audit history available in this workspace view</b><small>Historical runs will appear here after the backend audit service is connected and returns persisted job records.</small></div>
+    </section>
+    <section className="skills-audit-scope"><div><span className="section-kicker">CURRENT SCOPE</span><h2>{scopeLabel}</h2></div><div>{(selectedSkill ? [selectedSkill] : tradingSkills).map((skill) => <span key={skill.id}><Code2 size={13}/>{skill.name}</span>)}</div></section>
   </div>;
 }
 
