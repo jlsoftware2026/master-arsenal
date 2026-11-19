@@ -31,6 +31,24 @@ ma-binance snapshot --symbols BTCUSDT ETHUSDT --interval 1h --limit 250 --market
 ma-binance snapshot --symbols BTCUSDT ETHUSDT --interval 1h --limit 250 --market usdm --output futures.json
 ```
 
+## Windows packaging prototype
+
+The Phase 4 branch contains an initial Windows x64 packaging prototype:
+- `packaging/windows/build.ps1` builds the Local Engine and Binance Engine as self-contained PyInstaller application folders.
+- `packaging/windows/MASTER-ARSENAL.iss` compiles a per-user Windows installer with Inno Setup 6.
+- `.github/workflows/windows-package.yml` builds and smoke-tests the installer on Windows Server 2022 and 2025 GitHub runners.
+- The packaged application bundles its Python runtime; end users do not install Python or pip.
+- The current repository has no Java source or JAR dependency, so this Python-first package does not bundle an unused Java runtime.
+- Live market research requires internet access. A provider/network failure must not be represented as a successful live-data result.
+
+Build from a Windows x64 development machine with Python 3.11+ and Inno Setup 6:
+```powershell
+.\packaging\windows\build.ps1
+& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "packaging\windows\MASTER-ARSENAL.iss"
+```
+
+The resulting installer is written to `dist/installer/`. Windows 10 22H2 clean-VM validation, signing, upgrade/rollback certification, and production release are still required; hosted Windows Server runners alone do not certify Windows 10 compatibility.
+
 ## Tests
 ```bash
 python -m unittest discover -s binance_data_engine/tests -v

@@ -1,27 +1,55 @@
-# Distribution requirements (roadmap)
+# Windows distribution requirements
+
+**Status:** Approved Phase 4 user-facing contract  
+**Architecture decision:** [ADR-0001 — Windows-first MALE distribution architecture](adr/0001-windows-first-distribution.md)
 
 ## Mandatory user-facing delivery
 
-The final desktop distribution must be delivered as **one downloadable executable JAR**. A user should not have to install Python, run pip, create a virtual environment, configure PATH, or execute manual setup commands.
+The Phase 4 desktop distribution must be delivered as **one self-contained Windows EXE installer**. The package must bundle the private Python runtime and all required application dependencies. The current repository contains no Java source or JAR component, so Java is not part of this package. A user must not need to install Python, run pip, create a virtual environment, configure PATH, or execute manual setup commands. Java is not required by the current Python-only codebase.
 
-The JAR must provide a first-run bootstrap flow that:
-- Detects the operating system, architecture, available disk space, network access, and required runtime capabilities.
-- Checks for a compatible Java runtime and clearly reports/provisions it according to the approved deployment design.
-- Provisions a compatible Python runtime and every pinned project dependency if Python remains part of the implementation.
-- Verifies downloaded runtime/dependency artifacts using trusted checksums or signatures before execution.
-- Uses a managed application directory and keeps user reports, evidence, settings, and account exports outside replaceable application files.
-- Creates a fixed `data/account_exports/` import directory for user-supplied Binance transaction-history CSV files. These files are local-only, excluded from version control, and never uploaded to a private API or embedded in application binaries.
-- The current parser supports the common `User_ID, UTC_Time, Account, Operation, Coin, Change, Remark` transaction-history schema; Binance export formats vary, so unsupported headers are marked partial rather than guessed. It omits User_ID and Remark from report evidence, stores only file hashes and aggregate event/asset amounts, and explicitly marks ambiguous UTC timestamps as an assumption. See [Binance Report Center export types](https://www.binance.com/en/support/faq/detail/efe336a96f704afdb939905ad3adba21); the exact CSV header should be checked against the user's downloaded file.
-- Supports safe, repeatable upgrades without deleting user data or silently downgrading dependencies.
-- Produces clear, actionable diagnostics when installation, network access, or runtime validation fails.
-- Starts the local engine only after dependency and integrity checks succeed.
+The current repository contains no executable JAR or Java application component. The user-facing download is a Windows installer that installs the packaged Local Engine and Binance Engine executables.
 
-## Architecture boundary
+The Windows package must:
+- Detect and validate the operating system, architecture, available disk space, and package integrity before installation or launch.
+- Support Windows 10 22H2 x64 and Windows 11 x64, subject to the clean-machine validation matrix and documented edition/build limits.
+- Bundle a private, pinned Windows x64 CPython runtime with the complete prebuilt dependency bundle. Do not bundle an unused Java runtime; revisit only if a Java component is introduced.
+- Avoid invoking pip on the user's PC.
+- Verify runtime/dependency artifacts using reviewed SHA-256 manifests and publisher signatures where available before extraction or execution.
+- Use managed, versioned application directories and keep reports, evidence, settings, and logs in persistent user-data storage outside replaceable application files.
+- Support safe, repeatable upgrades and rollback without deleting user data or silently downgrading dependencies.
+- Produce clear, actionable diagnostics when installation, integrity checks, runtime initialization, startup, or network access fails.
+- Start MALE only after runtime, dependency, and application integrity checks succeed.
+- Pass clean-machine validation on supported Windows x64 environments with neither Java nor Python preinstalled.
 
-The current implementation is Python-first. A Java bootstrapper JAR that provisions and launches the Local Engine is a candidate design, not an approved implementation. The exact Java-runtime strategy, Python distribution, dependency bundling/provisioning, signing, update channel, and offline behavior require a separate technical specification and explicit approval before architecture, dependency, or deployment changes are made.
+## Connectivity requirements
+
+- Internet connectivity is required for live market-data acquisition, current market snapshots, and workflows that depend on external data providers.
+- The application must detect and clearly report unavailable network access, DNS/TLS failures, rate limits, timeouts, and provider outages.
+- A network/provider failure must never be represented as a successful live-data result or silently replaced with fabricated, stale, or incomplete data.
+- Local functions that do not require a provider may remain available offline where practical; the UI/CLI must distinguish local engine health from live-provider connectivity.
+- The installer/package should bundle the Python runtime and pinned dependencies. Users should not need internet access merely to compensate for missing runtimes or to run pip on first launch. Internet is required when MALE performs live research and when it retrieves updates or remote data.
+
+## Data and privacy boundary
+
+- The current product remains a pre-investment research and decision-support system.
+- No transaction-history CSV is expected or required for the current workflow.
+- Full portfolio accounting, PnL/cost-basis reconciliation, and transaction-history ingestion are future extensions, not Phase 4 distribution acceptance requirements.
+- Missing account data must be classified as not applicable, never as a zero balance or a distribution error.
+- If optional account-export support is retained, files remain local-only, outside version control and application binaries, and must never be uploaded to a private API.
+- Never collect or store exchange API keys, credentials, or other secrets.
+- No automated trading, order placement, or private exchange-account access.
+
+## Architecture and platform boundary
+
+- The implementation is Python-first and contains no Java source or JAR dependency. The current installer therefore bundles Python only; Java may be added in a future release if justified by an actual component.
+- Supported target platforms for Phase 4: Windows 10 22H2 x64 and Windows 11 x64, subject to clean-machine validation.
+- macOS, Linux, ARM64, and 32-bit Windows are outside Phase 4 acceptance. macOS may be considered in a future milestone.
+- Exact Python build, dependency versions, packaging technology, signing process, update channel, and provider/network behavior must be documented and tested before release.
+- Windows 10 support does not imply that MALE extends Microsoft's operating-system security servicing; users remain responsible for their Windows servicing and security status.
+- OpenJarvis integration and planned Pro upgrades remain future roadmap items.
 
 ## Scope separation
 
-- This is a mandatory release requirement, not a Phase 3 PDF-engine completion claim.
-- No packaging, CI/CD, installer, signing, or deployment changes are authorized by this documentation entry.
-- OpenJarvis remains a future roadmap integration and is not part of the current Phase 3 implementation.
+- These are Phase 4 distribution requirements, not a claim that packaging, CI/CD, installer, signing, or deployment is already implemented.
+- Runtime and dependency changes must follow ADR-0001 and pass the defined security, licensing, CI, and clean-machine validation gates.
+- Phase 4 is an evolving release milestone, not the final update to MASTER ARSENAL.
