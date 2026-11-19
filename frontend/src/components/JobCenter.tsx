@@ -13,7 +13,7 @@ const copy = {
     pdf:"PDF report", json:"Structured JSON evidence", both:"PDF + JSON evidence", placeholder:"Add optional context for the analysis request…",
     review:"Request review", request:"Request summary", status:"Draft · Not submitted", selected:"Selected skill", scope:"Request scope", destination:"Output destination", governance:"Execution governance",
     rule1:"No job is submitted from this preview.", rule2:"Local Engine integration is required to validate inputs and create a real job.", rule3:"Any required approval must be granted before execution.",
-    save:"Save local draft", reset:"Reset form", ready:"Draft prepared locally", unavailable:"Submission unavailable", pending:"Backend connection required",
+    save:"Mark draft ready", reset:"Reset form", ready:"Draft prepared locally", unavailable:"Submission unavailable", pending:"Backend connection required",
     assetsHint:"Separate multiple symbols with commas. Symbols are not validated until the engine is connected.",
     noExecution:"No execution, approval or report record has been created."
   },
@@ -25,7 +25,7 @@ const copy = {
     pdf:"Informe PDF", json:"Evidencia JSON estructurada", both:"PDF + evidencia JSON", placeholder:"Agrega contexto opcional para la solicitud de análisis…",
     review:"Revisar solicitud", request:"Resumen de la solicitud", status:"Borrador · No enviado", selected:"Skill seleccionada", scope:"Alcance", destination:"Destino de salida", governance:"Gobernanza de ejecución",
     rule1:"Este entorno de vista previa no envía trabajos.", rule2:"Se requiere integrar Local Engine para validar los datos y crear un trabajo real.", rule3:"Cualquier aprobación requerida debe concederse antes de la ejecución.",
-    save:"Guardar borrador local", reset:"Restablecer formulario", ready:"Borrador preparado localmente", unavailable:"Envío no disponible", pending:"Se requiere conexión con el backend",
+    save:"Marcar borrador como listo", reset:"Restablecer formulario", ready:"Borrador preparado localmente", unavailable:"Envío no disponible", pending:"Se requiere conexión con el backend",
     assetsHint:"Separa varios símbolos con comas. Los símbolos no se validan hasta conectar el motor.",
     noExecution:"No se ha creado ninguna ejecución, aprobación ni registro de informe."
   }
