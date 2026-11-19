@@ -9,7 +9,6 @@ import {
   BriefcaseBusiness,
   CheckCircle2,
   ChevronDown,
-  ChevronRight,
   CircleHelp,
   Clock3,
   FileText,
@@ -212,7 +211,6 @@ export default function App() {
 
         <div className="sidebar-bottom">
           <a className="nav-link" href="#"><CircleHelp size={17} /><span>Help & support</span></a>
-          <a className="nav-link" href="#"><Settings2 size={17} /><span>Settings</span></a>
           <div className="engine-status"><span className="engine-pulse" /><span><b>Local engine</b><small>Interface preview · Not connected</small></span></div>
           <div className="profile-row"><div className="profile-avatar">A</div><span><b>Administrator</b><small>Workspace owner</small></span><ChevronDown size={15} /></div>
         </div>
