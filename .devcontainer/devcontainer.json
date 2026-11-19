@@ -1,0 +1,24 @@
+{
+  "name": "MASTER ARSENAL Front-End Development",
+  "image": "mcr.microsoft.com/devcontainers/universal:2",
+  "forwardPorts": [5173, 4173],
+  "portsAttributes": {
+    "5173": {
+      "label": "MASTER ARSENAL Vite",
+      "onAutoForward": "notify"
+    },
+    "4173": {
+      "label": "MASTER ARSENAL Preview",
+      "onAutoForward": "notify"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "bradlc.vscode-tailwindcss"
+      ]
+    }
+  }
+}
