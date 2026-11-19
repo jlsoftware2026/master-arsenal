@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import {
   Activity,
   ArrowDownRight,
@@ -16,10 +17,10 @@ import {
   Settings2,
   ShieldCheck,
   Sparkles,
-  WalletCards,
   Waves,
   Zap,
 } from "lucide-react";
+import { formatCompactNumber } from "./lib/formatters.js";
 
 type Metric = {
   label: string;
@@ -33,7 +34,7 @@ const metrics: Metric[] = [
   { label: "Market status", value: "Monitoring", detail: "Binance Spot · Public data", tone: "positive", icon: Waves },
   { label: "Active jobs", value: "02", detail: "1 running · 1 queued", tone: "neutral", icon: Zap },
   { label: "Pending approvals", value: "01", detail: "Requires your attention", tone: "warning", icon: ShieldCheck },
-  { label: "Reports generated", value: "18", detail: "This workspace · Demo data", tone: "neutral", icon: FileText },
+  { label: "Reports generated", value: formatCompactNumber(18), detail: "This workspace · Demo data", tone: "neutral", icon: FileText },
   { label: "Available skills", value: "04", detail: "Trading Intelligence", tone: "positive", icon: Sparkles },
 ];
 
@@ -49,7 +50,7 @@ const navigation = [
   { label: "Library", items: [{ label: "Reports", icon: BookOpen }] },
 ];
 
-function StatusPill({ children, tone }: { children: React.ReactNode; tone: string }) {
+function StatusPill({ children, tone }: { children: ReactNode; tone: string }) {
   return <span className={`status-pill status-${tone}`}><span className="status-dot" />{children}</span>;
 }
 
