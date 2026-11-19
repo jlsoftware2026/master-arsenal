@@ -9,6 +9,7 @@ import {
   BriefcaseBusiness,
   CheckCircle2,
   ChevronDown,
+  ChevronRight,
   CircleHelp,
   Clock3,
   FileText,
@@ -48,9 +49,28 @@ const activities = [
 ];
 
 const navigation = [
-  { label: "Workspace", items: [{ label: "Dashboard", icon: LayoutDashboard, active: true }, { label: "Market intelligence", icon: LineChart }, { label: "Skills management", icon: Sparkles }] },
-  { label: "Execution", items: [{ label: "Job center", icon: BriefcaseBusiness }, { label: "Approvals", icon: ShieldCheck }, { label: "Execution history", icon: Clock3 }] },
-  { label: "Library", items: [{ label: "Reports", icon: BookOpen }] },
+  { id: "workspace", label: "Workspace", items: [{ id: "dashboard", label: "Dashboard", icon: LayoutDashboard, description: "Your command center for market intelligence, skills and workspace activity." }] },
+  { id: "market", label: "Market Intelligence", items: [
+    { id: "opening-analysis", label: "Opening Analysis", icon: ArrowUpRight, description: "Review the previous completed market session and prepare the opening outlook." },
+    { id: "closing-analysis", label: "Closing Analysis", icon: ArrowDownRight, description: "Assess the completed session, key movements and closing conditions." },
+    { id: "intraday-analysis", label: "Intraday Analysis", icon: Activity, description: "Inspect current market conditions and intraday developments." },
+  ] },
+  { id: "skills", label: "Skills Management", items: [
+    { id: "skills-overview", label: "Skills Overview", icon: Sparkles, description: "Review the four Trading Intelligence skills and their availability." },
+    { id: "skills-audit", label: "Skills Audit", icon: ShieldCheck, description: "Review skill integrity, evidence and validation results." },
+  ] },
+  { id: "operations", label: "Operations", items: [
+    { id: "job-center", label: "Job Center", icon: BriefcaseBusiness, description: "Create, inspect and monitor analysis jobs." },
+    { id: "approvals", label: "Approvals", icon: CheckCircle2, description: "Review jobs that require explicit approval before execution." },
+    { id: "execution-history", label: "Execution History", icon: Clock3, description: "Inspect previous job runs and their outcomes." },
+  ] },
+  { id: "reports", label: "Reports", items: [
+    { id: "report-library", label: "Report Library", icon: BookOpen, description: "Browse and open reports generated in this workspace." },
+  ] },
+  { id: "settings", label: "Settings", items: [
+    { id: "general-settings", label: "General", icon: Settings2, description: "Manage general application and workspace settings." },
+    { id: "preferences", label: "Preferences", icon: Settings2, description: "Configure display and personal preferences." },
+  ] },
 ];
 
 function StatusPill({ children, tone }: { children: ReactNode; tone: string }) {
@@ -111,6 +131,16 @@ function LocalDateTime() {
 export default function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [activePage, setActivePage] = useState("dashboard");
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
+    workspace: true,
+    market: true,
+    skills: true,
+    operations: true,
+    reports: true,
+    settings: true,
+  });
+  const currentPage = navigation.flatMap((group) => group.items).find((item) => item.id === activePage) ?? navigation[0].items[0];
 
   const toggleNavigation = () => {
     if (window.matchMedia("(max-width: 760px)").matches) {
@@ -141,21 +171,43 @@ export default function App() {
         </div>
 
         <nav className="primary-nav" aria-label="Main navigation">
-          {navigation.map((group) => (
-            <div className="nav-group" key={group.label}>
-              <p className="nav-label">{group.label}</p>
-              {group.items.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <a className={`nav-link ${item.active ? "active" : ""}`} href="#" key={item.label}>
-                    <Icon size={17} strokeWidth={1.8} />
-                    <span>{item.label}</span>
-                    {item.label === "Approvals" && <i className="nav-count">1</i>}
-                  </a>
-                );
-              })}
-            </div>
-          ))}
+          {navigation.map((group) => {
+            const expanded = expandedGroups[group.id];
+            return (
+              <div className="nav-group" key={group.id}>
+                <button
+                  className="nav-group-toggle"
+                  type="button"
+                  aria-expanded={expanded}
+                  onClick={() => setExpandedGroups((current) => ({ ...current, [group.id]: !current[group.id] }))}
+                >
+                  <span className="nav-label">{group.label}</span>
+                  <ChevronDown className={expanded ? "group-chevron expanded" : "group-chevron"} size={14} />
+                </button>
+                {expanded && <div className="nav-group-items">
+                  {group.items.map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <button
+                        className={`nav-link ${activePage === item.id ? "active" : ""}`}
+                        type="button"
+                        key={item.id}
+                        aria-current={activePage === item.id ? "page" : undefined}
+                        onClick={() => {
+                          setActivePage(item.id);
+                          setMobileMenuOpen(false);
+                        }}
+                      >
+                        <Icon size={17} strokeWidth={1.8} />
+                        <span>{item.label}</span>
+                        {item.id === "approvals" && <i className="nav-count">1</i>}
+                      </button>
+                    );
+                  })}
+                </div>}
+              </div>
+            );
+          })}
         </nav>
 
         <div className="sidebar-bottom">
@@ -171,7 +223,7 @@ export default function App() {
           <button className="menu-toggle icon-button" onClick={toggleNavigation} aria-label={mobileMenuOpen ? "Close navigation" : "Toggle navigation"} aria-expanded={mobileMenuOpen}>
             {mobileMenuOpen ? <X size={19} /> : <Menu size={19} />}
           </button>
-          <div className="breadcrumbs"><span>Workspace</span><span className="crumb-separator">/</span><strong>Dashboard</strong></div>
+          <div className="breadcrumbs"><span>MASTER ARSENAL</span><span className="crumb-separator">/</span><strong>{currentPage.label}</strong></div>
           <div className="topbar-actions">
             <span className="environment-tag"><span /> DEMO ENVIRONMENT</span>
             <button className="icon-button" aria-label="Search"><Search size={18} /></button>
@@ -184,12 +236,13 @@ export default function App() {
           <section className="page-heading">
             <div>
               <LocalDateTime />
-              <h1>Good morning<span>.</span></h1>
-              <p className="page-subtitle">Your Trading Intelligence command center.</p>
+              <h1>{activePage === "dashboard" ? <>Good morning<span>.</span></> : <>{currentPage.label}<span>.</span></>}</h1>
+              <p className="page-subtitle">{activePage === "dashboard" ? "Your Trading Intelligence command center." : currentPage.description}</p>
             </div>
-            <button className="primary-button"><Sparkles size={16} /> New market analysis</button>
+            {activePage === "dashboard" && <button className="primary-button" onClick={() => setActivePage("intraday-analysis")}><Sparkles size={16} /> New market analysis</button>}
           </section>
 
+          {activePage === "dashboard" ? <>
           <section className="section-block">
             <div className="section-heading">
               <div><span className="section-kicker">AT A GLANCE</span><h2>Workspace overview</h2></div>
@@ -237,6 +290,17 @@ export default function App() {
               </table>
             </div>
           </section>
+          </> : <section className="module-placeholder">
+            <article className="panel module-placeholder-panel">
+              <span className="section-kicker">MODULE WORKSPACE</span>
+              <h2>{currentPage.label}</h2>
+              <p>{currentPage.description}</p>
+              <div className="module-placeholder-note">
+                <span className="engine-pulse" />
+                <span><b>Interface foundation</b><small>This section is scaffolded. Its workflow and live data connection will be implemented in the next development steps.</small></span>
+              </div>
+            </article>
+          </section>}
           <footer className="page-footer"><span>MASTER ARSENAL <b>v0.1.0</b></span><span>Trading Intelligence · Front-End foundation</span></footer>
         </div>
       </main>
