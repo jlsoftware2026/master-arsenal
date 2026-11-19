@@ -384,33 +384,60 @@ const tradingSkills: SkillRecord[] = [
 function SkillsOverview() {
   const [selectedId, setSelectedId] = useState(tradingSkills[0].id);
   const [query, setQuery] = useState("");
+  const [detailTab, setDetailTab] = useState("overview");
+  const [pausedSkills, setPausedSkills] = useState<string[]>([]);
+  const [savedConfigs, setSavedConfigs] = useState<Record<string, { market: string; assets: string; interval: string; approval: boolean; report: string }>>({});
+  const [draftConfig, setDraftConfig] = useState({ market: "Binance Spot + Futures", assets: "BTCUSDT, ETHUSDT, BNBUSDT, SOLUSDT", interval: "1h, 4h", approval: true, report: "PDF + JSON evidence" });
+  const [configNotice, setConfigNotice] = useState("");
   const selected = tradingSkills.find((skill) => skill.id === selectedId) ?? tradingSkills[0];
   const visibleSkills = tradingSkills.filter((skill) => (skill.name + " " + skill.subtitle + " " + skill.id).toLowerCase().includes(query.toLowerCase()));
+  const isPaused = pausedSkills.includes(selected.id);
+  const configSaved = savedConfigs[selected.id];
+  const tabs = [{ id: "overview", label: "Overview" }, { id: "configuration", label: "Configuration" }, { id: "versions", label: "Versions & integrity" }, { id: "permissions", label: "Permissions" }];
+
+  const selectSkill = (id: string) => {
+    setSelectedId(id);
+    setDetailTab("overview");
+    setConfigNotice("");
+    const saved = savedConfigs[id];
+    setDraftConfig(saved ?? { market: "Binance Spot + Futures", assets: "BTCUSDT, ETHUSDT, BNBUSDT, SOLUSDT", interval: "1h, 4h", approval: true, report: "PDF + JSON evidence" });
+  };
+  const savePreviewConfig = () => {
+    setSavedConfigs((current) => ({ ...current, [selected.id]: { ...draftConfig } }));
+    setConfigNotice("Preview configuration saved in this page state only. It has not been written to the workspace or runtime.");
+  };
+  const togglePaused = () => {
+    setPausedSkills((current) => isPaused ? current.filter((id) => id !== selected.id) : [...current, selected.id]);
+    setConfigNotice(isPaused ? "Catalog status changed to active in this preview only." : "Catalog status changed to paused in this preview only. No runtime process was affected.");
+  };
 
   return <div className="skills-workspace">
     <section className="skills-summary-grid">
       <article className="skills-summary-card"><span>REGISTERED SKILLS</span><strong>04</strong><small>Trading Intelligence catalog</small></article>
-      <article className="skills-summary-card"><span>VERSION BASELINE</span><strong>1.5.0</strong><small>Adapted skill package version</small></article>
-      <article className="skills-summary-card"><span>RUNTIME STATUS</span><strong className="skills-pending">Not connected</strong><small>Backend integration pending</small></article>
-      <article className="skills-summary-card"><span>VALIDATION STATUS</span><strong className="skills-pending">Not verified</strong><small>No live audit executed in preview</small></article>
+      <article className="skills-summary-card"><span>PAUSED IN THIS PREVIEW</span><strong>{String(pausedSkills.length).padStart(2, "0")}</strong><small>Local interface state only</small></article>
+      <article className="skills-summary-card"><span>RUNTIME STATUS</span><strong className="skills-pending">Disconnected</strong><small>Local Engine integration pending</small></article>
+      <article className="skills-summary-card"><span>CONFIGURATION</span><strong>{Object.keys(savedConfigs).length.toString().padStart(2, "0")} / 04</strong><small>Unsynced preview drafts saved</small></article>
     </section>
 
     <div className="skills-content-grid">
       <section className="panel skills-catalog-panel">
         <div className="panel-heading">
-          <div><span className="section-kicker">TRADING INTELLIGENCE CATALOG</span><h2>Available skills</h2></div>
+          <div><span className="section-kicker">SKILL REGISTRY</span><h2>Trading skills</h2></div>
           <span className="skill-total">04</span>
         </div>
-        <label className="skills-search"><Search size={15}/><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search skills or identifiers" /></label>
+        <label className="skills-search"><Search size={15}/><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search by name or skill ID" /></label>
         <div className="skills-catalog-list">
-          {visibleSkills.map((skill) => <button type="button" key={skill.id} className={selectedId === skill.id ? "skills-catalog-item selected" : "skills-catalog-item"} onClick={() => setSelectedId(skill.id)}>
-            <span className="skills-catalog-icon">{skill.id === "binance-revision-skills" ? <ClipboardCheck size={18}/> : skill.id === "binance-momento-mercado" ? <Activity size={18}/> : skill.id === "binance-cierre-mercado" ? <ArrowDownRight size={18}/> : <ArrowUpRight size={18}/>}</span>
-            <span className="skills-catalog-copy"><b>{skill.name}</b><small>{skill.subtitle}</small><code>{skill.id}</code></span>
-            <span className="skills-catalog-chevron"><ArrowUpRight size={15}/></span>
-          </button>)}
+          {visibleSkills.map((skill) => {
+            const paused = pausedSkills.includes(skill.id);
+            return <button type="button" key={skill.id} className={selectedId === skill.id ? "skills-catalog-item selected" : "skills-catalog-item"} onClick={() => selectSkill(skill.id)}>
+              <span className="skills-catalog-icon">{skill.id === "binance-revision-skills" ? <ClipboardCheck size={18}/> : skill.id === "binance-momento-mercado" ? <Activity size={18}/> : skill.id === "binance-cierre-mercado" ? <ArrowDownRight size={18}/> : <ArrowUpRight size={18}/>}</span>
+              <span className="skills-catalog-copy"><b>{skill.name}</b><small>{skill.subtitle}</small><code>{skill.id}</code></span>
+              <span className={paused ? "skills-state paused" : "skills-state"}>{paused ? "Paused" : "Registered"}</span>
+            </button>;
+          })}
           {visibleSkills.length === 0 && <div className="skills-no-results">No skills match this search.</div>}
         </div>
-        <div className="skills-catalog-foot"><span className="engine-pulse"/><span>Catalog view · Runtime not connected</span></div>
+        <div className="skills-catalog-foot"><span className="engine-pulse"/><span>Registry snapshot · Runtime not connected</span></div>
       </section>
 
       <section className="panel skill-detail-panel">
@@ -418,16 +445,65 @@ function SkillsOverview() {
           <div><span className="section-kicker">{selected.category.toUpperCase()}</span><h2>{selected.name}</h2><p>{selected.subtitle}</p></div>
           <span className="skill-version">v{selected.version}</span>
         </div>
-        <div className="skill-runtime-banner"><span className="feed-warning-dot"/><span><b>Catalogued · Not runtime-verified</b><small>This entry describes the registered skill. Execution availability and integrity require backend confirmation.</small></span></div>
-        <p className="skill-description">{selected.description}</p>
-        <div className="skill-detail-columns">
-          <div className="skill-detail-block"><h3><Layers3 size={15}/> Expected inputs</h3><ul>{selected.inputs.map((item) => <li key={item}>{item}</li>)}</ul></div>
-          <div className="skill-detail-block"><h3><FileCheck2 size={15}/> Expected outputs</h3><ul>{selected.outputs.map((item) => <li key={item}>{item}</li>)}</ul></div>
+        <div className="skill-runtime-banner"><span className="feed-warning-dot"/><span><b>{isPaused ? "Paused in interface preview" : "Registered · Runtime not verified"}</b><small>Catalog metadata is available in this interface. Runtime availability, file integrity and executable version require backend confirmation.</small></span></div>
+        <div className="skills-detail-tabs" role="tablist" aria-label="Skill management details">
+          {tabs.map((tab) => <button type="button" role="tab" aria-selected={detailTab === tab.id} className={detailTab === tab.id ? "active" : ""} key={tab.id} onClick={() => { setDetailTab(tab.id); setConfigNotice(""); }}>{tab.label}</button>)}
         </div>
-        <div className="skill-controls-block"><h3><LockKeyhole size={15}/> Operational boundaries</h3><div>{selected.controls.map((item) => <p key={item}><ShieldCheck size={14}/>{item}</p>)}</div></div>
-        <div className="skill-detail-footer"><span><Code2 size={14}/> <code>{selected.id}</code></span><span><DataPending label="Backend metadata pending"/></span></div>
+
+        {detailTab === "overview" && <>
+          <p className="skill-description">{selected.description}</p>
+          <div className="skill-detail-columns">
+            <div className="skill-detail-block"><h3><Layers3 size={15}/> Expected inputs</h3><ul>{selected.inputs.map((item) => <li key={item}>{item}</li>)}</ul></div>
+            <div className="skill-detail-block"><h3><FileCheck2 size={15}/> Expected outputs</h3><ul>{selected.outputs.map((item) => <li key={item}>{item}</li>)}</ul></div>
+          </div>
+          <div className="skill-controls-block"><h3><LockKeyhole size={15}/> Operational boundaries</h3><div>{selected.controls.map((item) => <p key={item}><ShieldCheck size={14}/>{item}</p>)}</div></div>
+          <div className="skill-metadata-grid">
+            <div><span>Skill identifier</span><code>{selected.id}</code></div>
+            <div><span>Declared version</span><b>{selected.version}</b></div>
+            <div><span>Catalog status</span><b>{isPaused ? "Paused (preview)" : "Registered"}</b></div>
+            <div><span>Runtime verification</span><b className="skills-pending">Pending</b></div>
+          </div>
+        </>}
+
+        {detailTab === "configuration" && <div className="skills-config-view">
+          <div className="skills-config-intro"><div><h3>Execution profile</h3><p>Review the intended input scope and report contract for this skill.</p></div><StatusPill tone="warning">Preview only</StatusPill></div>
+          <label className="skills-field"><span>Market data scope</span><select value={draftConfig.market} onChange={(event) => setDraftConfig((current) => ({ ...current, market: event.target.value }))}><option>Binance Spot + Futures</option><option>Binance Spot</option><option>Binance USD-M Futures</option></select></label>
+          <label className="skills-field"><span>Assets / symbols</span><input value={draftConfig.assets} onChange={(event) => setDraftConfig((current) => ({ ...current, assets: event.target.value }))}/><small>Comma-separated symbols. Provider availability is not checked here.</small></label>
+          <label className="skills-field"><span>Analysis intervals</span><input value={draftConfig.interval} onChange={(event) => setDraftConfig((current) => ({ ...current, interval: event.target.value }))}/><small>Intervals are descriptive configuration only until the backend validates them.</small></label>
+          <label className="skills-field"><span>Report output</span><select value={draftConfig.report} onChange={(event) => setDraftConfig((current) => ({ ...current, report: event.target.value }))}><option>PDF + JSON evidence</option><option>PDF report</option><option>JSON evidence only</option></select></label>
+          <div className="skills-approval-lock"><LockKeyhole size={16}/><span><b>Explicit approval required</b><small>This safety gate is fixed and cannot be disabled from Skills Management.</small></span><StatusPill tone="success">Locked on</StatusPill></div>
+          <div className="skills-form-actions"><button className="secondary-button" type="button" onClick={() => { setDraftConfig(configSaved ?? { market: "Binance Spot + Futures", assets: "BTCUSDT, ETHUSDT, BNBUSDT, SOLUSDT", interval: "1h, 4h", approval: true, report: "PDF + JSON evidence" }); setConfigNotice("Draft reset to the last locally saved preview values."); }}>Reset draft</button><button className="primary-button" type="button" onClick={savePreviewConfig}>Save preview configuration <CheckCircle2 size={15}/></button></div>
+          {configNotice && <p className="skills-config-notice">{configNotice}</p>}
+          <p className="skills-config-disclaimer">Saving here changes only this browser component's in-memory preview state. It does not modify skill files, manifests, workspace settings or runtime behavior.</p>
+        </div>}
+
+        {detailTab === "versions" && <div className="skills-version-view">
+          <div className="skills-version-current"><div><span className="section-kicker">DECLARED BASELINE</span><h3>Version {selected.version}</h3><p>Trading skills adaptation baseline recorded for this project.</p></div><StatusPill tone="warning">Integrity pending</StatusPill></div>
+          <div className="skills-version-table"><div className="skills-version-row heading"><span>Version</span><span>Source</span><span>Verification</span></div><div className="skills-version-row"><b>{selected.version}</b><span>Project catalog metadata</span><StatusPill tone="neutral">Not verified</StatusPill></div></div>
+          <div className="skills-integrity-callout"><ShieldAlert size={17}/><span><b>Artifact hashes have not been verified by this interface</b><small>The original skill package bytes and current runtime files must be compared by the backend audit before integrity can be marked as passed. No prior versions are inferred.</small></span></div>
+        </div>}
+
+        {detailTab === "permissions" && <div className="skills-permissions-view">
+          <div className="skills-config-intro"><div><h3>Execution permissions</h3><p>Safety boundaries applied to all Trading Intelligence skills.</p></div><StatusPill tone="success">Restricted</StatusPill></div>
+          {[
+            ["Market data read access","Read-only market observations and provider responses."],
+            ["Workspace report write","Write reports and evidence only through the approved Local Engine."],
+            ["Job submission","Create a job request; approval policy is enforced outside the browser."],
+            ["Order placement","Not permitted. No exchange trading endpoint is exposed."],
+            ["Withdrawals / account changes","Not permitted. No account mutation capability is exposed."],
+            ["Unattended execution","Not enabled. Scheduling and unattended execution require a separate approved design."],
+          ].map(([name, detail], index) => <div className="skills-permission-row" key={name}><span className={index < 3 ? "permission-allowed" : "permission-denied"}>{index < 3 ? <CheckCircle2 size={15}/> : <LockKeyhole size={15}/>}</span><span><b>{name}</b><small>{detail}</small></span><StatusPill tone={index < 3 ? "neutral" : "warning"}>{index < 3 ? "Policy-bound" : "Prohibited / disabled"}</StatusPill></div>)}
+        </div>}
+
+        <div className="skills-management-actions">
+          <div><span className="section-kicker">CATALOG CONTROL</span><small>Changes below affect this preview only.</small></div>
+          <button type="button" className={isPaused ? "secondary-button" : "danger-quiet-button"} onClick={togglePaused}>{isPaused ? "Restore catalog status" : "Pause in preview"} <ShieldAlert size={14}/></button>
+        </div>
+        {configNotice && detailTab !== "configuration" && <p className="skills-config-notice">{configNotice}</p>}
+        <div className="skill-detail-footer"><span><Code2 size={14}/> <code>{selected.id}</code></span><span><DataPending label="Runtime metadata unavailable"/></span></div>
       </section>
     </div>
+
     <section className="skills-principles panel">
       <div><span className="section-kicker">GOVERNANCE</span><h2>Execution principles</h2></div>
       <div className="skills-principles-grid"><p><ShieldCheck size={16}/><span><b>Evidence first</b><small>Market conclusions must be traceable to verified inputs.</small></span></p><p><LockKeyhole size={16}/><span><b>Approval controlled</b><small>Jobs requiring approval cannot run before explicit authorization.</small></span></p><p><RefreshCw size={16}/><span><b>Failure transparent</b><small>Provider and runtime failures remain visible; no silent fallback.</small></span></p></div>
