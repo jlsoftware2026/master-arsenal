@@ -43,6 +43,7 @@ export default function JobCenter({ locale }: { locale: Locale }) {
   const [saved, setSaved] = useState(false);
   const skillNames: Record<SkillId, string> = { opening:t.opening, closing:t.closing, intraday:t.intraday, audit:t.audit };
   const assetList = useMemo(() => assets.split(",").map((item) => item.trim()).filter(Boolean), [assets]);
+  const windowLabels: Record<string, string> = { previous:t.previous, session:t.session, "4h":t.four, "12h":t.twelve, "24h":t.day };
 
   const reset = () => { setSkill("opening"); setMarket("spot"); setAssets("BTCUSDT, ETHUSDT"); setInterval("1h"); setWindow("previous"); setOutput("both"); setNotes(""); setSaved(false); };
   const save = () => setSaved(true);
@@ -71,7 +72,7 @@ export default function JobCenter({ locale }: { locale: Locale }) {
         <section className="panel job-summary-panel">
           <div className="panel-heading"><div><span className="section-kicker">02 · REVIEW</span><h2>{t.request}</h2></div><FileText size={18}/></div>
           <div className="job-summary-status"><span className="job-status-dot"/><b>{t.status}</b></div>
-          <dl><div><dt>{t.selected}</dt><dd>{skillNames[skill]}</dd></div><div><dt>{t.market}</dt><dd>{market === "spot" ? t.spot : t.futures}</dd></div><div><dt>{t.scope}</dt><dd>{assetList.length ? assetList.join(", ") : "—"}</dd></div><div><dt>{t.interval}</dt><dd>{interval}</dd></div><div><dt>{t.window}</dt><dd>{{previous:t.previous,session:t.session,"4h":t.four,"12h":t.twelve,"24h":t.day}[window]}</dd></div><div><dt>{t.destination}</dt><dd>{output === "pdf" ? t.pdf : output === "json" ? t.json : t.both}</dd></div></dl>
+          <dl><div><dt>{t.selected}</dt><dd>{skillNames[skill]}</dd></div><div><dt>{t.market}</dt><dd>{market === "spot" ? t.spot : t.futures}</dd></div><div><dt>{t.scope}</dt><dd>{assetList.length ? assetList.join(", ") : "—"}</dd></div><div><dt>{t.interval}</dt><dd>{interval}</dd></div><div><dt>{t.window}</dt><dd>{windowLabels[window]}</dd></div><div><dt>{t.destination}</dt><dd>{output === "pdf" ? t.pdf : output === "json" ? t.json : t.both}</dd></div></dl>
         </section>
         <section className="panel job-governance-panel">
           <div className="panel-heading"><div><span className="section-kicker">03 · GOVERNANCE</span><h2>{t.governance}</h2></div><ShieldCheck size={18}/></div>
