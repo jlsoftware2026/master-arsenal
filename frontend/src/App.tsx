@@ -334,6 +334,10 @@ type SkillRecord = {
   controls: string[];
 };
 
+const defaultSkillConfig = (skillId: string) => skillId === "binance-revision-skills"
+  ? { market: "All registered skills", assets: "Full integrity & compatibility", interval: "Include source manifests, hashes and runtime checks", approval: true, report: "PDF + JSON evidence" }
+  : { market: "Binance Spot + Futures", assets: "BTCUSDT, ETHUSDT, BNBUSDT, SOLUSDT", interval: "1h, 4h", approval: true, report: "PDF + JSON evidence" };
+
 const tradingSkills: SkillRecord[] = [
   {
     id: "binance-apertura-mercado",
@@ -387,7 +391,7 @@ function SkillsOverview() {
   const [detailTab, setDetailTab] = useState("overview");
   const [pausedSkills, setPausedSkills] = useState<string[]>([]);
   const [savedConfigs, setSavedConfigs] = useState<Record<string, { market: string; assets: string; interval: string; approval: boolean; report: string }>>({});
-  const [draftConfig, setDraftConfig] = useState({ market: "Binance Spot + Futures", assets: "BTCUSDT, ETHUSDT, BNBUSDT, SOLUSDT", interval: "1h, 4h", approval: true, report: "PDF + JSON evidence" });
+  const [draftConfig, setDraftConfig] = useState(defaultSkillConfig(tradingSkills[0].id));
   const [configNotice, setConfigNotice] = useState("");
   const selected = tradingSkills.find((skill) => skill.id === selectedId) ?? tradingSkills[0];
   const visibleSkills = tradingSkills.filter((skill) => (skill.name + " " + skill.subtitle + " " + skill.id).toLowerCase().includes(query.toLowerCase()));
@@ -400,7 +404,7 @@ function SkillsOverview() {
     setDetailTab("overview");
     setConfigNotice("");
     const saved = savedConfigs[id];
-    setDraftConfig(saved ?? { market: "Binance Spot + Futures", assets: "BTCUSDT, ETHUSDT, BNBUSDT, SOLUSDT", interval: "1h, 4h", approval: true, report: "PDF + JSON evidence" });
+    setDraftConfig(saved ?? defaultSkillConfig(id));
   };
   const savePreviewConfig = () => {
     setSavedConfigs((current) => ({ ...current, [selected.id]: { ...draftConfig } }));
@@ -467,12 +471,18 @@ function SkillsOverview() {
 
         {detailTab === "configuration" && <div className="skills-config-view">
           <div className="skills-config-intro"><div><h3>Execution profile</h3><p>Review the intended input scope and report contract for this skill.</p></div><StatusPill tone="warning">Preview only</StatusPill></div>
-          <label className="skills-field"><span>Market data scope</span><select value={draftConfig.market} onChange={(event) => setDraftConfig((current) => ({ ...current, market: event.target.value }))}><option>Binance Spot + Futures</option><option>Binance Spot</option><option>Binance USD-M Futures</option></select></label>
-          <label className="skills-field"><span>Assets / symbols</span><input value={draftConfig.assets} onChange={(event) => setDraftConfig((current) => ({ ...current, assets: event.target.value }))}/><small>Comma-separated symbols. Provider availability is not checked here.</small></label>
-          <label className="skills-field"><span>Analysis intervals</span><input value={draftConfig.interval} onChange={(event) => setDraftConfig((current) => ({ ...current, interval: event.target.value }))}/><small>Intervals are descriptive configuration only until the backend validates them.</small></label>
+          {selected.id === "binance-revision-skills" ? <>
+            <label className="skills-field"><span>Audit scope</span><select value={draftConfig.market} onChange={(event) => setDraftConfig((current) => ({ ...current, market: event.target.value }))}><option>All registered skills</option><option>Selected skill package</option><option>Runtime environment only</option></select></label>
+            <label className="skills-field"><span>Validation profile</span><select value={draftConfig.assets} onChange={(event) => setDraftConfig((current) => ({ ...current, assets: event.target.value }))}><option>Full integrity & compatibility</option><option>Package & manifest only</option><option>Runtime & governance only</option></select></label>
+            <label className="skills-field"><span>Evidence collection</span><select value={draftConfig.interval} onChange={(event) => setDraftConfig((current) => ({ ...current, interval: event.target.value }))}><option>Include source manifests, hashes and runtime checks</option><option>Manifest and schema evidence</option><option>Runtime and permission evidence</option></select></label>
+          </> : <>
+            <label className="skills-field"><span>Market data scope</span><select value={draftConfig.market} onChange={(event) => setDraftConfig((current) => ({ ...current, market: event.target.value }))}><option>Binance Spot + Futures</option><option>Binance Spot</option><option>Binance USD-M Futures</option></select></label>
+            <label className="skills-field"><span>Assets / symbols</span><input value={draftConfig.assets} onChange={(event) => setDraftConfig((current) => ({ ...current, assets: event.target.value }))}/><small>Comma-separated symbols. Provider availability is not checked here.</small></label>
+            <label className="skills-field"><span>Analysis intervals</span><input value={draftConfig.interval} onChange={(event) => setDraftConfig((current) => ({ ...current, interval: event.target.value }))}/><small>Intervals are descriptive configuration only until the backend validates them.</small></label>
+          </>}
           <label className="skills-field"><span>Report output</span><select value={draftConfig.report} onChange={(event) => setDraftConfig((current) => ({ ...current, report: event.target.value }))}><option>PDF + JSON evidence</option><option>PDF report</option><option>JSON evidence only</option></select></label>
           <div className="skills-approval-lock"><LockKeyhole size={16}/><span><b>Explicit approval required</b><small>This safety gate is fixed and cannot be disabled from Skills Management.</small></span><StatusPill tone="success">Locked on</StatusPill></div>
-          <div className="skills-form-actions"><button className="secondary-button" type="button" onClick={() => { setDraftConfig(configSaved ?? { market: "Binance Spot + Futures", assets: "BTCUSDT, ETHUSDT, BNBUSDT, SOLUSDT", interval: "1h, 4h", approval: true, report: "PDF + JSON evidence" }); setConfigNotice("Draft reset to the last locally saved preview values."); }}>Reset draft</button><button className="primary-button" type="button" onClick={savePreviewConfig}>Save preview configuration <CheckCircle2 size={15}/></button></div>
+          <div className="skills-form-actions"><button className="secondary-button" type="button" onClick={() => { setDraftConfig(configSaved ?? defaultSkillConfig(selected.id)); setConfigNotice("Draft reset to the last locally saved preview values."); }}>Reset draft</button><button className="primary-button" type="button" onClick={savePreviewConfig}>Save preview configuration <CheckCircle2 size={15}/></button></div>
           {configNotice && <p className="skills-config-notice">{configNotice}</p>}
           <p className="skills-config-disclaimer">Saving here changes only this browser component's in-memory preview state. It does not modify skill files, manifests, workspace settings or runtime behavior.</p>
         </div>}
