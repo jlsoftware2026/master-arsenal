@@ -935,3 +935,29 @@ h2 { margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -.025em; }
   .skills-catalog-copy b { font-size: 13px; }
   .skills-detail-tabs button { font-size: 12px; }
 }
+
+
+/* Skill identifiers — high legibility */
+.skills-catalog-copy code {
+  color: #a9bbb4;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.5;
+  letter-spacing: .025em;
+}
+.skills-catalog-copy small {
+  color: #a6b7b0;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.skills-catalog-copy b {
+  font-size: 14px;
+  line-height: 1.4;
+}
+@media (max-width: 760px) {
+  .skills-catalog-copy code {
+    font-size: 11px;
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+}
