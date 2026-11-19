@@ -128,13 +128,13 @@ function LocalDateTime({ locale = "en" }: { locale?: Locale }) {
     year: "numeric",
     timeZone,
   }).format(now);
-  const time = new Intl.DateTimeFormat(undefined, {
+  const time = new Intl.DateTimeFormat(locale === "es" ? "es-DO" : "en-US", {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
     timeZone,
   }).format(now);
-  const zoneLabel = new Intl.DateTimeFormat(undefined, {
+  const zoneLabel = new Intl.DateTimeFormat(locale === "es" ? "es-DO" : "en-US", {
     timeZone,
     timeZoneName: "short",
   }).formatToParts(now).find((part) => part.type === "timeZoneName")?.value;
