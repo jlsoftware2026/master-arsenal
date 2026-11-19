@@ -52,7 +52,7 @@ const metrics: Metric[] = [
   { label: "Active jobs", value: "02", detail: "1 running · 1 queued", tone: "neutral", icon: Zap },
   { label: "Pending approvals", value: "01", detail: "Requires your attention", tone: "warning", icon: ShieldCheck },
   { label: "Reports generated", value: formatCompactNumber(18), detail: "This workspace · Demo data", tone: "neutral", icon: FileText },
-  { label: "Available skills", value: "04", detail: "Trading Intelligence", tone: "positive", icon: Sparkles },
+  { label: "Registered skills", value: "04", detail: "Catalogued · Runtime not connected", tone: "neutral", icon: Sparkles },
 ];
 
 const activities = [
@@ -602,11 +602,11 @@ export default function App() {
 
             <article className="panel skills-panel">
               <div className="panel-heading"><div><span className="section-kicker">CAPABILITIES</span><h2>Trading skills</h2></div><span className="skill-total">04</span></div>
-              <div className="skill-item"><span className="skill-icon"><ArrowUpRight size={17} /></span><span><b>Opening analysis</b><small>Previous completed session</small></span><StatusPill tone="success">Ready</StatusPill></div>
-              <div className="skill-item"><span className="skill-icon"><ArrowDownRight size={17} /></span><span><b>Closing analysis</b><small>Session just closed</small></span><StatusPill tone="success">Ready</StatusPill></div>
-              <div className="skill-item"><span className="skill-icon"><Activity size={17} /></span><span><b>Intraday analysis</b><small>Current market snapshot</small></span><StatusPill tone="success">Ready</StatusPill></div>
-              <div className="skill-item"><span className="skill-icon"><CheckCircle2 size={17} /></span><span><b>Skills audit</b><small>Independent quality review</small></span><StatusPill tone="success">Ready</StatusPill></div>
-              <button className="secondary-button">Explore skills <ArrowUpRight size={15} /></button>
+              <div className="skill-item"><span className="skill-icon"><ArrowUpRight size={17} /></span><span><b>Opening analysis</b><small>Previous completed session</small></span><StatusPill tone="neutral">Catalogued</StatusPill></div>
+              <div className="skill-item"><span className="skill-icon"><ArrowDownRight size={17} /></span><span><b>Closing analysis</b><small>Session just closed</small></span><StatusPill tone="neutral">Catalogued</StatusPill></div>
+              <div className="skill-item"><span className="skill-icon"><Activity size={17} /></span><span><b>Intraday analysis</b><small>Current market snapshot</small></span><StatusPill tone="neutral">Catalogued</StatusPill></div>
+              <div className="skill-item"><span className="skill-icon"><CheckCircle2 size={17} /></span><span><b>Skills audit</b><small>Independent quality review</small></span><StatusPill tone="neutral">Catalogued</StatusPill></div>
+              <button className="secondary-button" onClick={() => setActivePage("skills-overview")}>Explore skills <ArrowUpRight size={15} /></button>
             </article>
           </section>
 
