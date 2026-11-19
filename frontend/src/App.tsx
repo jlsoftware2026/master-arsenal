@@ -39,6 +39,7 @@ import {
 } from "lucide-react";
 import { formatCompactNumber } from "./lib/formatters.js";
 import JobCenter from "./components/JobCenter";
+import Approvals from "./components/Approvals";
 
 type Locale = "en" | "es";
 const languageCopy: Record<Locale, Record<string, string>> = {
@@ -720,7 +721,7 @@ export default function App() {
             {activePage === "dashboard" && <button className="primary-button" onClick={() => setActivePage("intraday-analysis")}><Sparkles size={16} /> New market analysis</button>}
           </section>
 
-          {activePage === "job-center" ? <JobCenter locale={locale} /> : activePage === "opening-analysis" ? <OpeningAnalysis /> : activePage === "closing-analysis" ? <ClosingAnalysis /> : activePage === "intraday-analysis" ? <IntradayAnalysis /> : activePage === "skills-overview" ? <SkillsOverview /> : activePage === "skills-audit" ? <SkillsAudit /> : activePage === "dashboard" ? <>
+          {activePage === "job-center" ? <JobCenter locale={locale} /> : activePage === "approvals" ? <Approvals locale={locale} /> : activePage === "opening-analysis" ? <OpeningAnalysis /> : activePage === "closing-analysis" ? <ClosingAnalysis /> : activePage === "intraday-analysis" ? <IntradayAnalysis /> : activePage === "skills-overview" ? <SkillsOverview /> : activePage === "skills-audit" ? <SkillsAudit /> : activePage === "dashboard" ? <>
           <section className="section-block">
             <div className="section-heading">
               <div><span className="section-kicker">AT A GLANCE</span><h2>Workspace overview</h2></div>
