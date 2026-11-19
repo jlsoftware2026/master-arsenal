@@ -308,3 +308,91 @@ h2 { margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -.025em; }
   .page-content { padding-right: 12px; padding-left: 12px; }
   .panel { padding: 14px; }
 }
+
+
+/* Hierarchical module navigation */
+.nav-group-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 10px;
+  margin: 0 0 6px;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+.nav-group-toggle .nav-label {
+  margin: 0;
+  color: var(--subtle);
+  transition: color .18s ease;
+}
+.nav-group-toggle:hover .nav-label { color: var(--muted); }
+.group-chevron {
+  flex: 0 0 auto;
+  color: var(--subtle);
+  transform: rotate(-90deg);
+  transition: transform .18s ease;
+}
+.group-chevron.expanded { transform: rotate(0deg); }
+.nav-group-items { display: grid; gap: 2px; }
+.nav-link {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  background: transparent;
+}
+.nav-link.active { color: var(--accent); }
+.sidebar-collapsed .nav-group-toggle {
+  justify-content: center;
+  padding: 0;
+}
+.sidebar-collapsed .nav-group-toggle .nav-label,
+.sidebar-collapsed .group-chevron { display: none; }
+.sidebar-collapsed .nav-group { margin-bottom: 15px; }
+.module-placeholder { min-height: 360px; }
+.module-placeholder-panel {
+  max-width: 820px;
+  min-height: 230px;
+  padding: 26px;
+}
+.module-placeholder-panel h2 { margin: 4px 0 10px; font-size: 20px; }
+.module-placeholder-panel > p {
+  max-width: 620px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.7;
+}
+.module-placeholder-note {
+  max-width: 620px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 28px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: rgba(8,15,13,.2);
+}
+.module-placeholder-note .engine-pulse { margin-top: 4px; flex: 0 0 auto; }
+.module-placeholder-note > span:last-child {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.module-placeholder-note b { color: var(--text); font-size: 11px; }
+.module-placeholder-note small {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.6;
+}
+@media (max-width: 760px) {
+  .sidebar-collapsed .nav-group-toggle {
+    justify-content: space-between;
+    padding: 0 10px;
+  }
+  .sidebar-collapsed .nav-group-toggle .nav-label { display: block; }
+  .sidebar-collapsed .group-chevron { display: block; }
+}
