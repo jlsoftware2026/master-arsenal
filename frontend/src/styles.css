@@ -868,3 +868,70 @@ h2 { margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -.025em; }
   .skills-version-row { grid-template-columns:.5fr 1fr; }
   .skills-version-row > :last-child { grid-column:2; }
 }
+
+
+/* Skills Management — legibility pass */
+.skills-summary-card > span { font-size: 11px; }
+.skills-summary-card small { font-size: 12px; line-height: 1.5; }
+.skills-catalog-copy b { font-size: 14px; }
+.skills-catalog-copy small { font-size: 12px; line-height: 1.45; }
+.skills-catalog-copy code { font-size: 10px; }
+.skills-catalog-foot { font-size: 11px; }
+.skill-detail-top h2 { font-size: 23px; }
+.skill-detail-top p { font-size: 13px; line-height: 1.5; }
+.skill-version { font-size: 11px; }
+.skill-runtime-banner b { font-size: 12px; }
+.skill-runtime-banner small { font-size: 12px; line-height: 1.6; }
+.skill-description { font-size: 14px; line-height: 1.7; }
+.skill-detail-block h3, .skill-controls-block h3 { font-size: 14px; }
+.skill-detail-block ul { font-size: 13px; line-height: 1.65; }
+.skill-controls-block p { font-size: 13px; line-height: 1.6; }
+.skill-detail-footer code { font-size: 11px; }
+.skills-principles-grid b { font-size: 13px; }
+.skills-principles-grid small { font-size: 12px; line-height: 1.6; }
+.skills-audit-banner b { font-size: 13px; }
+.skills-audit-banner p { font-size: 13px; line-height: 1.6; }
+.audit-coverage-label { font-size: 11px; }
+.audit-row-index { font-size: 11px; }
+.audit-row-copy b { font-size: 13px; }
+.audit-row-copy small { font-size: 12px; line-height: 1.5; }
+.skills-audit-note b { font-size: 12px; }
+.skills-audit-note small { font-size: 12px; line-height: 1.6; }
+.skills-audit-scope > div:last-child span { font-size: 11px; }
+.skills-state { font-size: 10px; padding: 5px 8px; }
+.skills-detail-tabs button { font-size: 12px; padding: 9px 12px; }
+.skill-metadata-grid span { font-size: 10px; }
+.skill-metadata-grid b, .skill-metadata-grid code { font-size: 12px; }
+.skill-metadata-grid code { font-size: 11px; }
+.skills-config-intro h3, .skills-version-current h3 { font-size: 16px; }
+.skills-config-intro p, .skills-version-current p { font-size: 13px; line-height: 1.6; }
+.skills-field > span { font-size: 13px; }
+.skills-field input, .skills-field select { font-size: 13px; min-height: 42px; }
+.skills-field small { font-size: 12px; line-height: 1.55; }
+.skills-approval-lock b { font-size: 13px; }
+.skills-approval-lock small { font-size: 12px; line-height: 1.55; }
+.skills-form-actions .primary-button, .skills-form-actions .secondary-button, .skills-management-actions button { font-size: 12px; }
+.skills-config-notice, .skills-config-disclaimer { font-size: 12px; line-height: 1.6; }
+.skills-version-row { font-size: 12px; }
+.skills-version-row.heading { font-size: 10px; }
+.skills-version-row b { font-size: 12px; }
+.skills-integrity-callout b { font-size: 13px; }
+.skills-integrity-callout small { font-size: 12px; line-height: 1.6; }
+.skills-permission-row b { font-size: 13px; }
+.skills-permission-row small { font-size: 12px; line-height: 1.55; }
+.skills-management-actions > div small { font-size: 11px; }
+.skills-audit-controls h2 { font-size: 18px; }
+.skills-audit-controls > div:first-child p { font-size: 13px; line-height: 1.6; }
+.skills-audit-request-footer > span { font-size: 12px; }
+.skills-audit-group-title { font-size: 13px; }
+.skills-audit-group-title span { font-size: 11px; }
+.skills-audit-check-detail p { font-size: 12px; line-height: 1.65; }
+.skills-audit-check-detail span { font-size: 11px; line-height: 1.6; }
+.skills-audit-history h2 { font-size: 17px; }
+.skills-audit-empty b { font-size: 13px; }
+.skills-audit-empty small { font-size: 12px; line-height: 1.6; }
+@media (max-width: 760px) {
+  .skill-description { font-size: 13px; }
+  .skills-catalog-copy b { font-size: 13px; }
+  .skills-detail-tabs button { font-size: 12px; }
+}
