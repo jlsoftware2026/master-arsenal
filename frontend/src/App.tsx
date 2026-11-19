@@ -38,6 +38,14 @@ import {
   Zap,
 } from "lucide-react";
 import { formatCompactNumber } from "./lib/formatters.js";
+import JobCenter from "./components/JobCenter";
+
+type Locale = "en" | "es";
+const languageCopy: Record<Locale, Record<string, string>> = {
+  en: { dashboard:"Dashboard", workspace:"Workspace", market:"Market Intelligence", skills:"Skills Management", operations:"Operations", reports:"Reports", settings:"Settings", opening:"Opening Analysis", closing:"Closing Analysis", intraday:"Intraday Analysis", skillsOverview:"Skills Overview", skillsAudit:"Skills Audit", jobCenter:"Job Center", approvals:"Approvals", executionHistory:"Execution History", reportLibrary:"Report Library", general:"General", preferences:"Preferences", demo:"DEMO ENVIRONMENT", language:"Language", help:"Help & support", localEngine:"Local engine", notConnected:"Interface preview · Not connected" },
+  es: { dashboard:"Panel principal", workspace:"Espacio de trabajo", market:"Inteligencia de mercado", skills:"Gestión de skills", operations:"Operaciones", reports:"Informes", settings:"Configuración", opening:"Análisis de apertura", closing:"Análisis de cierre", intraday:"Análisis intradía", skillsOverview:"Resumen de skills", skillsAudit:"Auditoría de skills", jobCenter:"Centro de trabajos", approvals:"Aprobaciones", executionHistory:"Historial de ejecución", reportLibrary:"Biblioteca de informes", general:"General", preferences:"Preferencias", demo:"ENTORNO DEMO", language:"Idioma", help:"Ayuda y soporte", localEngine:"Motor local", notConnected:"Vista previa · No conectado" }
+};
+
 
 type Metric = {
   label: string;
@@ -104,7 +112,7 @@ function MetricCard({ metric }: { metric: Metric }) {
   );
 }
 
-function LocalDateTime() {
+function LocalDateTime({ locale = "en" }: { locale?: Locale }) {
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
@@ -113,7 +121,7 @@ function LocalDateTime() {
   }, []);
 
   const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  const date = new Intl.DateTimeFormat(undefined, {
+  const date = new Intl.DateTimeFormat(locale === "es" ? "es-DO" : "en-US", {
     weekday: "long",
     month: "long",
     day: "numeric",
@@ -593,6 +601,9 @@ function SkillsAudit() {
 }
 
 export default function App() {
+  const [locale, setLocale] = useState<Locale>(() => (localStorage.getItem("ma-locale") === "es" ? "es" : "en"));
+  const t = (key: string) => languageCopy[locale][key] ?? key;
+  const changeLocale = (next: Locale) => { setLocale(next); localStorage.setItem("ma-locale", next); document.documentElement.lang = next; };
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activePage, setActivePage] = useState("dashboard");
@@ -605,6 +616,10 @@ export default function App() {
     settings: true,
   });
   const currentPage = navigation.flatMap((group) => group.items).find((item) => item.id === activePage) ?? navigation[0].items[0];
+  const translatedLabel = (id: string, fallback: string) => {
+    const keys: Record<string, string> = { dashboard:"dashboard", "opening-analysis":"opening", "closing-analysis":"closing", "intraday-analysis":"intraday", "skills-overview":"skillsOverview", "skills-audit":"skillsAudit", "job-center":"jobCenter", approvals:"approvals", "execution-history":"executionHistory", "report-library":"reportLibrary", "general-settings":"general", preferences:"preferences" };
+    return t(keys[id] ?? fallback);
+  };
 
   const toggleNavigation = () => {
     if (window.matchMedia("(max-width: 760px)").matches) {
@@ -645,7 +660,7 @@ export default function App() {
                   aria-expanded={expanded}
                   onClick={() => setExpandedGroups((current) => ({ ...current, [group.id]: !current[group.id] }))}
                 >
-                  <span className="nav-label">{group.label}</span>
+                  <span className="nav-label">{t(group.id) || group.label}</span>
                   <ChevronDown className={expanded ? "group-chevron expanded" : "group-chevron"} size={14} />
                 </button>
                 {expanded && <div className="nav-group-items">
@@ -663,7 +678,7 @@ export default function App() {
                         }}
                       >
                         <Icon size={17} strokeWidth={1.8} />
-                        <span>{item.label}</span>
+                        <span>{translatedLabel(item.id, item.label)}</span>
                         {item.id === "approvals" && <i className="nav-count">1</i>}
                       </button>
                     );
@@ -686,9 +701,9 @@ export default function App() {
           <button className="menu-toggle icon-button" onClick={toggleNavigation} aria-label={mobileMenuOpen ? "Close navigation" : "Toggle navigation"} aria-expanded={mobileMenuOpen}>
             {mobileMenuOpen ? <X size={19} /> : <Menu size={19} />}
           </button>
-          <div className="breadcrumbs"><span>MASTER ARSENAL</span><span className="crumb-separator">/</span><strong>{currentPage.label}</strong></div>
-          <div className="topbar-actions">
-            <span className="environment-tag"><span /> DEMO ENVIRONMENT</span>
+          <div className="breadcrumbs"><span>MASTER ARSENAL</span><span className="crumb-separator">/</span><strong>{translatedLabel(activePage, currentPage.label)}</strong></div>
+          <div className="topbar-actions"><label className="language-switch" aria-label={t("language")}><span>{locale === "en" ? "EN" : "ES"}</span><select value={locale} onChange={(event) => changeLocale(event.target.value as Locale)} aria-label={t("language")}><option value="en">English</option><option value="es">Español</option></select></label>
+            <span className="environment-tag"><span /> {t("demo")}</span>
             <button className="icon-button" aria-label="Search"><Search size={18} /></button>
             <button className="icon-button notification-button" aria-label="Notifications"><Bell size={18} /><i /></button>
             <button className="user-menu"><span className="profile-avatar small">A</span><ChevronDown size={14} /></button>
@@ -698,14 +713,14 @@ export default function App() {
         <div className="page-content">
           <section className="page-heading">
             <div>
-              <LocalDateTime />
-              <h1>{activePage === "dashboard" ? <>Good morning<span>.</span></> : <>{currentPage.label}<span>.</span></>}</h1>
-              <p className="page-subtitle">{activePage === "dashboard" ? "Your Trading Intelligence command center." : currentPage.description}</p>
+              <LocalDateTime locale={locale} />
+              <h1>{activePage === "dashboard" ? <>{locale === "es" ? "Buen día" : "Good morning"}<span>.</span></> : <>{translatedLabel(activePage, currentPage.label)}<span>.</span></>}</h1>
+              <p className="page-subtitle">{activePage === "dashboard" ? (locale === "es" ? "Tu centro de control de inteligencia de mercado." : "Your Trading Intelligence command center.") : currentPage.description}</p>
             </div>
             {activePage === "dashboard" && <button className="primary-button" onClick={() => setActivePage("intraday-analysis")}><Sparkles size={16} /> New market analysis</button>}
           </section>
 
-          {activePage === "opening-analysis" ? <OpeningAnalysis /> : activePage === "closing-analysis" ? <ClosingAnalysis /> : activePage === "intraday-analysis" ? <IntradayAnalysis /> : activePage === "skills-overview" ? <SkillsOverview /> : activePage === "skills-audit" ? <SkillsAudit /> : activePage === "dashboard" ? <>
+          {activePage === "job-center" ? <JobCenter locale={locale} /> : activePage === "opening-analysis" ? <OpeningAnalysis /> : activePage === "closing-analysis" ? <ClosingAnalysis /> : activePage === "intraday-analysis" ? <IntradayAnalysis /> : activePage === "skills-overview" ? <SkillsOverview /> : activePage === "skills-audit" ? <SkillsAudit /> : activePage === "dashboard" ? <>
           <section className="section-block">
             <div className="section-heading">
               <div><span className="section-kicker">AT A GLANCE</span><h2>Workspace overview</h2></div>
