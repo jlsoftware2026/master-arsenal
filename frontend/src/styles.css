@@ -961,3 +961,45 @@ h2 { margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -.025em; }
     white-space: normal;
   }
 }
+
+
+/* Global language selector */
+.language-switch { display:flex; align-items:center; gap:6px; padding:5px 8px; border:1px solid var(--border, #29413d); border-radius:8px; color:#9fb2ab; font-size:11px; font-weight:700; }
+.language-switch select { appearance:none; border:0; outline:0; background:transparent; color:#dce8e3; font:inherit; cursor:pointer; }
+.language-switch option { background:#14211e; color:#e6efeb; }
+
+/* Job Center */
+.job-center-workspace { display:flex; flex-direction:column; gap:18px; }
+.job-center-intro { display:flex; justify-content:space-between; align-items:flex-end; gap:18px; }
+.job-center-intro h2 { margin:7px 0 5px; font-size:24px; color:#e5eeea; }
+.job-center-intro p { margin:0; color:#9aada6; font-size:14px; line-height:1.65; max-width:720px; }
+.job-preview-state { display:inline-flex; align-items:center; gap:8px; white-space:nowrap; border:1px solid #5a4a2b; background:#282419; color:#e9bd70; border-radius:8px; padding:9px 12px; font-size:12px; font-weight:600; }
+.job-preview-state span,.job-status-dot { width:7px; height:7px; border-radius:50%; background:#e8b65e; }
+.job-center-grid { display:grid; grid-template-columns:minmax(0,1.55fr) minmax(300px, .9fr); gap:18px; align-items:start; }
+.job-request-panel,.job-summary-panel,.job-governance-panel { padding:20px; }
+.job-form-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:22px; }
+.job-field { display:flex; flex-direction:column; gap:8px; min-width:0; }
+.job-field-wide { grid-column:1 / -1; }
+.job-field > span { color:#d8e5df; font-size:13px; font-weight:650; }
+.job-field input,.job-field select,.job-field textarea { width:100%; box-sizing:border-box; border:1px solid #29433d; border-radius:8px; background:#111c19; color:#e0ebe5; padding:11px 12px; font:inherit; font-size:13px; outline:none; }
+.job-field input:focus,.job-field select:focus,.job-field textarea:focus { border-color:#20b99e; box-shadow:0 0 0 2px #20b99e22; }
+.job-field textarea { resize:vertical; line-height:1.55; }
+.job-field small { color:#91a69e; font-size:12px; line-height:1.5; }
+.job-form-actions { display:flex; justify-content:flex-end; gap:10px; margin-top:20px; padding-top:16px; border-top:1px solid #263a35; }
+.job-form-actions button { display:inline-flex; align-items:center; gap:8px; }
+.job-saved-notice { display:flex; align-items:center; gap:8px; margin:13px 0 0; color:#55d8b9; font-size:13px; }
+.job-request-side { display:flex; flex-direction:column; gap:18px; }
+.job-summary-status { display:flex; align-items:center; gap:9px; padding:11px 12px; margin:18px 0 12px; border-radius:8px; background:#20251d; color:#e4bd76; font-size:12px; }
+.job-summary-panel dl { margin:0; }
+.job-summary-panel dl div { display:flex; flex-direction:column; gap:5px; padding:12px 0; border-bottom:1px solid #263a35; }
+.job-summary-panel dl div:last-child { border-bottom:0; }
+.job-summary-panel dt { color:#91a69e; font-size:12px; }
+.job-summary-panel dd { margin:0; color:#e0ebe5; font-size:13px; font-weight:600; overflow-wrap:anywhere; }
+.job-governance-panel > p { display:flex; align-items:flex-start; gap:9px; color:#a7b8b1; font-size:12px; line-height:1.6; margin:15px 0; }
+.job-governance-panel > p svg { color:#37c8ad; flex:0 0 auto; margin-top:1px; }
+.job-submit-disabled { display:flex; width:100%; align-items:center; justify-content:space-between; gap:8px; margin-top:16px; padding:12px; border:1px solid #34433e; border-radius:8px; background:#202a26; color:#82958d; font-size:12px; font-weight:700; cursor:not-allowed; }
+.job-governance-panel > small { display:block; color:#91a69e; font-size:12px; line-height:1.5; margin-top:9px; }
+.job-center-footnote { display:flex; align-items:center; gap:9px; color:#91a69e; font-size:12px; padding:12px 2px; }
+.job-center-footnote svg { color:#39c7ad; }
+@media(max-width:1000px) { .job-center-grid { grid-template-columns:1fr; } .job-request-side { display:grid; grid-template-columns:1fr 1fr; } }
+@media(max-width:680px) { .job-center-intro { align-items:flex-start; flex-direction:column; } .job-request-side { display:flex; } .job-form-grid { grid-template-columns:1fr; } .job-field-wide { grid-column:auto; } .job-request-panel,.job-summary-panel,.job-governance-panel { padding:15px; } .language-switch { gap:3px; padding:4px 6px; } }
