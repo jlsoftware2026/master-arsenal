@@ -10,6 +10,13 @@ import {
   CheckCircle2,
   CalendarDays,
   CandlestickChart,
+  ClipboardCheck,
+  Code2,
+  FileCheck2,
+  Layers3,
+  LockKeyhole,
+  RefreshCw,
+  ShieldAlert,
   Gauge,
   Newspaper,
   Target,
@@ -61,8 +68,8 @@ const navigation = [
     { id: "intraday-analysis", label: "Intraday Analysis", icon: Activity, description: "Inspect current market conditions and intraday developments." },
   ] },
   { id: "skills", label: "Skills Management", items: [
-    { id: "skills-overview", label: "Skills Overview", icon: Sparkles, description: "Review the four Trading Intelligence skills and their availability." },
-    { id: "skills-audit", label: "Skills Audit", icon: ShieldCheck, description: "Review skill integrity, evidence and validation results." },
+    { id: "skills-overview", label: "Skills Overview", icon: Sparkles, description: "Review the four Trading Intelligence skills, versions and operational boundaries." },
+    { id: "skills-audit", label: "Skills Audit", icon: ShieldCheck, description: "Inspect validation coverage, integrity controls and audit evidence." },
   ] },
   { id: "operations", label: "Operations", items: [
     { id: "job-center", label: "Job Center", icon: BriefcaseBusiness, description: "Create, inspect and monitor analysis jobs." },
@@ -313,6 +320,149 @@ function IntradayAnalysis() {
 }
 
 
+
+type SkillRecord = {
+  id: string;
+  name: string;
+  subtitle: string;
+  description: string;
+  version: string;
+  category: string;
+  inputs: string[];
+  outputs: string[];
+  controls: string[];
+};
+
+const tradingSkills: SkillRecord[] = [
+  {
+    id: "binance-apertura-mercado",
+    name: "Opening Analysis",
+    subtitle: "Previous completed session · Opening preparation",
+    description: "Builds a structured view of the previous completed session to establish market context for the next opening. It combines price structure, technical indicators, derivatives positioning and relevant macro or news context.",
+    version: "1.5.0",
+    category: "Session analysis",
+    inputs: ["Verified OHLCV and session boundaries", "Technical indicator observations", "Derivatives and positioning data", "Timestamped macro events and news"],
+    outputs: ["Previous-session assessment", "Opening bias and conditional scenarios", "Key levels, triggers and invalidation", "Evidence-backed report"],
+    controls: ["No order placement or trade execution", "Missing or stale inputs remain explicitly unavailable", "Scenarios require evidence and invalidation criteria"],
+  },
+  {
+    id: "binance-cierre-mercado",
+    name: "Closing Analysis",
+    subtitle: "Completed session · Closing review",
+    description: "Reviews a completed market session, evaluates its structure and participation, and records the conditions that should inform the next analysis cycle.",
+    version: "1.5.0",
+    category: "Session analysis",
+    inputs: ["Completed session OHLCV", "Volume and volatility measures", "Technical and derivatives observations", "Relevant events and news"],
+    outputs: ["Session outcome and market characterization", "Technical and positioning review", "Continuation or reversal scenarios", "Closing report with source evidence"],
+    controls: ["Requires a completed, well-defined session", "No unsupported interpretation when evidence is incomplete", "No order placement or trade execution"],
+  },
+  {
+    id: "binance-momento-mercado",
+    name: "Intraday Analysis",
+    subtitle: "Current market · Momentum snapshot",
+    description: "Monitors intraday price action, momentum, volatility and derivatives activity over a selected interval and time window. Observations must retain timestamps and freshness context.",
+    version: "1.5.0",
+    category: "Continuous monitoring",
+    inputs: ["Timestamped live or recent market observations", "Selected market, asset and interval", "Momentum and volatility indicators", "Derivatives, liquidation and event data"],
+    outputs: ["Intraday market state", "Price-action and momentum assessment", "Conditional scenarios and invalidation", "Timestamped market snapshot"],
+    controls: ["Provider outages and stale observations must be visible", "No inferred live state from cached or missing data", "No automatic trading or order execution"],
+  },
+  {
+    id: "binance-revision-skills",
+    name: "Skills Audit",
+    subtitle: "Independent review · Quality and integrity",
+    description: "Performs an independent review of the trading skills and their supporting artifacts, checking consistency, completeness, validation evidence and adherence to operational boundaries.",
+    version: "1.5.0",
+    category: "Quality assurance",
+    inputs: ["Skill manifests and source artifacts", "Version and integrity metadata", "Validation results and evidence files", "Declared interfaces and execution constraints"],
+    outputs: ["Audit findings and severity", "Coverage and validation status", "Evidence references", "Remediation recommendations"],
+    controls: ["Audit claims require inspectable evidence", "Unverified checks remain pending, never passed by default", "Findings must distinguish defects from unavailable evidence"],
+  },
+];
+
+function SkillsOverview() {
+  const [selectedId, setSelectedId] = useState(tradingSkills[0].id);
+  const [query, setQuery] = useState("");
+  const selected = tradingSkills.find((skill) => skill.id === selectedId) ?? tradingSkills[0];
+  const visibleSkills = tradingSkills.filter((skill) => (skill.name + " " + skill.subtitle + " " + skill.id).toLowerCase().includes(query.toLowerCase()));
+
+  return <div className="skills-workspace">
+    <section className="skills-summary-grid">
+      <article className="skills-summary-card"><span>REGISTERED SKILLS</span><strong>04</strong><small>Trading Intelligence catalog</small></article>
+      <article className="skills-summary-card"><span>VERSION BASELINE</span><strong>1.5.0</strong><small>Adapted skill package version</small></article>
+      <article className="skills-summary-card"><span>RUNTIME STATUS</span><strong className="skills-pending">Not connected</strong><small>Backend integration pending</small></article>
+      <article className="skills-summary-card"><span>VALIDATION STATUS</span><strong className="skills-pending">Not verified</strong><small>No live audit executed in preview</small></article>
+    </section>
+
+    <div className="skills-content-grid">
+      <section className="panel skills-catalog-panel">
+        <div className="panel-heading">
+          <div><span className="section-kicker">TRADING INTELLIGENCE CATALOG</span><h2>Available skills</h2></div>
+          <span className="skill-total">04</span>
+        </div>
+        <label className="skills-search"><Search size={15}/><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search skills or identifiers" /></label>
+        <div className="skills-catalog-list">
+          {visibleSkills.map((skill) => <button type="button" key={skill.id} className={selectedId === skill.id ? "skills-catalog-item selected" : "skills-catalog-item"} onClick={() => setSelectedId(skill.id)}>
+            <span className="skills-catalog-icon">{skill.id === "binance-revision-skills" ? <ClipboardCheck size={18}/> : skill.id === "binance-momento-mercado" ? <Activity size={18}/> : skill.id === "binance-cierre-mercado" ? <ArrowDownRight size={18}/> : <ArrowUpRight size={18}/>}</span>
+            <span className="skills-catalog-copy"><b>{skill.name}</b><small>{skill.subtitle}</small><code>{skill.id}</code></span>
+            <span className="skills-catalog-chevron"><ArrowUpRight size={15}/></span>
+          </button>)}
+          {visibleSkills.length === 0 && <div className="skills-no-results">No skills match this search.</div>}
+        </div>
+        <div className="skills-catalog-foot"><span className="engine-pulse"/><span>Catalog view · Runtime not connected</span></div>
+      </section>
+
+      <section className="panel skill-detail-panel">
+        <div className="skill-detail-top">
+          <div><span className="section-kicker">{selected.category.toUpperCase()}</span><h2>{selected.name}</h2><p>{selected.subtitle}</p></div>
+          <span className="skill-version">v{selected.version}</span>
+        </div>
+        <div className="skill-runtime-banner"><span className="feed-warning-dot"/><span><b>Catalogued · Not runtime-verified</b><small>This entry describes the registered skill. Execution availability and integrity require backend confirmation.</small></span></div>
+        <p className="skill-description">{selected.description}</p>
+        <div className="skill-detail-columns">
+          <div className="skill-detail-block"><h3><Layers3 size={15}/> Expected inputs</h3><ul>{selected.inputs.map((item) => <li key={item}>{item}</li>)}</ul></div>
+          <div className="skill-detail-block"><h3><FileCheck2 size={15}/> Expected outputs</h3><ul>{selected.outputs.map((item) => <li key={item}>{item}</li>)}</ul></div>
+        </div>
+        <div className="skill-controls-block"><h3><LockKeyhole size={15}/> Operational boundaries</h3><div>{selected.controls.map((item) => <p key={item}><ShieldCheck size={14}/>{item}</p>)}</div></div>
+        <div className="skill-detail-footer"><span><Code2 size={14}/> <code>{selected.id}</code></span><span><DataPending label="Backend metadata pending"/></span></div>
+      </section>
+    </div>
+    <section className="skills-principles panel">
+      <div><span className="section-kicker">GOVERNANCE</span><h2>Execution principles</h2></div>
+      <div className="skills-principles-grid"><p><ShieldCheck size={16}/><span><b>Evidence first</b><small>Market conclusions must be traceable to verified inputs.</small></span></p><p><LockKeyhole size={16}/><span><b>Approval controlled</b><small>Jobs requiring approval cannot run before explicit authorization.</small></span></p><p><RefreshCw size={16}/><span><b>Failure transparent</b><small>Provider and runtime failures remain visible; no silent fallback.</small></span></p></div>
+    </section>
+  </div>;
+}
+
+const auditChecks = [
+  { name: "Skill manifest integrity", detail: "Manifest presence, schema and declared identity", icon: FileCheck2 },
+  { name: "Artifact completeness", detail: "Required source files and supporting resources", icon: Layers3 },
+  { name: "Version consistency", detail: "Manifest, package and runtime version alignment", icon: GitBranch },
+  { name: "Interface and input validation", detail: "Required parameters, types and input boundaries", icon: ClipboardCheck },
+  { name: "Evidence provenance", detail: "Source references, timestamps and audit traceability", icon: Search },
+  { name: "Execution permissions", detail: "Approval gates and prohibited side effects", icon: LockKeyhole },
+  { name: "Runtime compatibility", detail: "Declared dependencies and execution environment", icon: Code2 },
+  { name: "Output contract", detail: "Expected report structure and failure semantics", icon: FileCheck2 },
+];
+
+function SkillsAudit() {
+  return <div className="skills-workspace">
+    <section className="skills-audit-banner"><div className="skills-audit-symbol"><ShieldAlert size={20}/></div><div><b>Audit has not been executed</b><p>The interface is ready to display an audit, but it is not connected to the audit engine. No checks are represented as passed or failed.</p></div><StatusPill tone="warning">Not run</StatusPill></section>
+    <section className="skills-audit-summary">
+      <article className="skills-summary-card"><span>CHECKS DEFINED</span><strong>08</strong><small>Coverage framework</small></article>
+      <article className="skills-summary-card"><span>PASSED</span><strong className="skills-pending">—</strong><small>Awaiting execution</small></article>
+      <article className="skills-summary-card"><span>FINDINGS</span><strong className="skills-pending">—</strong><small>Not assessed</small></article>
+      <article className="skills-summary-card"><span>LAST AUDIT</span><strong className="skills-pending">Never</strong><small>No verified run metadata</small></article>
+    </section>
+    <section className="panel skills-audit-panel">
+      <div className="panel-heading"><div><span className="section-kicker">VALIDATION FRAMEWORK</span><h2>Audit coverage</h2></div><span className="audit-coverage-label"><ShieldCheck size={15}/> 8 defined checks</span></div>
+      <div className="skills-audit-list">{auditChecks.map((check, index) => { const Icon = check.icon; return <div className="skills-audit-row" key={check.name}><span className="audit-row-index">{String(index + 1).padStart(2, "0")}</span><span className="audit-row-icon"><Icon size={16}/></span><span className="audit-row-copy"><b>{check.name}</b><small>{check.detail}</small></span><StatusPill tone="neutral">Not run</StatusPill></div>; })}</div>
+      <div className="skills-audit-note"><ShieldCheck size={16}/><span><b>Evidence-driven status</b><small>Each check will be marked only from a real audit result and its supporting evidence. Missing evidence will remain pending or be reported as unavailable.</small></span></div>
+    </section>
+    <section className="skills-audit-scope"><div><span className="section-kicker">AUDIT SCOPE</span><h2>Four registered skills</h2></div><div>{tradingSkills.map((skill) => <span key={skill.id}><Code2 size={13}/>{skill.name}</span>)}</div></section>
+  </div>;
+}
+
 export default function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -426,7 +576,7 @@ export default function App() {
             {activePage === "dashboard" && <button className="primary-button" onClick={() => setActivePage("intraday-analysis")}><Sparkles size={16} /> New market analysis</button>}
           </section>
 
-          {activePage === "opening-analysis" ? <OpeningAnalysis /> : activePage === "closing-analysis" ? <ClosingAnalysis /> : activePage === "intraday-analysis" ? <IntradayAnalysis /> : activePage === "dashboard" ? <>
+          {activePage === "opening-analysis" ? <OpeningAnalysis /> : activePage === "closing-analysis" ? <ClosingAnalysis /> : activePage === "intraday-analysis" ? <IntradayAnalysis /> : activePage === "skills-overview" ? <SkillsOverview /> : activePage === "skills-audit" ? <SkillsAudit /> : activePage === "dashboard" ? <>
           <section className="section-block">
             <div className="section-heading">
               <div><span className="section-kicker">AT A GLANCE</span><h2>Workspace overview</h2></div>
