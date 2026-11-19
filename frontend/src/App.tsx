@@ -68,6 +68,13 @@ function MetricCard({ metric }: { metric: Metric }) {
   );
 }
 
+const formattedToday = new Intl.DateTimeFormat("en-US", {
+  weekday: "long",
+  month: "long",
+  day: "numeric",
+  year: "numeric",
+}).format(new Date()).toUpperCase();
+
 export default function App() {
   return (
     <div className="app-shell">
@@ -105,7 +112,7 @@ export default function App() {
           <a className="nav-link" href="#"><CircleHelp size={17} /><span>Help & support</span></a>
           <a className="nav-link" href="#"><Settings2 size={17} /><span>Settings</span></a>
           <div className="engine-status"><span className="engine-pulse" /><span><b>Local engine</b><small>Interface preview · Not connected</small></span></div>
-          <div className="profile-row"><div className="profile-avatar">S</div><span><b>Sensei</b><small>Administrator</small></span><ChevronDown size={15} /></div>
+          <div className="profile-row"><div className="profile-avatar">A</div><span><b>Administrator</b><small>Workspace owner</small></span><ChevronDown size={15} /></div>
         </div>
       </aside>
 
@@ -116,15 +123,15 @@ export default function App() {
             <span className="environment-tag"><span /> DEMO ENVIRONMENT</span>
             <button className="icon-button" aria-label="Search"><Search size={18} /></button>
             <button className="icon-button notification-button" aria-label="Notifications"><Bell size={18} /><i /></button>
-            <button className="user-menu"><span className="profile-avatar small">S</span><ChevronDown size={14} /></button>
+            <button className="user-menu"><span className="profile-avatar small">A</span><ChevronDown size={14} /></button>
           </div>
         </header>
 
         <div className="page-content">
           <section className="page-heading">
             <div>
-              <p className="eyebrow">THURSDAY, NOVEMBER 19, 2026</p>
-              <h1>Good morning, Sensei<span>.</span></h1>
+              <p className="eyebrow">{formattedToday}</p>
+              <h1>Good morning<span>.</span></h1>
               <p className="page-subtitle">Your Trading Intelligence command center.</p>
             </div>
             <button className="primary-button"><Sparkles size={16} /> New market analysis</button>
